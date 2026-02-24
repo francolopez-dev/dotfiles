@@ -10,7 +10,8 @@ Icon?
 ._*
 .Spotlight-V100
 .Trashes
-
+# macOS iCloud placeholders
+*.icloud
 # Windows
 Thumbs.db
 ehthumbs.db

@@ -1,6 +1,10 @@
 [user]
-  name = Franco Lopez
-  email = jfranco8@outlook.com
-
-[init]
-  defaultBranch = main
+	name = Franco
+	email = jfranco8@outlook.com
+[filter "lfs"]
+	clean = git-lfs clean -- %f
+	smudge = git-lfs smudge -- %f
+	process = git-lfs filter-process
+	required = true
+[core]
+	excludesfile = /Users/franco.lopez/.gitignore_global

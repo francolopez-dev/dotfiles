@@ -1,4 +1,5 @@
---target=~/.config
+--dir=stow
+--target=~
 --ignore=.stowrc
 --ignore=DS_Store
 --ignore=atuin/*

@@ -1,7 +1,6 @@
 # Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
 # Initialization code that may require console input (password prompts, [y/n]
 # confirmations, etc.) must go above this block; everything else may go below.
-fastfetch
 if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
   source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
 fi
@@ -131,9 +130,8 @@ rest() {
 
 
 #export POSTGRES_USER=myuser
-
+alias v=neovim
 alias k=kubectl
-eval "$(starship init zsh)"
 # In ~/.zshrc
 alias gitdomum='cd "$HOME/Library/Mobile Documents/com~apple~CloudDocs/Git/Domum"'
 #kubeconfig

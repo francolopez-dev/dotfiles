@@ -1,6 +1,7 @@
 # Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
 # Initialization code that may require console input (password prompts, [y/n]
 # confirmations, etc.) must go above this block; everything else may go below.
+
 if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
   source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
 fi
@@ -80,10 +81,16 @@ ZSH_THEME="powerlevel10k/powerlevel10k"
 # Example format: plugins=(rails git textmate ruby lighthouse)
 # Add wisely, as too many plugins slow down shell startup.
 #plugins=(git)
-plugins=(git zsh-autosuggestions zsh-syntax-highlighting docker-compose python gcloud nmap vscode)
+plugins=(git zsh-autosuggestions zsh-syntax-highlighting docker-compose python nmap)
+# Optional plugins if available
+[[ -d "$ZSH/plugins/gcloud" ]] && plugins+=(gcloud)
+[[ -d "$ZSH/plugins/vscode" ]] && plugins+=(vscode)
+
 
 source $ZSH/oh-my-zsh.sh
 
+[[ -f "$HOME/.config/shell/env.sh" ]] && source "$HOME/.config/shell/env.sh"
+[[ -f "$HOME/.config/shell/aliases.sh" ]] && source "$HOME/.config/shell/aliases.sh"
 # User configuration
 
 # export MANPATH="/usr/local/man:$MANPATH"
@@ -114,34 +121,32 @@ source $ZSH/oh-my-zsh.sh
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
 
 
+
+# The following lines have been added by Docker Desktop to enable Docker CLI completions.
+if [[ -d "$HOME/.docker/completions" ]]; then
+  fpath=("$HOME/.docker/completions" $fpath)
+  autoload -Uz compinit
+  compinit
+fi
+# End of Docker CLI completions
+#
+### Pomodoro timer
 work() {
-  # usage: work 10m, work 60s etc. Default is 20m
-  timer "${1:-25m}" && terminal-notifier -message 'Pomodoro'\
-        -title 'Work Timer is up! Take a Break 😊'\
-        -sound Crystal
+  timer "${1:-25m}" && {
+    if command -v terminal-notifier >/dev/null 2>&1; then
+      terminal-notifier -message 'Pomodoro' -title 'Work Timer is up! Take a Break 😊' -sound Crystal
+    else
+      echo "Work timer done"
+    fi
+  }
 }
 
 rest() {
-  # usage: rest 10m, rest 60s etc. Default is 5m
-  timer "${1:-5m}" && terminal-notifier -message 'Pomodoro'\
-        -title 'Break is over! Get back to work 😬'\
-        -sound Crystal
+  timer "${1:-5m}" && {
+    if command -v terminal-notifier >/dev/null 2>&1; then
+      terminal-notifier -message 'Pomodoro' -title 'Break is over! Get back to work 😬' -sound Crystal
+    else
+      echo "Break timer done"
+    fi
+  }
 }
-
-
-#export POSTGRES_USER=myuser
-alias v=neovim
-alias k=kubectl
-# In ~/.zshrc
-alias gitdomum='cd "$HOME/Library/Mobile Documents/com~apple~CloudDocs/Git/Domum"'
-#kubeconfig
-#export VAULT_TOKEN=
-#export VAULT_SKIP_VERIFY=true
-export KUBECONFIG=kubernetes/config/talos/kubeconfig
-# Added by LM Studio CLI (lms)
-export PATH="$PATH:/Users/franco.lopez/.lmstudio/bin"
-# The following lines have been added by Docker Desktop to enable Docker CLI completions.
-fpath=(/Users/franco.lopez/.docker/completions $fpath)
-autoload -Uz compinit
-compinit
-# End of Docker CLI completions

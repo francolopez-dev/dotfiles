@@ -7,4 +7,5 @@
 	process = git-lfs filter-process
 	required = true
 [core]
-	excludesfile = /Users/franco.lopez/.gitignore_global
+  excludesfile = ~/.gitignore_global
+

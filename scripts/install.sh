@@ -28,6 +28,15 @@ TOOLS_WANTED=(
 # Packages to stow (must exist as folders under $STOW_DIR)
 STOW_PACKAGES=(shell git ssh tmux)
 
+# Desktop-only packages
+if [[ "$(uname)" == "Darwin" ]]; then
+  STOW_PACKAGES+=(wezterm aerospace)
+else
+  # Linux desktop session detection (X11 or Wayland)
+  if [[ -n "${DISPLAY:-}" || -n "${WAYLAND_DISPLAY:-}" ]]; then
+    STOW_PACKAGES+=(wezterm)
+  fi
+fi
 # Optional: install oh-my-zsh + p10k
 INSTALL_OHMYZSH="${INSTALL_OHMYZSH:-1}" # set to 0 to skip
 INSTALL_P10K="${INSTALL_P10K:-1}"       # set to 0 to skip

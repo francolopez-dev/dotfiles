@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# JankyBorders config
+
+borders \
+  style=round \
+  width=12.0 \
+  hidpi=on \
+  active_color=0xff00ff66 \
+  inactive_color=0xff1e1e2e

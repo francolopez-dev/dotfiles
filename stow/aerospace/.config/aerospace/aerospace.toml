@@ -1,9 +1,8 @@
 start-at-login = true
 
 after-login-command = []
-
 after-startup-command = [
-  'exec-and-forget sketchybar borders active_color=0xffe1e3e4 inactive_color=0xff494d64 width=5.0 '
+  'exec-and-forget /bin/bash -lc "~/.config/borders/bordersrc"'
 ]
 # Notify Sketchybar about workspace change
 exec-on-workspace-change = ['/bin/bash', '-c',
@@ -106,8 +105,8 @@ alt-tab = 'workspace-back-and-forth'
 
 # App Launchers
 # alt-enter = 'exec-and-forget open -a "kitty"'
-alt-shift-enter = 'exec-and-forget open -n /Applications/kitty.app'
-alt-enter = 'exec-and-forget open -n /Applications/alacritty.app'
+alt-shift-enter = 'exec-and-forget open -n /Applications/Alacritty.app'
+alt-enter = 'exec-and-forget open -n /Applications/WezTerm.app'
 alt-semicolon = """exec-and-forget open -a "System Settings" """
 alt-t = 'exec-and-forget open -n /Applications/Microsoft\ Teams.app'
 alt-r = 'exec-and-forget open -a "Reminders"'

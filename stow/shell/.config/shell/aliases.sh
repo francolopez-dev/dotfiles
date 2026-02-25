@@ -15,3 +15,6 @@ if command -v eza >/dev/null 2>&1; then
 else
   alias ll='ls -lah'
 fi
+
+#real clear
+alias cls='clear && printf "\e[3J"'

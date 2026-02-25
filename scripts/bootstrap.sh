@@ -126,7 +126,9 @@ install_min_deps() {
 clone_or_update_repo() {
   if [[ -d "$REPO_DIR/.git" ]]; then
     log "Repo already exists. Updating..."
-    git -C "$REPO_DIR" pull --ff-only || true
+    git -C "$REPO_DIR" fetch --all --prune
+    git -C "$REPO_DIR" checkout main
+    git -C "$REPO_DIR" pull --ff-only
   else
     log "Cloning repo..."
     git clone "$REPO_URL" "$REPO_DIR"

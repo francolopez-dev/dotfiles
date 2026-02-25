@@ -223,9 +223,13 @@ install_p10k() {
     "$custom_dir/themes/powerlevel10k" || true
 }
 set_default_shell_to_zsh() {
-  if [[ "$SHELL" != "$(which zsh)" ]]; then
-    log "Setting zsh as default shell..."
-    chsh -s "$(which zsh)" || log "WARN: Could not change default shell (may require logout)"
+  if command -v chsh >/dev/null 2>&1 && command -v zsh >/dev/null 2>&1; then
+    if [[ -t 0 && -t 1 ]]; then
+      log "Setting zsh as default shell..."
+      chsh -s "$(command -v zsh)" "$USER" || log "WARN: Could not change default shell (PAM may block it). Using .bashrc auto-zsh instead."
+    else
+      log "Skipping chsh (non-interactive session)."
+    fi
   fi
 }
 backup_conflicting_dotfiles() {

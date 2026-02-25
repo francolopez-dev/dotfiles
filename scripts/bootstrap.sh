@@ -126,9 +126,27 @@ install_min_deps() {
 clone_or_update_repo() {
   if [[ -d "$REPO_DIR/.git" ]]; then
     log "Repo already exists. Updating..."
+
+    # If there are local changes, stash them so pull can fast-forward.
+    if [[ -n "$(git -C "$REPO_DIR" status --porcelain)" ]]; then
+      log "Local changes detected. Stashing..."
+      git -C "$REPO_DIR" stash push -u -m "bootstrap auto-stash $(date +%F-%H%M%S)"
+      AUTO_STASHED=1
+    else
+      AUTO_STASHED=0
+    fi
+
     git -C "$REPO_DIR" fetch --all --prune
     git -C "$REPO_DIR" checkout main
     git -C "$REPO_DIR" pull --ff-only
+
+    # Try to restore local changes
+    if [[ "${AUTO_STASHED:-0}" == "1" ]]; then
+      log "Re-applying stashed changes..."
+      git -C "$REPO_DIR" stash pop || {
+        log "WARN: stash pop had conflicts. Resolve them in $REPO_DIR."
+      }
+    fi
   else
     log "Cloning repo..."
     git clone "$REPO_URL" "$REPO_DIR"

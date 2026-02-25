@@ -222,7 +222,12 @@ install_p10k() {
   git clone --depth=1 https://github.com/romkatv/powerlevel10k.git \
     "$custom_dir/themes/powerlevel10k" || true
 }
-
+set_default_shell_to_zsh() {
+  if [[ "$SHELL" != "$(which zsh)" ]]; then
+    log "Setting zsh as default shell..."
+    chsh -s "$(which zsh)" || log "WARN: Could not change default shell (may require logout)"
+  fi
+}
 backup_conflicting_dotfiles() {
   # Stow fails if it needs to create ~/.bashrc or ~/.zshrc but those files already exist
   # as real files (not symlinks). On Debian/RPi, the OS creates these by default.
@@ -285,7 +290,7 @@ main() {
       install_p10k
     fi
   fi
-
+  set_default_shell_to_zsh
   log "Preparing for stow..."
   backup_conflicting_dotfiles
 

@@ -37,6 +37,7 @@ else
     STOW_PACKAGES+=(wezterm)
   fi
 fi
+
 # Optional: install oh-my-zsh + p10k
 INSTALL_OHMYZSH="${INSTALL_OHMYZSH:-1}" # set to 0 to skip
 INSTALL_P10K="${INSTALL_P10K:-1}"       # set to 0 to skip
@@ -195,7 +196,6 @@ install_oh_my_zsh() {
 
 install_zsh_plugins() {
   local custom_dir="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
-
   mkdir -p "$custom_dir/plugins"
 
   if [[ ! -d "$custom_dir/plugins/zsh-autosuggestions" ]]; then
@@ -221,6 +221,23 @@ install_p10k() {
   log "Installing powerlevel10k..."
   git clone --depth=1 https://github.com/romkatv/powerlevel10k.git \
     "$custom_dir/themes/powerlevel10k" || true
+}
+
+backup_conflicting_dotfiles() {
+  # Stow fails if it needs to create ~/.bashrc or ~/.zshrc but those files already exist
+  # as real files (not symlinks). On Debian/RPi, the OS creates these by default.
+  local backup_dir="$HOME/.dotfiles-backup"
+  mkdir -p "$backup_dir"
+
+  local ts
+  ts="$(date +%F-%H%M%S)"
+
+  for f in .bashrc .zshrc; do
+    if [[ -e "$HOME/$f" && ! -L "$HOME/$f" ]]; then
+      log "Backing up existing ~/$f -> $backup_dir/${f}.${ts}"
+      mv "$HOME/$f" "$backup_dir/${f}.${ts}"
+    fi
+  done
 }
 
 apply_stow() {
@@ -268,6 +285,9 @@ main() {
       install_p10k
     fi
   fi
+
+  log "Preparing for stow..."
+  backup_conflicting_dotfiles
 
   log "Applying stow packages..."
   apply_stow

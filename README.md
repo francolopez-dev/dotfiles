@@ -159,6 +159,18 @@ Edit:
 
 ------------------------------------------------------------------------
 
+🌐 Remote Access with Tailscale 
+Run on the target machine (e.g., Raspberry Pi):
+``` bash
+curl -fsSL https://tailscale.com/install.sh | sh
+```
+
+Enable and Authenticate (with SSH support)
+``` bash
+sudo tailscale up --ssh
+```
+------------------------------------------------------------------------
+
 Built for consistency across Mac, Linux workstations, and headless
 servers.
 

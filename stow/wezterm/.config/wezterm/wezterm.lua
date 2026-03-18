@@ -32,6 +32,12 @@ config.audible_bell = "Disabled"
 config.keys = {
   { key = "v", mods = "CMD", action = wezterm.action.PasteFrom("Clipboard") },
   { key = "c", mods = "CMD", action = wezterm.action.CopyTo("Clipboard") },
+  -- Fix nano Ctrl+K (cut line)
+  {
+    key = "k",
+    mods = "CTRL|SHIFT",
+    action = wezterm.action.SendKey({ key = "k", mods = "CTRL" }),
+  },
 
   {
     key = "a",
@@ -41,6 +47,8 @@ config.keys = {
       wezterm.action.CopyMode("MoveToScrollbackTop"),
       wezterm.action.CopyMode({ SetSelectionMode = "Cell" }),
       wezterm.action.CopyMode("MoveToScrollbackBottom"),
+      wezterm.action.CopyTo("ClipboardAndPrimarySelection"),
+      wezterm.action.CopyMode("Close"),
     }),
   },
 

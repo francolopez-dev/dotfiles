@@ -170,6 +170,78 @@ Enable and Authenticate (with SSH support)
 sudo tailscale up --ssh
 ```
 ------------------------------------------------------------------------
+## Troubleshooting
+
+### sudo installed but user cannot use sudo
+
+Symptoms:
+
+```bash
+sudo apt update
+```
+
+Returns:
+
+```text
+<username> is not in the sudoers file.
+```
+
+Verify the user belongs to the sudo group:
+
+```bash
+groups
+```
+
+If `sudo` is not listed, switch to root:
+
+```bash
+su -
+```
+
+On some minimal Debian installations, the `usermod` binary may not be in the default PATH for root.
+
+Use the full path:
+
+```bash
+/usr/sbin/usermod -aG sudo <username>
+```
+
+Example:
+
+```bash
+/usr/sbin/usermod -aG sudo jfranco
+```
+
+Verify:
+
+```bash
+groups <username>
+```
+
+Expected:
+
+```text
+jfranco : jfranco sudo
+```
+
+Log out and back in (or reboot):
+
+```bash
+reboot
+```
+
+Test:
+
+```bash
+sudo whoami
+```
+
+Expected:
+
+```text
+root
+```
+------------------------------------------------------------------------
 
 Built for consistency across Mac, Linux workstations, and headless
 servers.

@@ -10,7 +10,7 @@ Linux servers using **GNU Stow** and a smart bootstrap installer.
 Run this on any machine:
 
 ``` bash
-curl -fsSL https://raw.githubusercontent.com/solosoyfranco/dotfiles/main/scripts/bootstrap.sh | bash
+curl -fsSL https://raw.githubusercontent.com/jfrancolopez/dotfiles/main/scripts/bootstrap.sh | bash
 ```
 
 This bootstrap will:
@@ -135,7 +135,7 @@ Uses apk.
 Recommended:
 
 ``` bash
-curl -fsSL https://raw.githubusercontent.com/solosoyfranco/dotfiles/main/scripts/bootstrap.sh | bash
+curl -fsSL https://raw.githubusercontent.com/jfrancolopez/dotfiles/main/scripts/bootstrap.sh | bash
 ```
 
 Manual:

@@ -1,0 +1,20 @@
+# common CLI tools (terminal/server-safe) — Debian/Ubuntu (apt)
+git
+stow
+tmux
+fzf
+ripgrep
+jq
+# Debian/Ubuntu ship `bat` as the `bat` package but the binary is `batcat`.
+bat
+# `eza` is available on Debian 13+/Ubuntu 24.04+; older releases may lack it.
+eza
+fastfetch
+btop
+htop
+neovim
+zsh
+curl
+wget
+ca-certificates
+nano

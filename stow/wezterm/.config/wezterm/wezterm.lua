@@ -32,6 +32,11 @@ config.audible_bell = "Disabled"
 config.keys = {
   { key = "v", mods = "CMD", action = wezterm.action.PasteFrom("Clipboard") },
   { key = "c", mods = "CMD", action = wezterm.action.CopyTo("Clipboard") },
+-- Resize panes
+  { key = "LeftArrow",  mods = "CTRL|SHIFT", action = wezterm.action.AdjustPaneSize({ "Left", 5 }) },
+  { key = "RightArrow", mods = "CTRL|SHIFT", action = wezterm.action.AdjustPaneSize({ "Right", 5 }) },
+  { key = "UpArrow",    mods = "CTRL|SHIFT", action = wezterm.action.AdjustPaneSize({ "Up", 5 }) },
+  { key = "DownArrow",  mods = "CTRL|SHIFT", action = wezterm.action.AdjustPaneSize({ "Down", 5 }) },
   -- Fix nano Ctrl+K (cut line)
   {
     key = "k",

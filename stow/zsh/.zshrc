@@ -64,3 +64,6 @@ else
   work() { echo "timer not installed"; }
   rest() { echo "timer not installed"; }
 fi
+
+# Machine-specific paths and credentials live in ~/.config/shell/env.local
+# (sourced via env.sh near the top). Nothing machine-specific belongs here.

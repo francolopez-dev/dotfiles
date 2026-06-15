@@ -1,0 +1,4 @@
+# virtualization — Debian/Ubuntu (apt)
+# qemu-system
+# libvirt-daemon-system
+# virt-manager

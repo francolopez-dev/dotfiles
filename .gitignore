@@ -1,0 +1,25 @@
+# ============================================================
+# Secrets & machine-local artifacts must NEVER be committed.
+# ============================================================
+
+# Machine-specific config (env.local, *.local, ssh config.local, etc.)
+*.local
+
+# Per-machine profile state
+.config/dotfiles/profile
+
+# Recovery pack working dir & encrypted artifacts (Phase 2)
+recovery-pack/
+*.tar.gz.age
+*.age
+
+# Logs
+logs/
+*.log
+.cache/
+
+# OS cruft
+.DS_Store
+Thumbs.db
+*.swp
+*~

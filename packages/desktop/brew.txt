@@ -1,0 +1,2 @@
+# desktop CLI formulas — macOS
+# (GUI apps live in brew-cask.txt)

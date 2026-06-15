@@ -1,0 +1,2 @@
+# common AUR packages (installed via yay) — Omarchy
+# (none yet)

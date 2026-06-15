@@ -2,7 +2,7 @@
 set -euo pipefail
 # ============================================================
 # Remote curl entrypoint:
-#   curl -fsSL https://raw.githubusercontent.com/solosoyfranco/dotfiles/main/scripts/bootstrap.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/jfrancolopez/dotfiles/main/scripts/bootstrap.sh | bash
 #
 # Installs minimal deps (git, curl, ca-certificates), clones/updates the repo,
 # then hands off to the repo-root ./bootstrap.sh orchestrator.
@@ -11,7 +11,7 @@ set -euo pipefail
 # Any extra args are forwarded to the root bootstrap (e.g. --dry-run, --profile NAME).
 # ============================================================
 
-REPO_URL="${REPO_URL:-https://github.com/solosoyfranco/dotfiles.git}"
+REPO_URL="${REPO_URL:-https://github.com/jfrancolopez/dotfiles.git}"
 REPO_DIR="${REPO_DIR:-$HOME/dotfiles}"
 
 log() { printf "%s\n" "$*"; }

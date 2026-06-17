@@ -31,9 +31,14 @@ curl -fsSL https://raw.githubusercontent.com/jfrancolopez/dotfiles/main/scripts/
 
 This remote entrypoint installs minimal deps (git, curl, ca-certificates),
 clones/updates the repo, then hands off to the repo-root `./bootstrap.sh`.
-If the repo already exists with local changes, it stops instead of stashing or
-overwriting work. Use `DOTFILES_BOOTSTRAP_AUTO_STASH=1` or `--auto-stash` only
-when you explicitly want the remote entrypoint to stash, update, and pop.
+If the repo already exists, the default update mode is safe:
+
+- clean and behind `origin/main`: fast-forward automatically
+- dirty working tree: stop with status and instructions
+- unpushed local commits: stop with status and instructions
+- diverged branch: stop with status and instructions
+
+The remote bootstrap never merges, rebases, stashes, or resets by default.
 
 Remote bootstrap flags must be passed either with environment variables:
 
@@ -51,6 +56,42 @@ curl -fsSL https://raw.githubusercontent.com/jfrancolopez/dotfiles/main/scripts/
 ```
 
 Do not use `bash --first-time`; Bash will treat that as an option to Bash itself.
+
+### Remote update modes
+
+Normal safe update:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/jfrancolopez/dotfiles/main/scripts/bootstrap.sh | bash
+```
+
+Force first-time wizard:
+
+```bash
+DOTFILES_FIRST_TIME=1 curl -fsSL https://raw.githubusercontent.com/jfrancolopez/dotfiles/main/scripts/bootstrap.sh | bash
+```
+
+Auto-stash dirty files, then fast-forward:
+
+```bash
+DOTFILES_UPDATE_MODE=stash curl -fsSL https://raw.githubusercontent.com/jfrancolopez/dotfiles/main/scripts/bootstrap.sh | bash
+```
+
+Rebase local commits onto `origin/main`, stashing dirty files first if needed:
+
+```bash
+DOTFILES_UPDATE_MODE=stash-rebase curl -fsSL https://raw.githubusercontent.com/jfrancolopez/dotfiles/main/scripts/bootstrap.sh | bash
+```
+
+Emergency reset to `origin/main`:
+
+```bash
+DOTFILES_UPDATE_MODE=reset DOTFILES_CONFIRM_RESET=1 curl -fsSL https://raw.githubusercontent.com/jfrancolopez/dotfiles/main/scripts/bootstrap.sh | bash
+```
+
+Reset mode discards local commits and working-tree changes. The legacy
+`DOTFILES_BOOTSTRAP_AUTO_STASH=1` and `--auto-stash` paths map to
+`DOTFILES_UPDATE_MODE=stash`.
 
 Once the repo is cloned, run it directly:
 

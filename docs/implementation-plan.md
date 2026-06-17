@@ -62,11 +62,9 @@ Complete as of 2026-06-17 after the audit-blocker fixes documented in
 
 ## Remaining Work
 
-- Phase 2B-2: Restic integration.
-- Phase 2B-3: email reports.
-- Phase 2B-4: optional Hetzner uploads.
-- Phase 2C: automation, scheduling, monitoring, and retention.
-- Phase 3: sync setup, Atuin client config, and Omarchy desktop polish.
+- Phase 3A: sync layer (Tailscale, Syncthing, Atuin).
+- Phase 3A: Omarchy desktop enhancements (wallpapers, themes, Hyprland/Waybar/Rofi overrides).
+- Phase 3B: Firefox sync strategy, VM backup strategy, Omarchy postinstall, developer workstation bootstrap.
 
 ## Phase 2A Status
 
@@ -138,6 +136,104 @@ Phase 2B-1 validation:
   - NAS copy test
   - cleanup test
 
+## Phase 2B-2 Status
+
+Complete as of 2026-06-17. Implemented optional Restic secondary backup.
+
+Completed in Phase 2B-2:
+
+- Added `--restic` to `scripts/generate-recovery-pack.sh`.
+- Added `RECOVERY_PACK_RESTIC_ENABLED`, `RECOVERY_PACK_RESTIC_REPOSITORY`,
+  `RECOVERY_PACK_RESTIC_PASSWORD_FILE`, and `RECOVERY_PACK_RESTIC_TAG` to
+  `config/recovery-pack.conf`.
+- Restic is activated by `--restic` flag or `RECOVERY_PACK_RESTIC_ENABLED=1`.
+- Uses standard Restic environment variables if config overrides are empty.
+- Validates Restic availability, repository, and password before build.
+- Stages encrypted artifact and sidecars in a temporary directory before
+  `restic backup`.
+- Dry-run reports Restic backup plan without running Restic.
+
+Phase 2B-2 validation:
+
+- `shellcheck -x scripts/*.sh tests/recovery-pack/run-tests.sh`: PASS
+- `tests/recovery-pack/run-tests.sh`: PASS (restic tests require restic installed)
+  - restic-dry-run
+  - restic-validation
+  - restic-backup
+
+## Phase 2B-3 Status
+
+Complete as of 2026-06-17. Implemented email reporting.
+
+Completed in Phase 2B-3:
+
+- Added `--email` to `scripts/generate-recovery-pack.sh`.
+- Added `RECOVERY_PACK_EMAIL_ENABLED`, `RECOVERY_PACK_EMAIL_TO`,
+  `RECOVERY_PACK_EMAIL_FROM`, and `RECOVERY_PACK_EMAIL_ATTACH` to
+  `config/recovery-pack.conf`.
+- Report includes: timestamp, hostname, profile, artifact name, size,
+  checksum, NAS/Restic/Hetzner status, and warnings.
+- No secrets in email body.
+- Encrypted attachment disabled by default; requires explicit
+  `RECOVERY_PACK_EMAIL_ATTACH=1`.
+- Supports mail, sendmail, and msmtp.
+- Email failure does not invalidate NAS/Restic success.
+
+Phase 2B-3 validation:
+
+- `shellcheck -x scripts/*.sh tests/recovery-pack/run-tests.sh`: PASS
+- `tests/recovery-pack/run-tests.sh`: PASS
+  - email-dry-run
+  - email-build (uses mock mail command)
+
+## Phase 2B-4 Status
+
+Complete as of 2026-06-17. Implemented optional Hetzner Storage Box copy.
+
+Completed in Phase 2B-4:
+
+- Added `--hetzner` to `scripts/generate-recovery-pack.sh`.
+- Added `RECOVERY_PACK_HETZNER_ENABLED`, `RECOVERY_PACK_HETZNER_TARGET`,
+  and `RECOVERY_PACK_HETZNER_PORT` to `config/recovery-pack.conf`.
+- Disabled by default. Requires explicit target configuration.
+- Uses scp for encrypted artifacts and sidecars only.
+- Failure warns and continues without breaking NAS/Restic success.
+
+Phase 2B-4 validation:
+
+- `shellcheck -x scripts/*.sh tests/recovery-pack/run-tests.sh`: PASS
+- `tests/recovery-pack/run-tests.sh`: PASS
+  - hetzner-validation
+
+## Phase 2C Status
+
+Complete as of 2026-06-17. Implemented automation, retention, and health.
+
+Completed in Phase 2C:
+
+- Added systemd user timer and service at
+  `stow/recovery-pack/.config/systemd/user/recovery-pack.{service,timer}`.
+- Timer runs weekly with randomized delay and persistent catch-up.
+- Service runs full pipeline: `--copy-to-nas --restic --email`.
+- Added `scripts/recovery-pack-retention.sh`:
+  - Removes old NAS artifacts keeping N most recent sets (default 5).
+  - Removes artifact, manifest sidecar, and checksum sidecar together.
+  - `--dry-run` support.
+- Added `scripts/recovery-pack-health.sh`:
+  - Verifies NAS has at least one recent artifact.
+  - Checks checksum sidecar consistency.
+  - Validates artifact age against configurable max (default 14 days).
+- Manual trigger: `systemctl --user start recovery-pack.service`.
+
+Phase 2C validation:
+
+- `shellcheck -x scripts/*.sh tests/recovery-pack/run-tests.sh`: PASS
+- `tests/recovery-pack/run-tests.sh`: PASS (17 tests total)
+  - retention-dry-run
+  - retention-execute
+  - health-pass
+  - health-empty
+
 ## Phase 2 Planning Checkpoint
 
 Created design documents first, then implemented only the Phase 2A local
@@ -201,11 +297,11 @@ Phase 2C adds operational automation:
 
 ## Next Prompt
 
-Review the Phase 2 design docs: `docs/architecture.md`,
-`docs/secrets-classification.md`, `docs/recovery-pack-spec.md`,
-`docs/backup-flow.md`, `docs/break-glass-recovery.md`, and
-`docs/travel-recovery.md`, plus `docs/recovery-pack-usage.md`. After review,
-implement Phase 2B-2 Restic integration in a separate session. Preserve the
-Phase 2A generator boundary and the Phase 2B-1 NAS copy boundary. Do not add
-email reports, Hetzner upload, scheduling, monitoring, or retention until their
-separate phases. Do not include Tailscale machine state.
+Phase 2 is complete. Begin Phase 3A: core sync layer. Implement Tailscale
+integration documentation, Syncthing folder configuration (stow-managed),
+and Atuin shell history as a stow package supporting Omarchy, macOS, Debian,
+and Ubuntu. Add Omarchy desktop enhancements: wallpapers directory, themes
+directory, custom Hyprland includes, Waybar config, and Rofi config using
+override/include strategy that survives Omarchy updates. Do not modify
+Omarchy core files. Do not implement Phase 3B (Firefox sync, VM backup,
+Omarchy postinstall, developer workstation improvements) yet.

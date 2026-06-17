@@ -1,0 +1,41 @@
+// Default Syncthing ignore patterns for shared folders.
+// Copy to .stignore in each Syncthing folder root.
+
+// OS metadata
+.DS_Store
+._*
+Thumbs.db
+desktop.ini
+.Trash-*
+
+// Editor swap/backup files
+*.swp
+*.swo
+*~
+.*.un~
+
+// Node/JS
+node_modules
+
+// Python
+__pycache__
+*.pyc
+.venv
+venv
+
+// Build outputs
+.build
+dist
+target
+
+// IDE directories
+.idea
+.vscode
+*.code-workspace
+
+// Large binary formats (sync explicitly if needed)
+*.iso
+*.vmdk
+*.qcow2
+*.vdi
+*.raw

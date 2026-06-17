@@ -16,3 +16,4 @@ curl
 wget
 ca-certificates
 nano
+atuin

@@ -1,0 +1,31 @@
+# Atuin shell history configuration.
+# Managed by dotfiles. Edit here, re-stow to apply.
+
+# Sync mode: use self-hosted server when available, work offline otherwise.
+# Set sync_address to your Atuin server if running one.
+# sync_address = "https://atuin.example.com"
+
+# Search mode: fuzzy prefix search by default.
+search_mode = "fuzzy"
+
+# Filter mode: show only commands from this host by default.
+filter_mode = "host"
+
+# Style: compact display.
+style = "compact"
+
+# Inline height for search UI.
+inline_height = 20
+
+# Show preview of full command.
+show_preview = true
+
+# Key binding mode: use default Ctrl-R binding.
+# Supported: emacs, vim-normal, vim-insert, auto
+keymap_mode = "auto"
+
+# Store timestamps in UTC.
+store_failed = true
+
+# History filter: exclude commands starting with space.
+history_filter = ["^\\s"]

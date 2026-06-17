@@ -12,6 +12,9 @@ DRY_RUN=0
 VERIFY_ARTIFACT=""
 COPY_TO_NAS=0
 NAS_TARGET_DIR=""
+RESTIC_BACKUP=0
+EMAIL_REPORT=0
+HETZNER_COPY=0
 
 TMP_ROOT=""
 ARCHIVE_PATH=""
@@ -20,12 +23,16 @@ CHECKSUM_SIDECAR=""
 DECRYPTED_ARCHIVE=""
 HAVE_FAILURES=0
 HAVE_WARNINGS=0
+STATUS_NAS="skipped"
+STATUS_RESTIC="skipped"
+STATUS_HETZNER="skipped"
+WARNINGS_LOG=""
 
 usage() {
   cat <<'USAGE'
 Usage:
-  scripts/generate-recovery-pack.sh [--config FILE] [--output-dir DIR] [--profile NAME] [--copy-to-nas]
-  scripts/generate-recovery-pack.sh --dry-run [--config FILE] [--profile NAME] [--copy-to-nas]
+  scripts/generate-recovery-pack.sh [--config FILE] [--output-dir DIR] [--profile NAME] [--copy-to-nas] [--restic] [--email] [--hetzner]
+  scripts/generate-recovery-pack.sh --dry-run [--config FILE] [--profile NAME] [--copy-to-nas] [--restic] [--email] [--hetzner]
   scripts/generate-recovery-pack.sh --verify ARTIFACT.age [--config FILE]
 
 Options:
@@ -35,6 +42,9 @@ Options:
   --output-dir DIR Write encrypted artifact here. Default: current directory.
   --copy-to-nas    Copy encrypted artifact and safe sidecars to NAS target.
   --nas-dir DIR    Override NAS target. Default: RECOVERY_PACK_NAS_PATH from config.
+  --restic         Back up encrypted artifact and sidecars to Restic repository.
+  --email          Send email report after generation.
+  --hetzner        Copy encrypted artifact and sidecars to Hetzner Storage Box.
   --profile NAME   Record profile name in metadata. Default: DOTFILES_PROFILE or unknown.
   --help           Show this help.
 USAGE
@@ -62,6 +72,9 @@ while [ $# -gt 0 ]; do
       ;;
     --output-dir=*) OUTPUT_DIR="${1#*=}"; shift ;;
     --copy-to-nas) COPY_TO_NAS=1; shift ;;
+    --restic) RESTIC_BACKUP=1; shift ;;
+    --email) EMAIL_REPORT=1; shift ;;
+    --hetzner) HETZNER_COPY=1; shift ;;
     --nas-dir)
       NAS_TARGET_DIR="${2:-}"
       [ -n "$NAS_TARGET_DIR" ] || die "--nas-dir requires a directory"
@@ -102,6 +115,7 @@ make_tmp_root() {
 
 warn_count() {
   HAVE_WARNINGS=1
+  WARNINGS_LOG="${WARNINGS_LOG}${WARNINGS_LOG:+$'\n'}$*"
   warn "$*"
 }
 
@@ -130,6 +144,30 @@ load_config() {
   ensure_array OPTIONAL_CERTIFICATE_PATHS
   ensure_array OPTIONAL_INFRA_EXPORT_PATHS
   NAS_TARGET_DIR="${NAS_TARGET_DIR:-${RECOVERY_PACK_NAS_PATH:-/storage/backups/recovery-pack/}}"
+
+  RECOVERY_PACK_RESTIC_ENABLED="${RECOVERY_PACK_RESTIC_ENABLED:-0}"
+  RECOVERY_PACK_RESTIC_REPOSITORY="${RECOVERY_PACK_RESTIC_REPOSITORY:-}"
+  RECOVERY_PACK_RESTIC_PASSWORD_FILE="${RECOVERY_PACK_RESTIC_PASSWORD_FILE:-}"
+  RECOVERY_PACK_RESTIC_TAG="${RECOVERY_PACK_RESTIC_TAG:-recovery-pack}"
+
+  if [ "$RESTIC_BACKUP" = "0" ] && [ "$RECOVERY_PACK_RESTIC_ENABLED" = "1" ]; then
+    RESTIC_BACKUP=1
+  fi
+
+  RECOVERY_PACK_EMAIL_ENABLED="${RECOVERY_PACK_EMAIL_ENABLED:-0}"
+  RECOVERY_PACK_EMAIL_TO="${RECOVERY_PACK_EMAIL_TO:-}"
+  RECOVERY_PACK_EMAIL_FROM="${RECOVERY_PACK_EMAIL_FROM:-}"
+  RECOVERY_PACK_EMAIL_ATTACH="${RECOVERY_PACK_EMAIL_ATTACH:-0}"
+  if [ "$EMAIL_REPORT" = "0" ] && [ "$RECOVERY_PACK_EMAIL_ENABLED" = "1" ]; then
+    EMAIL_REPORT=1
+  fi
+
+  RECOVERY_PACK_HETZNER_ENABLED="${RECOVERY_PACK_HETZNER_ENABLED:-0}"
+  RECOVERY_PACK_HETZNER_TARGET="${RECOVERY_PACK_HETZNER_TARGET:-}"
+  RECOVERY_PACK_HETZNER_PORT="${RECOVERY_PACK_HETZNER_PORT:-23}"
+  if [ "$HETZNER_COPY" = "0" ] && [ "$RECOVERY_PACK_HETZNER_ENABLED" = "1" ]; then
+    HETZNER_COPY=1
+  fi
 }
 
 ensure_array() {
@@ -216,6 +254,35 @@ validate_nas_target() {
   [ -w "$NAS_TARGET_DIR" ] || fail_count "NAS target is not writable: $NAS_TARGET_DIR"
 }
 
+validate_restic() {
+  [ "$RESTIC_BACKUP" = "1" ] || return 0
+  need_cmd restic || fail_count "Missing required command: restic"
+  local repo="${RECOVERY_PACK_RESTIC_REPOSITORY:-${RESTIC_REPOSITORY:-}}"
+  [ -n "$repo" ] || fail_count "No Restic repository configured (RECOVERY_PACK_RESTIC_REPOSITORY or RESTIC_REPOSITORY)"
+  local pw_file="${RECOVERY_PACK_RESTIC_PASSWORD_FILE:-${RESTIC_PASSWORD_FILE:-}}"
+  local pw="${RESTIC_PASSWORD:-}"
+  if [ -z "$pw_file" ] && [ -z "$pw" ]; then
+    fail_count "No Restic password configured (RECOVERY_PACK_RESTIC_PASSWORD_FILE, RESTIC_PASSWORD_FILE, or RESTIC_PASSWORD)"
+  fi
+  if [ -n "$pw_file" ] && [ ! -f "$pw_file" ]; then
+    fail_count "Restic password file does not exist: $pw_file"
+  fi
+}
+
+validate_email() {
+  [ "$EMAIL_REPORT" = "1" ] || return 0
+  [ -n "$RECOVERY_PACK_EMAIL_TO" ] || fail_count "Email enabled but RECOVERY_PACK_EMAIL_TO is empty"
+  if ! need_cmd mail && ! need_cmd sendmail && ! need_cmd msmtp; then
+    fail_count "Email enabled but no mail command found (mail, sendmail, or msmtp)"
+  fi
+}
+
+validate_hetzner() {
+  [ "$HETZNER_COPY" = "1" ] || return 0
+  [ -n "$RECOVERY_PACK_HETZNER_TARGET" ] || fail_count "Hetzner enabled but RECOVERY_PACK_HETZNER_TARGET is empty"
+  need_cmd scp || fail_count "Hetzner enabled but scp is not available"
+}
+
 validate_paths_for_array() {
   local array_name="$1" label="$2" required="$3" entry path
   while IFS= read -r -d '' entry; do
@@ -249,6 +316,9 @@ validate_config() {
   validate_paths_for_array OPTIONAL_CERTIFICATE_PATHS "certificates" 0
   validate_paths_for_array OPTIONAL_INFRA_EXPORT_PATHS "infrastructure-exports" 0
   validate_nas_target
+  validate_restic
+  validate_email
+  validate_hetzner
 }
 
 print_recipients() {
@@ -305,6 +375,27 @@ dry_run() {
   if [ "$COPY_TO_NAS" = "1" ]; then
     info "NAS copy target: $NAS_TARGET_DIR"
     info "NAS copy plan: encrypted .age artifact plus .manifest.txt and .sha256 sidecars"
+  fi
+  if [ "$RESTIC_BACKUP" = "1" ]; then
+    local restic_repo="${RECOVERY_PACK_RESTIC_REPOSITORY:-${RESTIC_REPOSITORY:-}}"
+    info "Restic backup: enabled"
+    info "Restic repository: $restic_repo"
+    info "Restic tag: $RECOVERY_PACK_RESTIC_TAG"
+    info "Restic backup plan: encrypted .age artifact plus .manifest.txt and .sha256 sidecars"
+  fi
+  if [ "$EMAIL_REPORT" = "1" ]; then
+    info "Email report: enabled"
+    info "Email recipient: $RECOVERY_PACK_EMAIL_TO"
+    if [ "$RECOVERY_PACK_EMAIL_ATTACH" = "1" ]; then
+      info "Email attachment: enabled (encrypted .age artifact)"
+    else
+      info "Email attachment: disabled (report only)"
+    fi
+  fi
+  if [ "$HETZNER_COPY" = "1" ]; then
+    info "Hetzner copy: enabled"
+    info "Hetzner target: $RECOVERY_PACK_HETZNER_TARGET"
+    info "Hetzner port: $RECOVERY_PACK_HETZNER_PORT"
   fi
   print_recipients
   print_archive_structure
@@ -462,6 +553,123 @@ copy_to_nas() {
     [ -s "$dest" ] || die "NAS copy failed or produced empty file: $dest"
     ok "copied $(basename "$src") to $NAS_TARGET_DIR"
   done
+  STATUS_NAS="ok"
+}
+
+backup_to_restic() {
+  [ "$RESTIC_BACKUP" = "1" ] || return 0
+  local restic_env=() repo pw_file
+  repo="${RECOVERY_PACK_RESTIC_REPOSITORY:-${RESTIC_REPOSITORY:-}}"
+  pw_file="${RECOVERY_PACK_RESTIC_PASSWORD_FILE:-${RESTIC_PASSWORD_FILE:-}}"
+  [ -n "$repo" ] && restic_env+=("RESTIC_REPOSITORY=$repo")
+  [ -n "$pw_file" ] && restic_env+=("RESTIC_PASSWORD_FILE=$pw_file")
+
+  local staging_dir
+  staging_dir="$TMP_ROOT/restic-staging"
+  mkdir -p "$staging_dir"
+  cp -p "$ARCHIVE_PATH" "$MANIFEST_SIDECAR" "$CHECKSUM_SIDECAR" "$staging_dir/"
+
+  env "${restic_env[@]}" restic backup \
+    --tag "$RECOVERY_PACK_RESTIC_TAG" \
+    "$staging_dir"
+
+  STATUS_RESTIC="ok"
+  ok "restic backup completed (tag: $RECOVERY_PACK_RESTIC_TAG)"
+}
+
+copy_to_hetzner() {
+  [ "$HETZNER_COPY" = "1" ] || return 0
+  local src target="${RECOVERY_PACK_HETZNER_TARGET}" port="${RECOVERY_PACK_HETZNER_PORT}"
+  for src in "$ARCHIVE_PATH" "$MANIFEST_SIDECAR" "$CHECKSUM_SIDECAR"; do
+    [ -f "$src" ] || { warn_count "Hetzner copy skipped; missing source: $src"; STATUS_HETZNER="failed"; return 0; }
+    if ! scp -P "$port" "$src" "$target" 2>/dev/null; then
+      warn_count "Hetzner copy failed for $(basename "$src")"
+      STATUS_HETZNER="failed"
+      return 0
+    fi
+    ok "copied $(basename "$src") to Hetzner"
+  done
+  STATUS_HETZNER="ok"
+}
+
+generate_email_body() {
+  local artifact_size checksum_line
+  artifact_size="$(wc -c < "$ARCHIVE_PATH" | tr -d ' ')"
+  checksum_line="$(cat "$CHECKSUM_SIDECAR")"
+
+  cat <<REPORT
+Recovery Pack Report
+====================
+Timestamp:     $(date -u +"%Y-%m-%dT%H:%M:%SZ")
+Hostname:      $(hostname 2>/dev/null || printf "unknown")
+Profile:       $PROFILE_NAME
+Artifact:      $(basename "$ARCHIVE_PATH")
+Size:          ${artifact_size} bytes
+Checksum:      ${checksum_line}
+NAS status:    $STATUS_NAS
+Restic status: $STATUS_RESTIC
+Hetzner status: $STATUS_HETZNER
+REPORT
+
+  if [ -n "$WARNINGS_LOG" ]; then
+    printf "\nWarnings:\n%s\n" "$WARNINGS_LOG"
+  fi
+
+  if [ "$RECOVERY_PACK_EMAIL_ATTACH" = "1" ]; then
+    printf "\nEncrypted artifact attached.\n"
+  else
+    printf "\nNo attachment (report only).\n"
+  fi
+}
+
+send_email_report() {
+  [ "$EMAIL_REPORT" = "1" ] || return 0
+  local subject body from_args=()
+  subject="Recovery Pack Report - $(hostname 2>/dev/null || printf "unknown") - $(date -u +"%Y-%m-%d")"
+  body="$(generate_email_body)"
+
+  [ -n "$RECOVERY_PACK_EMAIL_FROM" ] && from_args=("-r" "$RECOVERY_PACK_EMAIL_FROM")
+
+  if [ "$RECOVERY_PACK_EMAIL_ATTACH" = "1" ] && need_cmd msmtp; then
+    {
+      printf "To: %s\n" "$RECOVERY_PACK_EMAIL_TO"
+      [ -n "$RECOVERY_PACK_EMAIL_FROM" ] && printf "From: %s\n" "$RECOVERY_PACK_EMAIL_FROM"
+      printf "Subject: %s\n" "$subject"
+      printf "MIME-Version: 1.0\n"
+      printf 'Content-Type: multipart/mixed; boundary="RECOVERY_PACK_BOUNDARY"\n\n'
+      printf -- "--RECOVERY_PACK_BOUNDARY\n"
+      printf "Content-Type: text/plain; charset=utf-8\n\n"
+      printf "%s\n\n" "$body"
+      printf -- "--RECOVERY_PACK_BOUNDARY\n"
+      printf "Content-Type: application/octet-stream; name=\"%s\"\n" "$(basename "$ARCHIVE_PATH")"
+      printf "Content-Transfer-Encoding: base64\n"
+      printf "Content-Disposition: attachment; filename=\"%s\"\n\n" "$(basename "$ARCHIVE_PATH")"
+      base64 < "$ARCHIVE_PATH"
+      printf "\n--RECOVERY_PACK_BOUNDARY--\n"
+    } | msmtp "$RECOVERY_PACK_EMAIL_TO"
+  elif [ "$RECOVERY_PACK_EMAIL_ATTACH" = "1" ] && need_cmd mail; then
+    printf "%s\n" "$body" | mail "${from_args[@]}" -s "$subject" -A "$ARCHIVE_PATH" "$RECOVERY_PACK_EMAIL_TO"
+  elif need_cmd mail; then
+    printf "%s\n" "$body" | mail "${from_args[@]}" -s "$subject" "$RECOVERY_PACK_EMAIL_TO"
+  elif need_cmd msmtp; then
+    {
+      printf "To: %s\n" "$RECOVERY_PACK_EMAIL_TO"
+      [ -n "$RECOVERY_PACK_EMAIL_FROM" ] && printf "From: %s\n" "$RECOVERY_PACK_EMAIL_FROM"
+      printf "Subject: %s\n\n" "$subject"
+      printf "%s\n" "$body"
+    } | msmtp "$RECOVERY_PACK_EMAIL_TO"
+  elif need_cmd sendmail; then
+    {
+      printf "To: %s\n" "$RECOVERY_PACK_EMAIL_TO"
+      [ -n "$RECOVERY_PACK_EMAIL_FROM" ] && printf "From: %s\n" "$RECOVERY_PACK_EMAIL_FROM"
+      printf "Subject: %s\n\n" "$subject"
+      printf "%s\n" "$body"
+    } | sendmail "$RECOVERY_PACK_EMAIL_TO"
+  else
+    warn_count "No mail command available; email report skipped"
+    return 0
+  fi
+  ok "email report sent to $RECOVERY_PACK_EMAIL_TO"
 }
 
 build_pack() {
@@ -475,6 +683,9 @@ build_pack() {
   write_checksums "$pack_dir"
   create_archive "$work_dir" "$pack_dir"
   copy_to_nas
+  backup_to_restic
+  copy_to_hetzner
+  send_email_report
   ok "created $ARCHIVE_PATH"
 }
 

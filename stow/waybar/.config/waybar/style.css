@@ -1,0 +1,17 @@
+/* Waybar personal style overrides.
+ * On Omarchy, this supplements or overrides the default theme.
+ * Import Omarchy's base theme first if needed:
+ *   @import url("/usr/share/omarchy/waybar/style.css");
+ */
+
+/* Example overrides — uncomment and adjust. */
+/*
+* {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 13px;
+}
+
+window#waybar {
+  background-color: rgba(30, 30, 46, 0.85);
+}
+*/

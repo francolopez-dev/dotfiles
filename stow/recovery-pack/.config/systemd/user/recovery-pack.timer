@@ -1,0 +1,10 @@
+[Unit]
+Description=Weekly Recovery Pack generation
+
+[Timer]
+OnCalendar=weekly
+Persistent=true
+RandomizedDelaySec=3600
+
+[Install]
+WantedBy=timers.target

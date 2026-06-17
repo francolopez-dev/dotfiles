@@ -1,0 +1,14 @@
+[Unit]
+Description=Generate and distribute Recovery Pack
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=%h/dotfiles/scripts/generate-recovery-pack.sh --copy-to-nas --restic --email --profile %H
+Environment=DOTFILES_PROFILE=%H
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=default.target

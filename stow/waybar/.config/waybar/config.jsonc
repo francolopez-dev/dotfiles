@@ -1,0 +1,18 @@
+// Waybar personal overrides.
+// On Omarchy, place custom modules and layout here.
+// If Omarchy uses a different config path, symlink or source this file.
+//
+// This file is a starting point. Uncomment and adjust as needed.
+// See: https://github.com/Alexays/Waybar/wiki/Configuration
+
+// {
+//   "layer": "top",
+//   "position": "top",
+//   "modules-left": ["hyprland/workspaces"],
+//   "modules-center": ["clock"],
+//   "modules-right": ["network", "pulseaudio", "battery", "tray"],
+//   "clock": {
+//     "format": "{:%H:%M}",
+//     "format-alt": "{:%Y-%m-%d %H:%M}"
+//   }
+// }

@@ -7,15 +7,33 @@ set -euo pipefail
 # Installs minimal deps (git, curl, ca-certificates), clones/updates the repo,
 # then hands off to the repo-root ./bootstrap.sh orchestrator.
 #
-# Supports exactly the four target OSes: omarchy(arch) / macos / debian / ubuntu.
-# Any extra args are forwarded to the root bootstrap (e.g. --dry-run, --profile NAME).
+# Supports exactly the four target OSes: omarchy / macos / debian / ubuntu.
+# Any extra args are forwarded to the root bootstrap unless consumed here.
 # ============================================================
 
 REPO_URL="${REPO_URL:-https://github.com/jfrancolopez/dotfiles.git}"
 REPO_DIR="${REPO_DIR:-$HOME/dotfiles}"
+AUTO_STASH="${DOTFILES_BOOTSTRAP_AUTO_STASH:-0}"
+FORWARD_ARGS=()
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --auto-stash) AUTO_STASH=1; shift ;;
+    *) FORWARD_ARGS+=("$1"); shift ;;
+  esac
+done
 
 log() { printf "%s\n" "$*"; }
 need_cmd() { command -v "$1" >/dev/null 2>&1; }
+
+is_omarchy_host() {
+  [ "${DOTFILES_ASSUME_OMARCHY:-0}" = "1" ] && return 0
+  [ "${ID:-}" = "omarchy" ] && return 0
+  [ -f /etc/omarchy-release ] && return 0
+  [ -d /usr/share/omarchy ] && return 0
+  [ -d "$HOME/.local/share/omarchy" ] && return 0
+  return 1
+}
 
 # -----------------------------
 # Minimal-dependency install (4 supported OSes only)
@@ -35,6 +53,11 @@ install_min_deps() {
     . /etc/os-release
     case "${ID:-}${ID_LIKE:-}" in
       *arch*)
+        if ! is_omarchy_host; then
+          log "ERROR: Arch-like OS detected, but Omarchy markers were not found."
+          log "Supported Arch target is Omarchy. Set DOTFILES_ASSUME_OMARCHY=1 to force."
+          exit 1
+        fi
         sudo pacman -Sy --noconfirm
         sudo pacman -S --noconfirm --needed git curl ca-certificates
         return ;;
@@ -57,7 +80,14 @@ clone_or_update_repo() {
   if [ -d "$REPO_DIR/.git" ]; then
     log "Repo exists. Updating..."
     if [ -n "$(git -C "$REPO_DIR" status --porcelain)" ]; then
-      log "Local changes detected. Stashing..."
+      if [ "$AUTO_STASH" != "1" ]; then
+        log "ERROR: Local changes detected in $REPO_DIR."
+        log "Refusing to update so local work is not hidden or overwritten."
+        log "Commit, stash, or discard those changes yourself, then re-run."
+        log "Advanced: set DOTFILES_BOOTSTRAP_AUTO_STASH=1 or pass --auto-stash to let bootstrap stash and pop."
+        exit 1
+      fi
+      log "Local changes detected. Auto-stashing because it was explicitly requested..."
       git -C "$REPO_DIR" stash push -u -m "bootstrap auto-stash $(date +%F-%H%M%S)"
       AUTO_STASHED=1
     else
@@ -95,7 +125,7 @@ main() {
   chmod +x "$root_bootstrap" || true
 
   log "Handing off to root orchestrator..."
-  exec bash "$root_bootstrap" "$@"
+  exec bash "$root_bootstrap" "${FORWARD_ARGS[@]}"
 }
 
-main "$@"
+main

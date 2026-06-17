@@ -12,6 +12,7 @@ set -euo pipefail
 #
 # Env overrides for testing:
 #   OS_OVERRIDE=omarchy ./detect-os.sh
+#   DOTFILES_ASSUME_OMARCHY=1 ./detect-os.sh
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
 # shellcheck source=scripts/lib.sh
@@ -37,15 +38,26 @@ detect_os() {
     # shellcheck disable=SC1091
     . /etc/os-release
     case "${ID:-}" in
-      arch)   echo "omarchy pacman"; return ;;
+      omarchy) echo "omarchy pacman"; return ;;
       debian) echo "debian apt";     return ;;
       ubuntu) echo "ubuntu apt";     return ;;
     esac
+    if [ -f /etc/omarchy-release ] || [ -d /usr/share/omarchy ] || [ -d "$HOME/.local/share/omarchy" ]; then
+      echo "omarchy pacman"
+      return
+    fi
     # Arch derivatives sometimes set ID_LIKE=arch.
-    case "${ID_LIKE:-}" in
-      *arch*) echo "omarchy pacman"; return ;;
+    case "${ID:-}${ID_LIKE:-}" in
+      *arch*)
+        if [ "${DOTFILES_ASSUME_OMARCHY:-0}" = "1" ]; then
+          warn "Arch-like OS detected without Omarchy markers; DOTFILES_ASSUME_OMARCHY=1 is set."
+          echo "omarchy pacman"
+          return
+        fi
+        die "Arch-like OS detected but Omarchy markers were not found. Set DOTFILES_ASSUME_OMARCHY=1 to force Omarchy support."
+        ;;
     esac
-    die "Unsupported OS (ID='${ID:-?}'). Supported: omarchy(arch) macos debian ubuntu."
+    die "Unsupported OS (ID='${ID:-?}'). Supported: omarchy macos debian ubuntu."
   fi
 
   die "Cannot determine OS: no /etc/os-release and uname=$(uname)."

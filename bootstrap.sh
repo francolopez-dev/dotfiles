@@ -11,7 +11,7 @@ set -euo pipefail
 #   ./bootstrap.sh [--dry-run] [--profile NAME] [--first-time] [--enforce] [--adopt] [--backup-conflicts] [--log FILE]
 #
 #   --dry-run      print intended actions, mutate nothing
-#   --profile NAME use/persist this profile (else wizard / saved / minimal)
+#   --profile NAME use/persist this profile unless --dry-run is set
 #   --first-time   run the first-run profile wizard even if a profile is saved
 #   --enforce      additionally remove packages not declared by the profile
 #                  (destructive, prompts for confirmation)
@@ -58,18 +58,24 @@ export DRY_RUN
 # -----------------------------
 # Logging to file (tee)
 # -----------------------------
-if [ -z "$LOG_FILE" ]; then
+if [ -z "$LOG_FILE" ] && [ "$DRY_RUN" != "1" ]; then
   LOG_FILE="$HOME/.cache/dotfiles/bootstrap-$(date +%F-%H%M%S).log"
 fi
-mkdir -p "$(dirname "$LOG_FILE")"
-# Mirror all output to the log while keeping it on the terminal.
-exec > >(tee -a "$LOG_FILE") 2>&1
+if [ -n "$LOG_FILE" ]; then
+  mkdir -p "$(dirname "$LOG_FILE")"
+  # Mirror all output to the log while keeping it on the terminal.
+  exec > >(tee -a "$LOG_FILE") 2>&1
+fi
 
 log ""
 info "Personal Platform bootstrap"
 [ "$DRY_RUN" = "1" ] && warn "DRY-RUN mode: no changes will be made."
 info "Repo: $REPO_DIR"
-info "Log:  $LOG_FILE"
+if [ -n "$LOG_FILE" ]; then
+  info "Log:  $LOG_FILE"
+else
+  info "Log:  <disabled for dry-run>"
+fi
 
 # 1) Detect OS
 read -r OS PKGMGR < <(bash "$SCRIPTS/detect-os.sh")
@@ -79,11 +85,12 @@ ok "Detected OS: $OS (pkg manager: $PKGMGR)"
 profile_args=()
 [ -n "$PROFILE_ARG" ] && profile_args=(--profile "$PROFILE_ARG")
 [ "$FIRST_TIME" = "1" ] && profile_args+=(--first-time)
+[ "$DRY_RUN" = "1" ] && profile_args+=(--no-persist)
 PROFILE="$(bash "$SCRIPTS/select-profile.sh" --os "$OS" "${profile_args[@]}")"
 ok "Profile: $PROFILE"
 
 # Validate selected profile before mutating the machine.
-bash "$SCRIPTS/validate-profiles.sh" --profile "$PROFILE" >/dev/null || die "Profile validation failed: $PROFILE"
+bash "$SCRIPTS/validate-profiles.sh" --profile "$PROFILE" || die "Profile validation failed: $PROFILE"
 ok "Profile validation passed: $PROFILE"
 
 # 3) Install packages

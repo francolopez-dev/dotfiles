@@ -5,11 +5,26 @@ Date: 2026-06-17
 Scope: critical PR-style audit of the Phase 1 cleanup implementation against
 `nimbalyst-local/plans/project-phase-plan-audit-humming-finch.md`.
 
-Conclusion: Phase 1 is close, but not complete. The main profile rename, OS-aware
-stow filtering, validation script, and Lenovo notes are present. However, the
-implementation still has a high-severity dry-run mutation, several medium-severity
-UX and maintainability issues, and some verification gaps. Do not mark Phase 1
-complete or start Phase 2 implementation until the proposed fixes below are handled.
+Conclusion: Phase 1 was close but not complete when this audit was written. The
+audit blockers below have now been addressed, and the validation checkpoint in
+`docs/implementation-plan.md` records the passing checks. Phase 2 implementation
+has not started.
+
+## Resolution Update
+
+- Resolved: `--dry-run` no longer writes saved profile state or a default log file.
+- Resolved: wizard cancellation exits without persisting `minimal`.
+- Resolved: root bootstrap now prints validation details instead of hiding them.
+- Resolved: profile validation now requires `PACKAGE_GROUPS`, `STOW_PACKAGES`, and
+  `SERVICES` to be arrays.
+- Resolved: profile validation now checks stow package OS compatibility against
+  `profiles/stow-os.map`.
+- Resolved: stow conflict handling skips safely if a preview indicates conflict but
+  paths cannot be parsed.
+- Resolved: remote bootstrap refuses to update a dirty repo unless auto-stash is
+  explicitly requested.
+- Resolved: generic Arch is no longer silently labeled Omarchy; Omarchy markers or
+  `DOTFILES_ASSUME_OMARCHY=1` are required.
 
 ## Findings
 

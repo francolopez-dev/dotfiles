@@ -19,7 +19,7 @@ PROFILES_DIR="${PROFILES_DIR:-$REPO_DIR/profiles}"
 STATE_DIR="${STATE_DIR:-$HOME/.config/dotfiles}"
 STATE_FILE="$STATE_DIR/profile"
 
-requested="" OS="" FIRST_TIME=0
+requested="" OS="" FIRST_TIME=0 NO_PERSIST=0 SHOULD_PERSIST=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --profile) requested="${2:-}"; shift 2 ;;
@@ -27,6 +27,7 @@ while [ $# -gt 0 ]; do
     --os) OS="${2:-}"; shift 2 ;;
     --os=*) OS="${1#*=}"; shift ;;
     --first-time|--reconfigure) FIRST_TIME=1; shift ;;
+    --no-persist|--dry-run) NO_PERSIST=1; shift ;;
     *) shift ;;
   esac
 done
@@ -44,6 +45,7 @@ profile_exists() {
 }
 
 persist() {
+  [ "$NO_PERSIST" = "0" ] || return 0
   mkdir -p "$STATE_DIR"
   printf "%s\n" "$1" > "$STATE_FILE"
 }
@@ -83,7 +85,7 @@ profile_description() {
 
 run_wizard() {
   if ! is_interactive; then
-    warn "No tty available for first-run profile wizard; falling back to 'minimal'." >&2
+    warn "No tty available for first-run profile wizard; using unsaved 'minimal' fallback." >&2
     printf "minimal\n"
     return 0
   fi
@@ -121,11 +123,15 @@ run_wizard() {
   done
 
   while true; do
-    printf "Use and save profile '%s'? [Y/n] " "$selected" > /dev/tty
+    if [ "$NO_PERSIST" = "1" ]; then
+      printf "Use profile '%s' for this dry run? [Y/n] " "$selected" > /dev/tty
+    else
+      printf "Use and save profile '%s'? [Y/n] " "$selected" > /dev/tty
+    fi
     read -r confirm_reply < /dev/tty
     case "$confirm_reply" in
-      ""|[yY]|[yY][eE][sS]) printf "%s\n" "$selected"; return 0 ;;
-      [nN]|[nN][oO]) warn "Profile setup canceled; falling back to 'minimal'." >&2; printf "minimal\n"; return 0 ;;
+      ""|[yY]|[yY][eE][sS]) SHOULD_PERSIST=1; printf "%s\n" "$selected"; return 0 ;;
+      [nN]|[nN][oO]) warn "Profile setup canceled; no profile was saved." >&2; return 2 ;;
       *) warn "Please answer yes or no." >&2 ;;
     esac
   done
@@ -134,13 +140,14 @@ run_wizard() {
 choose() {
   if [ -n "$requested" ]; then
     profile_exists "$requested" || die "Unknown profile: $requested (have: $(list_profiles | tr '\n' ' '))"
+    SHOULD_PERSIST=1
     printf "%s\n" "$requested"
     return 0
   fi
 
   if [ "$FIRST_TIME" = "1" ]; then
     run_wizard
-    return 0
+    return $?
   fi
 
   if [ -f "$STATE_FILE" ]; then
@@ -148,6 +155,7 @@ choose() {
     saved="$(tr -d '[:space:]' < "$STATE_FILE")"
     if [ -n "$saved" ] && profile_exists "$saved"; then
       info "Using saved profile: $saved" >&2
+      SHOULD_PERSIST=0
       printf "%s\n" "$saved"
       return 0
     fi
@@ -158,5 +166,5 @@ choose() {
 }
 
 selected="$(choose)"
-persist "$selected"
+[ "$SHOULD_PERSIST" = "1" ] && persist "$selected"
 printf "%s\n" "$selected"

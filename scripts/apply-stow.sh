@@ -60,11 +60,11 @@ os_list_contains() {
 
 stow_preview() {
   local pkg="$1"
-  (cd "$REPO_DIR" && stow --no -v --no-folding -t "$HOME" "$pkg" 2>&1) || true
+  (cd "$REPO_DIR" && stow --no -v --no-folding -t "$HOME" "$pkg" 2>&1)
 }
 
 conflicts_for_pkg() {
-  local pkg="$1" line path
+  local line path
   while IFS= read -r line; do
     case "$line" in
       *"existing target is neither a link nor a directory:"*)
@@ -88,7 +88,14 @@ conflicts_for_pkg() {
         esac
         ;;
     esac
-  done < <(stow_preview "$pkg") | sort -u
+  done | sort -u
+}
+
+preview_mentions_conflict() {
+  case "$1" in
+    *"would cause conflicts"*|*"existing target"*|*"All operations aborted"*) return 0 ;;
+    *) return 1 ;;
+  esac
 }
 
 backup_paths() {
@@ -166,7 +173,7 @@ handle_conflicting_pkg() {
 main() {
   info "Stow packages for profile '$PROFILE' (os=$OS): ${STOW_PACKAGES[*]:-<none>}"
 
-  local pkg oses conflict_output conflict
+  local pkg oses preview_status preview_output conflict_output conflict
   for pkg in "${STOW_PACKAGES[@]}"; do
     if [ ! -d "$STOW_DIR/$pkg" ]; then
       warn "missing stow package: $pkg (skipping)"
@@ -185,12 +192,21 @@ main() {
       continue
     fi
 
+    set +e
+    preview_output="$(stow_preview "$pkg")"
+    preview_status=$?
+    set -e
     conflict_output=()
     while IFS= read -r conflict; do
       conflict_output+=("$conflict")
-    done < <(conflicts_for_pkg "$pkg")
+    done < <(printf "%s\n" "$preview_output" | conflicts_for_pkg)
     if [ "${#conflict_output[@]}" -gt 0 ]; then
       handle_conflicting_pkg "$pkg" "${conflict_output[@]}"
+      continue
+    fi
+    if [ "$preview_status" -ne 0 ] || preview_mentions_conflict "$preview_output"; then
+      warn "Stow preview for '$pkg' reported a conflict, but no paths could be parsed. Skipping for safety."
+      printf "%s\n" "$preview_output" >&2
       continue
     fi
 

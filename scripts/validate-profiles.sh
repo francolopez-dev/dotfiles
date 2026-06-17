@@ -9,6 +9,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
 PROFILES_DIR="${PROFILES_DIR:-$REPO_DIR/profiles}"
 PACKAGES_DIR="${PACKAGES_DIR:-$REPO_DIR/packages}"
 STOW_DIR="${STOW_DIR:-$REPO_DIR/stow}"
+STOW_OS_MAP="${STOW_OS_MAP:-$PROFILES_DIR/stow-os.map}"
 
 PROFILE=""
 while [ $# -gt 0 ]; do
@@ -26,21 +27,69 @@ known_service() {
   esac
 }
 
-validate_one() {
-  local profile_file="$1" profile fail=0 item
-  profile="$(basename "$profile_file" .conf)"
+profile_os() {
+  case "$1" in
+    desktop-omarchy|work-omarchy) printf "omarchy\n" ;;
+    personal-macos|work-macos) printf "macos\n" ;;
+    server-debian) printf "debian\n" ;;
+    server-ubuntu) printf "ubuntu\n" ;;
+    minimal) printf "any\n" ;;
+    *) printf "unknown\n" ;;
+  esac
+}
 
-  PACKAGE_GROUPS=()
-  STOW_PACKAGES=()
-  SERVICES=()
+require_array() {
+  local profile="$1" name="$2" decl
+  if ! decl="$(declare -p "$name" 2>/dev/null)"; then
+    err "$profile: missing required array: $name"
+    return 1
+  fi
+  case "$decl" in
+    declare\ -a*) return 0 ;;
+    *)
+      err "$profile: $name must be an array"
+      return 1
+      ;;
+  esac
+}
+
+map_os_for_pkg() {
+  local pkg="$1" key oses
+  while read -r key oses; do
+    [ "$key" = "$pkg" ] || continue
+    printf "%s\n" "$oses"
+    return 0
+  done < <(read_map "$STOW_OS_MAP")
+  printf "all\n"
+}
+
+os_list_contains() {
+  local oses="$1" wanted="$2" os
+  [ "$wanted" = "any" ] && return 0
+  [ "$oses" = "all" ] && return 0
+  IFS=',' read -r -a _os_parts <<< "$oses"
+  for os in "${_os_parts[@]}"; do
+    [ "$os" = "$wanted" ] && return 0
+  done
+  return 1
+}
+
+validate_one() {
+  local profile_file="$1" profile os fail=0 item oses
+  profile="$(basename "$profile_file" .conf)"
+  os="$(profile_os "$profile")"
+
+  unset PACKAGE_GROUPS STOW_PACKAGES SERVICES
   # shellcheck source=/dev/null
   if ! . "$profile_file"; then
     err "$profile: could not source profile"
     return 1
   fi
-  declare -p PACKAGE_GROUPS >/dev/null 2>&1 || PACKAGE_GROUPS=()
-  declare -p STOW_PACKAGES >/dev/null 2>&1 || STOW_PACKAGES=()
-  declare -p SERVICES >/dev/null 2>&1 || SERVICES=()
+
+  require_array "$profile" PACKAGE_GROUPS || fail=1
+  require_array "$profile" STOW_PACKAGES || fail=1
+  require_array "$profile" SERVICES || fail=1
+  [ "$fail" = "0" ] || { err "$profile: FAIL"; return 1; }
 
   set +u
   for item in "${PACKAGE_GROUPS[@]}"; do
@@ -53,6 +102,12 @@ validate_one() {
   for item in "${STOW_PACKAGES[@]}"; do
     if [ ! -d "$STOW_DIR/$item" ]; then
       err "$profile: missing stow package: $item"
+      fail=1
+      continue
+    fi
+    oses="$(map_os_for_pkg "$item")"
+    if ! os_list_contains "$oses" "$os"; then
+      err "$profile: stow package '$item' is ${oses}-only but profile OS is $os"
       fail=1
     fi
   done

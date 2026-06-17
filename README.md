@@ -29,6 +29,9 @@ curl -fsSL https://raw.githubusercontent.com/jfrancolopez/dotfiles/main/scripts/
 
 This remote entrypoint installs minimal deps (git, curl, ca-certificates),
 clones/updates the repo, then hands off to the repo-root `./bootstrap.sh`.
+If the repo already exists with local changes, it stops instead of stashing or
+overwriting work. Use `DOTFILES_BOOTSTRAP_AUTO_STASH=1` or `--auto-stash` only
+when you explicitly want the remote entrypoint to stash, update, and pop.
 
 Once the repo is cloned, run it directly:
 
@@ -37,7 +40,7 @@ cd ~/dotfiles
 ./bootstrap.sh                       # first-run wizard (or saved choice)
 ./bootstrap.sh --first-time          # re-run the wizard
 ./bootstrap.sh --profile personal-macos
-./bootstrap.sh --dry-run --profile minimal   # preview, change nothing
+./bootstrap.sh --dry-run --profile minimal   # preview, change nothing and save nothing
 ```
 
 Safe to run multiple times — it is idempotent.
@@ -63,8 +66,8 @@ curl bootstrap.sh | bash         (scripts/bootstrap.sh — remote entrypoint)
 
 | Flag | Meaning |
 |------|---------|
-| `--dry-run` | Print intended actions, mutate nothing |
-| `--profile NAME` | Use & persist this profile (else wizard / saved / `minimal`) |
+| `--dry-run` | Print intended actions, mutate nothing; default log file and saved profile writes are disabled |
+| `--profile NAME` | Use & persist this profile unless `--dry-run` is set |
 | `--first-time`, `--reconfigure` | Run the OS-aware first-run wizard even if a profile is saved |
 | `--enforce` | Also **remove** packages not declared by the profile (destructive, prompts) |
 | `--adopt` | Let stow adopt existing real files (review the git diff after) |
@@ -108,6 +111,9 @@ On first run, or when `--first-time` is passed, the profile wizard reads from
 - Debian: `server-debian`, `minimal`
 - Ubuntu: `server-ubuntu`, `minimal`
 
+Canceling the wizard exits without saving a profile. Non-interactive first-run
+fallbacks use `minimal` for that run only and do not persist it.
+
 Validate every profile manually with:
 
 ```bash
@@ -126,6 +132,13 @@ Before a real stow, the script simulates each package and detects conflicts.
 With a tty it asks per package: skip, backup then stow, or adopt. Without a tty,
 the default is non-destructive skip with a clear conflict report. `--adopt` and
 `--backup-conflicts` provide explicit non-interactive behavior.
+
+## 🖥 OS detection
+
+Supported OS ids are `omarchy`, `macos`, `debian`, and `ubuntu`. Generic Arch or
+Arch-derived systems are not silently treated as Omarchy; Omarchy markers must be
+present. For a known Omarchy-compatible Arch-like system without detectable
+markers, set `DOTFILES_ASSUME_OMARCHY=1` explicitly.
 
 ------------------------------------------------------------------------
 
@@ -246,6 +259,6 @@ root
 
 ## 🗺 Roadmap
 
-- **Phase 1 (done):** bootstrap orchestrator, package groups, OS-explicit profiles, safe stow.
+- **Phase 1 (complete):** bootstrap orchestrator, package groups, OS-explicit profiles, safe stow.
 - **Phase 2:** Age recovery pack + disaster-recovery docs.
 - **Phase 3:** Syncthing/Tailscale sync, Atuin client, Omarchy desktop polish.

@@ -18,4 +18,3 @@ curl
 wget
 ca-certificates
 nano
-# atuin: installed via install script on Debian/Ubuntu (not in apt repos)

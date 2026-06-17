@@ -2,8 +2,11 @@
 # Secrets & machine-local artifacts must NEVER be committed.
 # ============================================================
 
-# Machine-specific config (env.local, *.local, ssh config.local, etc.)
+# Machine-specific config (env.local, *.local, ssh config.local, etc.).
+# Keep stow-managed XDG .local trees trackable.
 *.local
+!stow/**/.local/
+!stow/**/.local/**
 
 # Per-machine profile state
 .config/dotfiles/profile

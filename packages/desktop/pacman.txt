@@ -3,6 +3,5 @@
 networkmanager
 tailscale
 wezterm
-syncthing
 restic
 age

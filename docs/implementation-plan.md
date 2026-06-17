@@ -62,6 +62,8 @@ Complete as of 2026-06-17 after the audit-blocker fixes documented in
 
 ## Remaining Work
 
+- Phase 2 stabilization: review Recovery Pack failure semantics, service path
+  assumptions, and real-machine configuration before final release.
 - Phase 3A: sync layer (Tailscale, Syncthing, Atuin).
 - Phase 3A: Omarchy desktop enhancements (wallpapers, themes, Hyprland/Waybar/Rofi overrides).
 - Phase 3B: Firefox sync strategy, VM backup strategy, Omarchy postinstall, developer workstation bootstrap.
@@ -234,10 +236,10 @@ Phase 2C validation:
   - health-pass
   - health-empty
 
-## Phase 2 Planning Checkpoint
+## Phase 2 Design Checkpoint
 
-Created design documents first, then implemented only the Phase 2A local
-generation framework.
+Created design documents first, then implemented the Phase 2 Recovery Pack
+pipeline in scoped increments.
 
 - `docs/architecture.md`: platform boundaries and source-of-truth model.
 - `docs/secrets-classification.md`: Tier 1 Vaultwarden, Tier 2 Recovery Pack, Tier 3 Git.
@@ -260,7 +262,7 @@ Design decisions captured:
 
 ## Phase 2 Scope Split
 
-Phase 2A implements only Recovery Pack artifact generation:
+Phase 2A implemented Recovery Pack artifact generation:
 
 - inventory collection
 - manifest generation
@@ -270,25 +272,22 @@ Phase 2A implements only Recovery Pack artifact generation:
 - dry-run mode
 - restore test
 
-Phase 2A does not implement:
-
-- NAS copy
-- Restic integration
-- email reports
-- Hetzner uploads
-
-Phase 2B adds distribution mechanisms:
+Phase 2B implemented distribution mechanisms:
 
 - Phase 2B-1: NAS copy. Complete.
-- Phase 2B-2: Restic integration. Remaining.
-- Phase 2B-3: email reports. Remaining.
-- Phase 2B-4: optional Hetzner uploads. Remaining.
+- Phase 2B-2: Restic integration. Complete.
+- Phase 2B-3: email reports. Complete.
+- Phase 2B-4: optional Hetzner uploads. Complete.
 
-Phase 2C adds operational automation:
+Phase 2C implemented operational automation:
 
 - scheduling
 - monitoring
 - retention
+
+Phase 3A skeleton files exist for review, but active profiles do not enable
+Atuin, Syncthing, wallpapers, themes, Hyprland, Waybar, or Rofi overrides during
+Phase 2 stabilization.
 
 ## Known Issues
 
@@ -297,11 +296,8 @@ Phase 2C adds operational automation:
 
 ## Next Prompt
 
-Phase 2 is complete. Begin Phase 3A: core sync layer. Implement Tailscale
-integration documentation, Syncthing folder configuration (stow-managed),
-and Atuin shell history as a stow package supporting Omarchy, macOS, Debian,
-and Ubuntu. Add Omarchy desktop enhancements: wallpapers directory, themes
-directory, custom Hyprland includes, Waybar config, and Rofi config using
-override/include strategy that survives Omarchy updates. Do not modify
-Omarchy core files. Do not implement Phase 3B (Firefox sync, VM backup,
-Omarchy postinstall, developer workstation improvements) yet.
+Stabilize and review Phase 2 before starting new Phase 3 work. Confirm the
+Lenovo work laptop passes bootstrap with `laptop-work-omarchy`, decide Restic
+failure semantics, decide the long-term systemd service path strategy, and
+complete Recovery Pack Age bootstrap setup. After that, begin Phase 3A as a
+separate change set.

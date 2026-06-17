@@ -114,8 +114,8 @@ groups, stow packages, and services a machine wants:
 
 ``` sh
 PACKAGE_GROUPS=(common desktop personal gaming virtualization)
-STOW_PACKAGES=(shell zsh bash nvim btop git ssh tmux scripts hypr waybar rofi)
-SERVICES=(tailscale syncthing libvirtd)
+STOW_PACKAGES=(shell zsh bash nvim btop git ssh tmux scripts wezterm recovery-pack)
+SERVICES=(tailscale libvirtd)
 ```
 
 The chosen profile is persisted per-machine (gitignored) at
@@ -157,7 +157,11 @@ Stow packages can be OS-scoped in `profiles/stow-os.map`. Unlisted packages
 apply everywhere; current desktop-specific filters are:
 
 - macOS only: `aerospace`, `borders`
-- Omarchy only: `hypr`, `waybar`, `rofi`
+- Omarchy only: `hypr`, `waybar`, `rofi`, `wallpapers`, `themes`, `recovery-pack`
+
+Phase 3A stow packages for Atuin, Syncthing, and Omarchy desktop polish are
+present as parked skeletons but are not enabled in active profiles during Phase
+2 stabilization.
 
 Before a real stow, the script simulates each package and detects conflicts.
 With a tty it asks per package: skip, backup then stow, or adopt. Without a tty,
@@ -191,7 +195,9 @@ dotfiles/
 ├── stow/                   # GNU Stow packages → symlinked into $HOME
 │   ├── zsh/ bash/ shell/ nvim/ btop/ git/ ssh/ tmux/
 │   ├── wezterm/ aerospace/ borders/ scripts/
-│   └── hypr/ waybar/ rofi/         # Omarchy desktop (skeletons)
+│   ├── recovery-pack/              # systemd user automation for Recovery Pack
+│   └── atuin/ syncthing/ hypr/ waybar/ rofi/ wallpapers/ themes/
+│                                   # parked Phase 3A skeletons
 ├── assets/                 # wallpapers/ themes/ (single source of truth)
 ├── scripts/                # logic only, never symlinked
 │   ├── bootstrap.sh        # remote curl entrypoint
@@ -209,8 +215,10 @@ dotfiles/
 - Machine-specific shell env (paths, credentials) lives in a **gitignored**
   `~/.config/shell/env.local`, sourced by `env.sh`. Nothing machine-specific is
   committed. (Same idea as `~/.ssh/config.local`.)
-- `.gitignore` blocks `*.local`, `*.age`, recovery artifacts, logs, OS cruft.
-- Secrets never live in Git. Recovery/secret tooling arrives in Phase 2.
+- `.gitignore` blocks `*.local`, `*.age`, recovery artifacts, logs, OS cruft;
+  stow-managed XDG `.local` trees are explicitly trackable.
+- Secrets never live in Git. Recovery Pack tooling is implemented in Phase 2;
+  configure local recipients and bootstrap identities outside Git before real use.
 
 ------------------------------------------------------------------------
 
@@ -301,5 +309,5 @@ root
 ## 🗺 Roadmap
 
 - **Phase 1 (complete):** bootstrap orchestrator, package groups, device/role/OS-explicit profiles, safe stow.
-- **Phase 2:** Age recovery pack + disaster-recovery docs.
+- **Phase 2:** Age Recovery Pack + disaster-recovery docs, distribution, timer, retention, health.
 - **Phase 3:** Syncthing/Tailscale sync, Atuin client, Omarchy desktop polish.

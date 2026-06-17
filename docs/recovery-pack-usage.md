@@ -1,8 +1,7 @@
 # Recovery Pack Usage
 
-This document covers Phase 2A local Recovery Pack generation and Phase 2B-1
-NAS copy. It does not implement Restic, email, Hetzner, scheduling, monitoring,
-or retention.
+This document covers Phase 2 Recovery Pack generation, distribution, scheduled
+automation, retention, and health checks.
 
 ## Config Setup
 
@@ -43,8 +42,8 @@ Bare paths get a default classification and reason based on the category.
 
 ## NAS Target
 
-Phase 2B-1 can copy the encrypted artifact and safe sidecars to the NAS target
-when explicitly requested.
+The generator can copy the encrypted artifact and safe sidecars to the NAS
+target when explicitly requested.
 
 Default target:
 
@@ -99,6 +98,9 @@ Dry-run output includes:
 - missing optional files
 - missing required files
 - NAS copy target and copy plan when `--copy-to-nas` is used
+- Restic plan when `--restic` or `RECOVERY_PACK_RESTIC_ENABLED=1` is used
+- email report plan when `--email` or `RECOVERY_PACK_EMAIL_ENABLED=1` is used
+- Hetzner copy plan when `--hetzner` or `RECOVERY_PACK_HETZNER_ENABLED=1` is used
 
 ## Build
 
@@ -153,6 +155,73 @@ NAS copy includes only:
 
 It does not copy plaintext staging directories, extracted archives, Restic
 data, email reports, or Hetzner uploads.
+
+## Restic Backup
+
+Back up the encrypted artifact and sidecars to a Restic repository:
+
+```bash
+./scripts/generate-recovery-pack.sh --restic --output-dir /tmp/recovery-pack-output
+```
+
+Restic can also be enabled in `config/recovery-pack.conf` with
+`RECOVERY_PACK_RESTIC_ENABLED=1`. The repository and password can come from
+standard Restic environment variables or the Recovery Pack config overrides.
+
+Current stabilization note: Restic is designed as a secondary backup path, but
+the implementation currently treats a runtime `restic backup` failure as fatal.
+Review this before final Phase 2 release.
+
+## Email Report
+
+Send a status report after generation:
+
+```bash
+./scripts/generate-recovery-pack.sh --email --output-dir /tmp/recovery-pack-output
+```
+
+Email reports include artifact metadata and target status. They must not include
+plaintext secrets. Encrypted artifact attachments are disabled by default and
+require `RECOVERY_PACK_EMAIL_ATTACH=1`.
+
+## Optional Hetzner Copy
+
+Copy the encrypted artifact and sidecars to a configured Hetzner Storage Box:
+
+```bash
+./scripts/generate-recovery-pack.sh --hetzner --output-dir /tmp/recovery-pack-output
+```
+
+Hetzner is optional and disabled by default. It copies only encrypted artifacts
+and safe sidecars.
+
+## Automation, Retention, and Health
+
+The `recovery-pack` stow package provides:
+
+```text
+~/.config/systemd/user/recovery-pack.service
+~/.config/systemd/user/recovery-pack.timer
+```
+
+Manual trigger:
+
+```bash
+systemctl --user start recovery-pack.service
+```
+
+Retention:
+
+```bash
+./scripts/recovery-pack-retention.sh --dry-run
+./scripts/recovery-pack-retention.sh --keep 5
+```
+
+Health check:
+
+```bash
+./scripts/recovery-pack-health.sh
+```
 
 ## Verify
 

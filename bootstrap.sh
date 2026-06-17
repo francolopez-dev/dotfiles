@@ -98,16 +98,19 @@ pkg_args=(--profile "$PROFILE" --os "$OS" --pkgmgr "$PKGMGR")
 [ "$ENFORCE" = "1" ] && pkg_args+=(--enforce)
 bash "$SCRIPTS/install-packages.sh" "${pkg_args[@]}"
 
-# 4) Apply stow
+# 4) Clean stale incompatible stow links from older profile mistakes.
+bash "$SCRIPTS/cleanup-stale-stow-links.sh" --os "$OS"
+
+# 5) Apply stow
 stow_args=(--profile "$PROFILE" --os "$OS")
 [ "$ADOPT" = "1" ] && stow_args+=(--adopt)
 [ "$BACKUP_CONFLICTS" = "1" ] && stow_args+=(--backup-conflicts)
 bash "$SCRIPTS/apply-stow.sh" "${stow_args[@]}"
 
-# 5) Enable services
+# 6) Enable services
 bash "$SCRIPTS/enable-services.sh" --profile "$PROFILE" --os "$OS"
 
-# 6) (Phase 3) setup-syncing — not yet implemented.
+# 7) (Phase 3) setup-syncing — not yet implemented.
 
 log ""
 ok "Bootstrap complete for profile '$PROFILE' on $OS."

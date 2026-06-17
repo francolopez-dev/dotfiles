@@ -31,6 +31,10 @@ has not started.
 - Resolved follow-up: old saved profile names migrate before wizard fallback.
 - Resolved follow-up: Omarchy desktop/laptop package set includes `networkmanager`
   and `tailscale`.
+- Resolved follow-up: friendly service `tailscale` maps to `tailscaled.service`
+  on Omarchy/Arch.
+- Resolved follow-up: remote bootstrap documents `bash -s --` and supports
+  `DOTFILES_PROFILE`, `DOTFILES_FIRST_TIME`, and `DOTFILES_BACKUP_CONFLICTS`.
 
 ## Findings
 

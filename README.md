@@ -35,6 +35,23 @@ If the repo already exists with local changes, it stops instead of stashing or
 overwriting work. Use `DOTFILES_BOOTSTRAP_AUTO_STASH=1` or `--auto-stash` only
 when you explicitly want the remote entrypoint to stash, update, and pop.
 
+Remote bootstrap flags must be passed either with environment variables:
+
+```bash
+DOTFILES_FIRST_TIME=1 curl -fsSL https://raw.githubusercontent.com/jfrancolopez/dotfiles/main/scripts/bootstrap.sh | bash
+DOTFILES_PROFILE=laptop-work-omarchy curl -fsSL https://raw.githubusercontent.com/jfrancolopez/dotfiles/main/scripts/bootstrap.sh | bash
+DOTFILES_BACKUP_CONFLICTS=1 curl -fsSL https://raw.githubusercontent.com/jfrancolopez/dotfiles/main/scripts/bootstrap.sh | bash
+```
+
+or with Bash's `-s --` argument separator:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/jfrancolopez/dotfiles/main/scripts/bootstrap.sh | bash -s -- --first-time
+curl -fsSL https://raw.githubusercontent.com/jfrancolopez/dotfiles/main/scripts/bootstrap.sh | bash -s -- --profile laptop-work-omarchy
+```
+
+Do not use `bash --first-time`; Bash will treat that as an option to Bash itself.
+
 Once the repo is cloned, run it directly:
 
 ``` bash
@@ -200,9 +217,12 @@ dotfiles/
 ## 🌐 Remote access (Tailscale)
 
 ``` bash
-curl -fsSL https://tailscale.com/install.sh | sh
-sudo tailscale up --ssh
+sudo systemctl enable --now tailscaled
+sudo tailscale up
 ```
+
+Profiles use friendly service names such as `tailscale`; on Omarchy/Arch this
+maps to `tailscaled.service`.
 
 ------------------------------------------------------------------------
 ## Troubleshooting

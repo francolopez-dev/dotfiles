@@ -29,17 +29,45 @@ SERVICES=()
 # shellcheck source=/dev/null
 . "$PROFILES_DIR/$PROFILE.conf"
 
-enable_linux() {
+system_unit_for() {
   local svc="$1"
-  need_cmd systemctl || { warn "systemctl not found; cannot enable $svc"; return 0; }
-  if systemctl list-unit-files 2>/dev/null | grep -q "^${svc}\(\.service\|\.socket\)\?"; then
-    info "Enabling (system): $svc"
-    run sudo systemctl enable --now "$svc" || warn "could not enable system service: $svc"
-  elif systemctl --user list-unit-files 2>/dev/null | grep -q "^${svc}"; then
-    info "Enabling (user): $svc"
-    run systemctl --user enable --now "$svc" || warn "could not enable user service: $svc"
+  case "$OS:$svc" in
+    omarchy:tailscale|debian:tailscale|ubuntu:tailscale) printf "tailscaled.service\n" ;;
+    omarchy:ssh) printf "sshd.service\n" ;;
+    debian:ssh|ubuntu:ssh) printf "ssh.service\n" ;;
+    *:libvirtd) printf "libvirtd.service\n" ;;
+    *) printf "%s.service\n" "$svc" ;;
+  esac
+}
+
+user_unit_for() {
+  local svc="$1"
+  case "$svc" in
+    syncthing) printf "syncthing.service\n" ;;
+    *) printf "%s.service\n" "$svc" ;;
+  esac
+}
+
+enable_linux() {
+  local svc="$1" system_unit user_unit
+  system_unit="$(system_unit_for "$svc")"
+  user_unit="$(user_unit_for "$svc")"
+
+  if [ "$DRY_RUN" = "1" ]; then
+    info "Enabling (system): $svc -> $system_unit"
+    run sudo systemctl enable --now "$system_unit"
+    return 0
+  fi
+
+  need_cmd systemctl || { warn "systemctl not found; cannot enable $svc -> $system_unit"; return 0; }
+  if systemctl list-unit-files 2>/dev/null | grep -q "^${system_unit}"; then
+    info "Enabling (system): $svc -> $system_unit"
+    run sudo systemctl enable --now "$system_unit" || warn "could not enable system service: $svc -> $system_unit"
+  elif systemctl --user list-unit-files 2>/dev/null | grep -q "^${user_unit}"; then
+    info "Enabling (user): $svc -> $user_unit"
+    run systemctl --user enable --now "$user_unit" || warn "could not enable user service: $svc -> $user_unit"
   else
-    warn "service unit not found for: $svc (is the package installed?)"
+    warn "service unit not found for: $svc -> $system_unit (is the package installed?)"
   fi
 }
 

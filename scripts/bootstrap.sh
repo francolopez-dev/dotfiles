@@ -23,6 +23,11 @@ while [ $# -gt 0 ]; do
   esac
 done
 
+[ -n "${DOTFILES_PROFILE:-}" ] && FORWARD_ARGS+=(--profile "$DOTFILES_PROFILE")
+[ "${DOTFILES_FIRST_TIME:-0}" = "1" ] && FORWARD_ARGS+=(--first-time)
+[ "${DOTFILES_BACKUP_CONFLICTS:-0}" = "1" ] && FORWARD_ARGS+=(--backup-conflicts)
+[ "${DOTFILES_DRY_RUN:-0}" = "1" ] && FORWARD_ARGS+=(--dry-run)
+
 log() { printf "%s\n" "$*"; }
 need_cmd() { command -v "$1" >/dev/null 2>&1; }
 

@@ -21,6 +21,9 @@ Observed hardware behavior during Omarchy testing:
 - `nmcli` was missing during initial testing.
 - Omarchy desktop/laptop profiles install `networkmanager` so NetworkManager CLI tools are available.
 - Omarchy desktop/laptop profiles install `tailscale` so the declared Tailscale service has a matching package.
+- Friendly service `tailscale` maps to `tailscaled.service` on Omarchy/Arch.
+- First Tailscale use still requires authentication:
+  `sudo systemctl enable --now tailscaled` and `sudo tailscale up`.
 - If the built-in Ethernet remains unstable, keep that interface disabled and use USB Ethernet or Wi-Fi.
 
 These are operational notes only. The dotfiles bootstrap does not automate driver, kernel, or NetworkManager changes for this issue.

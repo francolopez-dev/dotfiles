@@ -9,7 +9,9 @@ set -euo pipefail
 #
 # Honors DRY_RUN=1. Unknown/unsupported services warn and are skipped.
 
-. "$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)/lib.sh"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
+# shellcheck source=scripts/lib.sh
+. "$SCRIPT_DIR/lib.sh"
 
 PROFILES_DIR="${PROFILES_DIR:-$REPO_DIR/profiles}"
 

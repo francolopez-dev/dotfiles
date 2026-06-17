@@ -10,10 +10,12 @@ Supported machine classes (and only these):
 
 | Class | OS | Pkg manager | Example profile |
 |-------|----|-------------|-----------------|
-| Primary desktop | **Omarchy** (Arch/Hyprland) | pacman + yay | `domum-workstation` |
-| Secondary laptop | **macOS** | Homebrew | `personal-laptop`, `work-laptop` |
-| Personal server | **Debian** | apt | `linux-server-personal` |
-| Work server | **Ubuntu** | apt | `linux-server-work` |
+| Primary desktop | **Omarchy** (Arch/Hyprland) | pacman + yay | `desktop-omarchy` |
+| Work laptop | **Omarchy** (Lenovo/Hyprland) | pacman + yay | `work-omarchy` |
+| Personal laptop | **macOS** | Homebrew | `personal-macos` |
+| Work laptop | **macOS** | Homebrew | `work-macos` |
+| Personal server | **Debian** | apt | `server-debian` |
+| Work server | **Ubuntu** | apt | `server-ubuntu` |
 
 ------------------------------------------------------------------------
 
@@ -32,8 +34,9 @@ Once the repo is cloned, run it directly:
 
 ``` bash
 cd ~/dotfiles
-./bootstrap.sh                       # interactive profile pick (or saved choice)
-./bootstrap.sh --profile personal-laptop
+./bootstrap.sh                       # first-run wizard (or saved choice)
+./bootstrap.sh --first-time          # re-run the wizard
+./bootstrap.sh --profile personal-macos
 ./bootstrap.sh --dry-run --profile minimal   # preview, change nothing
 ```
 
@@ -61,9 +64,11 @@ curl bootstrap.sh | bash         (scripts/bootstrap.sh — remote entrypoint)
 | Flag | Meaning |
 |------|---------|
 | `--dry-run` | Print intended actions, mutate nothing |
-| `--profile NAME` | Use & persist this profile (else interactive / saved / `minimal`) |
+| `--profile NAME` | Use & persist this profile (else wizard / saved / `minimal`) |
+| `--first-time`, `--reconfigure` | Run the OS-aware first-run wizard even if a profile is saved |
 | `--enforce` | Also **remove** packages not declared by the profile (destructive, prompts) |
 | `--adopt` | Let stow adopt existing real files (review the git diff after) |
+| `--backup-conflicts` | Back up stow conflicts to `~/.dotfiles-backup/<timestamp>/` instead of prompting/skipping |
 | `--log FILE` | Tee output here (default `~/.cache/dotfiles/bootstrap-<ts>.log`) |
 
 ------------------------------------------------------------------------
@@ -94,6 +99,34 @@ SERVICES=(tailscale syncthing libvirtd)
 The chosen profile is persisted per-machine (gitignored) at
 `~/.config/dotfiles/profile`.
 
+On first run, or when `--first-time` is passed, the profile wizard reads from
+`/dev/tty` so it still works when the installer is launched through
+`curl | bash`. It filters profile choices by detected OS:
+
+- Omarchy: `desktop-omarchy`, `work-omarchy`, `minimal`
+- macOS: `personal-macos`, `work-macos`, `minimal`
+- Debian: `server-debian`, `minimal`
+- Ubuntu: `server-ubuntu`, `minimal`
+
+Validate every profile manually with:
+
+```bash
+scripts/validate-profiles.sh
+```
+
+## 🔗 Stow safety
+
+Stow packages can be OS-scoped in `profiles/stow-os.map`. Unlisted packages
+apply everywhere; current desktop-specific filters are:
+
+- macOS only: `aerospace`, `borders`
+- Omarchy only: `hypr`, `waybar`, `rofi`
+
+Before a real stow, the script simulates each package and detects conflicts.
+With a tty it asks per package: skip, backup then stow, or adopt. Without a tty,
+the default is non-destructive skip with a clear conflict report. `--adopt` and
+`--backup-conflicts` provide explicit non-interactive behavior.
+
 ------------------------------------------------------------------------
 
 ## 📂 Repository structure
@@ -103,6 +136,7 @@ dotfiles/
 ├── bootstrap.sh            # root orchestrator ("one command")
 ├── packages/               # package groups (per-OS lists)
 ├── profiles/               # intent definitions (*.conf)
+│   └── stow-os.map         # OS allow-list for desktop-specific stow packages
 ├── stow/                   # GNU Stow packages → symlinked into $HOME
 │   ├── zsh/ bash/ shell/ nvim/ btop/ git/ ssh/ tmux/
 │   ├── wezterm/ aerospace/ borders/ scripts/
@@ -112,6 +146,7 @@ dotfiles/
 │   ├── bootstrap.sh        # remote curl entrypoint
 │   ├── lib.sh detect-os.sh select-profile.sh
 │   ├── install-packages.sh apply-stow.sh enable-services.sh
+│   ├── validate-profiles.sh
 │   └── install.sh          # DEPRECATED shim → ../bootstrap.sh
 └── docs/
 ```
@@ -211,6 +246,6 @@ root
 
 ## 🗺 Roadmap
 
-- **Phase 1 (done):** bootstrap orchestrator, package groups, profiles, stow refactor.
+- **Phase 1 (done):** bootstrap orchestrator, package groups, OS-explicit profiles, safe stow.
 - **Phase 2:** Age recovery pack + disaster-recovery docs.
 - **Phase 3:** Syncthing/Tailscale sync, Atuin client, Omarchy desktop polish.

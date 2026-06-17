@@ -1,0 +1,6 @@
+# Stow package OS allow-list. Unlisted packages apply to all supported OSes.
+aerospace macos
+borders macos
+hypr omarchy
+waybar omarchy
+rofi omarchy

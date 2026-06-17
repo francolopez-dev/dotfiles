@@ -57,16 +57,20 @@ run() {
 # confirm "question"  — returns 0 on yes. Auto-no in non-interactive shells.
 confirm() {
   local prompt="${1:-Are you sure?} [y/N] " reply
-  if [ ! -t 0 ]; then
+  if ! is_interactive; then
     warn "non-interactive; assuming 'no' for: $prompt"
     return 1
   fi
-  printf "%b" "$prompt"
-  read -r reply
+  printf "%b" "$prompt" > /dev/tty
+  read -r reply < /dev/tty
   case "$reply" in
     [yY] | [yY][eE][sS]) return 0 ;;
     *) return 1 ;;
   esac
+}
+
+is_interactive() {
+  [ -e /dev/tty ] && { : < /dev/tty; } 2>/dev/null && { : > /dev/tty; } 2>/dev/null
 }
 
 # Read a package/profile list file: strip comments and blank lines.
@@ -75,4 +79,12 @@ read_list() {
   local f="$1"
   [ -f "$f" ] || return 0
   sed -e 's/#.*$//' -e 's/[[:space:]]*$//' -e 's/^[[:space:]]*//' "$f" | grep -v '^$' || true
+}
+
+# Read a simple whitespace-delimited map file after stripping comments.
+# Usage: read_map FILE -> prints "key value" lines.
+read_map() {
+  local f="$1"
+  [ -f "$f" ] || return 0
+  read_list "$f" | awk 'NF >= 2 { print $1, $2 }'
 }

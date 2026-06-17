@@ -8,13 +8,16 @@ set -euo pipefail
 # (setup-syncing arrives in Phase 3.)
 #
 # Usage:
-#   ./bootstrap.sh [--dry-run] [--profile NAME] [--enforce] [--adopt] [--log FILE]
+#   ./bootstrap.sh [--dry-run] [--profile NAME] [--first-time] [--enforce] [--adopt] [--backup-conflicts] [--log FILE]
 #
 #   --dry-run      print intended actions, mutate nothing
-#   --profile NAME use/persist this profile (else interactive / saved / minimal)
+#   --profile NAME use/persist this profile (else wizard / saved / minimal)
+#   --first-time   run the first-run profile wizard even if a profile is saved
 #   --enforce      additionally remove packages not declared by the profile
 #                  (destructive, prompts for confirmation)
 #   --adopt        let stow adopt existing real files (review the git diff after)
+#   --backup-conflicts
+#                  back up stow conflicts instead of prompting/skipping
 #   --log FILE     tee output here (default ~/.cache/dotfiles/bootstrap-<ts>.log)
 #
 # Idempotent and safe to re-run.
@@ -23,12 +26,15 @@ set -euo pipefail
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
 export REPO_DIR
 SCRIPTS="$REPO_DIR/scripts"
+# shellcheck source=scripts/lib.sh
 . "$SCRIPTS/lib.sh"
 
 DRY_RUN=0
 PROFILE_ARG=""
 ENFORCE=0
 ADOPT=0
+BACKUP_CONFLICTS=0
+FIRST_TIME=0
 LOG_FILE=""
 
 while [ $# -gt 0 ]; do
@@ -36,8 +42,10 @@ while [ $# -gt 0 ]; do
     --dry-run) DRY_RUN=1; shift ;;
     --profile) PROFILE_ARG="${2:-}"; shift 2 ;;
     --profile=*) PROFILE_ARG="${1#*=}"; shift ;;
+    --first-time|--reconfigure) FIRST_TIME=1; shift ;;
     --enforce) ENFORCE=1; shift ;;
     --adopt) ADOPT=1; shift ;;
+    --backup-conflicts) BACKUP_CONFLICTS=1; shift ;;
     --log) LOG_FILE="${2:-}"; shift 2 ;;
     --log=*) LOG_FILE="${1#*=}"; shift ;;
     -h|--help)
@@ -70,8 +78,13 @@ ok "Detected OS: $OS (pkg manager: $PKGMGR)"
 # 2) Select profile (persisted to ~/.config/dotfiles/profile)
 profile_args=()
 [ -n "$PROFILE_ARG" ] && profile_args=(--profile "$PROFILE_ARG")
-PROFILE="$(bash "$SCRIPTS/select-profile.sh" "${profile_args[@]}")"
+[ "$FIRST_TIME" = "1" ] && profile_args+=(--first-time)
+PROFILE="$(bash "$SCRIPTS/select-profile.sh" --os "$OS" "${profile_args[@]}")"
 ok "Profile: $PROFILE"
+
+# Validate selected profile before mutating the machine.
+bash "$SCRIPTS/validate-profiles.sh" --profile "$PROFILE" >/dev/null || die "Profile validation failed: $PROFILE"
+ok "Profile validation passed: $PROFILE"
 
 # 3) Install packages
 pkg_args=(--profile "$PROFILE" --os "$OS" --pkgmgr "$PKGMGR")
@@ -79,8 +92,9 @@ pkg_args=(--profile "$PROFILE" --os "$OS" --pkgmgr "$PKGMGR")
 bash "$SCRIPTS/install-packages.sh" "${pkg_args[@]}"
 
 # 4) Apply stow
-stow_args=(--profile "$PROFILE")
+stow_args=(--profile "$PROFILE" --os "$OS")
 [ "$ADOPT" = "1" ] && stow_args+=(--adopt)
+[ "$BACKUP_CONFLICTS" = "1" ] && stow_args+=(--backup-conflicts)
 bash "$SCRIPTS/apply-stow.sh" "${stow_args[@]}"
 
 # 5) Enable services

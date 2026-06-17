@@ -13,7 +13,9 @@ set -euo pipefail
 # Env overrides for testing:
 #   OS_OVERRIDE=omarchy ./detect-os.sh
 
-. "$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)/lib.sh"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
+# shellcheck source=scripts/lib.sh
+. "$SCRIPT_DIR/lib.sh"
 
 detect_os() {
   if [ -n "${OS_OVERRIDE:-}" ]; then

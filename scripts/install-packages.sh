@@ -15,7 +15,9 @@ set -euo pipefail
 # when the 'desktop' group is selected:
 #   INSTALL_OHMYZSH=1 INSTALL_P10K=1   (both default 1)
 
-. "$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)/lib.sh"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
+# shellcheck source=scripts/lib.sh
+. "$SCRIPT_DIR/lib.sh"
 
 PACKAGES_DIR="${PACKAGES_DIR:-$REPO_DIR/packages}"
 PROFILES_DIR="${PROFILES_DIR:-$REPO_DIR/profiles}"

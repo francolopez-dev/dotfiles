@@ -10,9 +10,13 @@ OUTPUT_DIR="$PWD"
 PROFILE_NAME="${DOTFILES_PROFILE:-unknown}"
 DRY_RUN=0
 VERIFY_ARTIFACT=""
+COPY_TO_NAS=0
+NAS_TARGET_DIR=""
 
 TMP_ROOT=""
 ARCHIVE_PATH=""
+MANIFEST_SIDECAR=""
+CHECKSUM_SIDECAR=""
 DECRYPTED_ARCHIVE=""
 HAVE_FAILURES=0
 HAVE_WARNINGS=0
@@ -20,8 +24,8 @@ HAVE_WARNINGS=0
 usage() {
   cat <<'USAGE'
 Usage:
-  scripts/generate-recovery-pack.sh [--config FILE] [--output-dir DIR] [--profile NAME]
-  scripts/generate-recovery-pack.sh --dry-run [--config FILE] [--profile NAME]
+  scripts/generate-recovery-pack.sh [--config FILE] [--output-dir DIR] [--profile NAME] [--copy-to-nas]
+  scripts/generate-recovery-pack.sh --dry-run [--config FILE] [--profile NAME] [--copy-to-nas]
   scripts/generate-recovery-pack.sh --verify ARTIFACT.age [--config FILE]
 
 Options:
@@ -29,6 +33,8 @@ Options:
   --verify FILE    Decrypt and validate an existing recovery-pack .age artifact.
   --config FILE    Load recovery pack config. Default: config/recovery-pack.conf.
   --output-dir DIR Write encrypted artifact here. Default: current directory.
+  --copy-to-nas    Copy encrypted artifact and safe sidecars to NAS target.
+  --nas-dir DIR    Override NAS target. Default: RECOVERY_PACK_NAS_PATH from config.
   --profile NAME   Record profile name in metadata. Default: DOTFILES_PROFILE or unknown.
   --help           Show this help.
 USAGE
@@ -55,6 +61,13 @@ while [ $# -gt 0 ]; do
       shift 2
       ;;
     --output-dir=*) OUTPUT_DIR="${1#*=}"; shift ;;
+    --copy-to-nas) COPY_TO_NAS=1; shift ;;
+    --nas-dir)
+      NAS_TARGET_DIR="${2:-}"
+      [ -n "$NAS_TARGET_DIR" ] || die "--nas-dir requires a directory"
+      shift 2
+      ;;
+    --nas-dir=*) NAS_TARGET_DIR="${1#*=}"; shift ;;
     --profile)
       PROFILE_NAME="${2:-}"
       [ -n "$PROFILE_NAME" ] || die "--profile requires a name"
@@ -116,6 +129,7 @@ load_config() {
   ensure_array OPTIONAL_VPN_PATHS
   ensure_array OPTIONAL_CERTIFICATE_PATHS
   ensure_array OPTIONAL_INFRA_EXPORT_PATHS
+  NAS_TARGET_DIR="${NAS_TARGET_DIR:-${RECOVERY_PACK_NAS_PATH:-/storage/backups/recovery-pack/}}"
 }
 
 ensure_array() {
@@ -183,12 +197,23 @@ sha256_cmd() {
 validate_common() {
   need_cmd age || fail_count "Missing required command: age"
   need_cmd tar || fail_count "Missing required command: tar"
+  need_cmd cp || fail_count "Missing required command: cp"
   sha256_cmd >/dev/null || fail_count "Missing required command: sha256sum or shasum"
   [ "$(array_len AGE_RECIPIENTS)" -gt 0 ] || fail_count "No Age recipients configured in AGE_RECIPIENTS"
 
   if [ "$DRY_RUN" = "0" ] || [ -n "$VERIFY_ARTIFACT" ]; then
     [ "$(array_len AGE_BOOTSTRAP_IDENTITIES)" -gt 0 ] || fail_count "No Age bootstrap identities configured in AGE_BOOTSTRAP_IDENTITIES"
   fi
+}
+
+validate_nas_target() {
+  [ "$COPY_TO_NAS" = "1" ] || return 0
+  [ -n "$NAS_TARGET_DIR" ] || fail_count "NAS target is empty"
+  if [ ! -d "$NAS_TARGET_DIR" ]; then
+    fail_count "NAS target does not exist or is not a directory: $NAS_TARGET_DIR"
+    return 0
+  fi
+  [ -w "$NAS_TARGET_DIR" ] || fail_count "NAS target is not writable: $NAS_TARGET_DIR"
 }
 
 validate_paths_for_array() {
@@ -223,6 +248,7 @@ validate_config() {
   validate_paths_for_array OPTIONAL_VPN_PATHS "vpn" 0
   validate_paths_for_array OPTIONAL_CERTIFICATE_PATHS "certificates" 0
   validate_paths_for_array OPTIONAL_INFRA_EXPORT_PATHS "infrastructure-exports" 0
+  validate_nas_target
 }
 
 print_recipients() {
@@ -276,6 +302,10 @@ print_planned_for_array() {
 dry_run() {
   info "Dry-run only. No archive, encryption, or copy operation will run."
   info "Config: $CONFIG_FILE"
+  if [ "$COPY_TO_NAS" = "1" ]; then
+    info "NAS copy target: $NAS_TARGET_DIR"
+    info "NAS copy plan: encrypted .age artifact plus .manifest.txt and .sha256 sidecars"
+  fi
   print_recipients
   print_archive_structure
   info "Planned inputs:"
@@ -381,11 +411,26 @@ write_checksums() {
   ) > "$pack_dir/CHECKSUMS.sha256"
 }
 
+write_artifact_checksum() {
+  local artifact="$1" sidecar="$2"
+  (
+    cd "$(dirname "$artifact")"
+    if need_cmd sha256sum; then
+      sha256sum "$(basename "$artifact")"
+    else
+      shasum -a 256 "$(basename "$artifact")"
+    fi
+  ) > "$sidecar"
+}
+
 create_archive() {
-  local work_dir="$1" timestamp archive_plain recipient_args=() recipient
+  local work_dir="$1" pack_dir="$2" timestamp archive_plain recipient_args=() recipient base
   timestamp="$(date -u +"%Y-%m-%d-%H%M%S")"
   archive_plain="$work_dir/recovery-pack-$timestamp.tar.gz"
-  ARCHIVE_PATH="$OUTPUT_DIR/recovery-pack-$timestamp.tar.gz.age"
+  base="recovery-pack-$timestamp"
+  ARCHIVE_PATH="$OUTPUT_DIR/$base.tar.gz.age"
+  MANIFEST_SIDECAR="$OUTPUT_DIR/$base.manifest.txt"
+  CHECKSUM_SIDECAR="$OUTPUT_DIR/$base.sha256"
 
   mkdir -p "$OUTPUT_DIR"
   (
@@ -401,6 +446,22 @@ create_archive() {
   age "${recipient_args[@]}" -o "$ARCHIVE_PATH" "$archive_plain"
   rm -f "$archive_plain"
   [ -s "$ARCHIVE_PATH" ] || die "Encrypted artifact was not created: $ARCHIVE_PATH"
+  cp -p "$pack_dir/MANIFEST.txt" "$MANIFEST_SIDECAR"
+  write_artifact_checksum "$ARCHIVE_PATH" "$CHECKSUM_SIDECAR"
+  [ -s "$MANIFEST_SIDECAR" ] || die "Manifest sidecar was not created: $MANIFEST_SIDECAR"
+  [ -s "$CHECKSUM_SIDECAR" ] || die "Checksum sidecar was not created: $CHECKSUM_SIDECAR"
+}
+
+copy_to_nas() {
+  local src dest
+  [ "$COPY_TO_NAS" = "1" ] || return 0
+  for src in "$ARCHIVE_PATH" "$MANIFEST_SIDECAR" "$CHECKSUM_SIDECAR"; do
+    [ -f "$src" ] || die "Refusing NAS copy; missing source file: $src"
+    dest="$NAS_TARGET_DIR/$(basename "$src")"
+    cp -p "$src" "$dest"
+    [ -s "$dest" ] || die "NAS copy failed or produced empty file: $dest"
+    ok "copied $(basename "$src") to $NAS_TARGET_DIR"
+  done
 }
 
 build_pack() {
@@ -412,7 +473,8 @@ build_pack() {
   init_pack_tree "$pack_dir"
   copy_configured_inputs "$pack_dir"
   write_checksums "$pack_dir"
-  create_archive "$work_dir"
+  create_archive "$work_dir" "$pack_dir"
+  copy_to_nas
   ok "created $ARCHIVE_PATH"
 }
 

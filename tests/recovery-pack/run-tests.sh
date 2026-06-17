@@ -7,6 +7,7 @@ SCRIPT="$REPO_DIR/scripts/generate-recovery-pack.sh"
 FIXTURES="$TEST_DIR/fixtures"
 WORK_DIR="$TEST_DIR/.tmp"
 OUTPUT_DIR="$WORK_DIR/output"
+NAS_DIR="$WORK_DIR/nas"
 TMP_WORKSPACES="$WORK_DIR/tmp"
 CONFIG_FILE="$WORK_DIR/recovery-pack.test.conf"
 IDENTITY_FILE="$WORK_DIR/test-age-identity.txt"
@@ -31,12 +32,14 @@ need_cmd() {
 
 setup_fixture_config() {
   local recipient
-  mkdir -p "$OUTPUT_DIR" "$TMP_WORKSPACES"
+  mkdir -p "$OUTPUT_DIR" "$NAS_DIR" "$TMP_WORKSPACES"
   age-keygen -o "$IDENTITY_FILE" >/dev/null 2>&1
   recipient="$(grep '^# public key:' "$IDENTITY_FILE" | awk '{print $4}')"
   [ -n "$recipient" ] || fail "could not read test Age recipient"
 
   cat > "$CONFIG_FILE" <<CONFIG
+RECOVERY_PACK_NAS_PATH="$NAS_DIR"
+
 AGE_RECIPIENTS=(
   "$recipient"
 )
@@ -106,10 +109,24 @@ assert_no_archives() {
   [ "$count" = "0" ] || fail "dry-run created encrypted archives"
 }
 
+assert_no_nas_files() {
+  local count
+  count="$(find "$NAS_DIR" -type f | wc -l | tr -d ' ')"
+  [ "$count" = "0" ] || fail "dry-run copied files to NAS target"
+}
+
 assert_one_archive() {
   local count
   count="$(find "$OUTPUT_DIR" -type f -name 'recovery-pack-*.tar.gz.age' | wc -l | tr -d ' ')"
   [ "$count" = "1" ] || fail "expected one encrypted archive, found $count"
+}
+
+assert_sidecars_for_archive() {
+  local artifact="$1" base
+  base="${artifact%.tar.gz.age}"
+  [ -s "$base.manifest.txt" ] || fail "missing manifest sidecar for $artifact"
+  [ -s "$base.sha256" ] || fail "missing checksum sidecar for $artifact"
+  grep -q "$(basename "$artifact")" "$base.sha256" || fail "checksum sidecar does not reference artifact basename"
 }
 
 latest_archive() {
@@ -131,11 +148,55 @@ test_dry_run() {
   pass "dry-run"
 }
 
+test_nas_dry_run() {
+  run_generator --dry-run --copy-to-nas --config "$CONFIG_FILE" --output-dir "$OUTPUT_DIR" > "$WORK_DIR/nas-dry-run.out" 2> "$WORK_DIR/nas-dry-run.err"
+  grep -q "NAS copy target" "$WORK_DIR/nas-dry-run.out" || fail "NAS dry-run output missing target"
+  grep -q "NAS copy plan" "$WORK_DIR/nas-dry-run.out" || fail "NAS dry-run output missing copy plan"
+  assert_no_archives
+  assert_no_nas_files
+  assert_tmp_clean
+  pass "nas-dry-run"
+}
+
+test_nas_validation() {
+  local missing_dir
+  missing_dir="$WORK_DIR/missing-nas"
+  if run_generator --dry-run --copy-to-nas --nas-dir "$missing_dir" --config "$CONFIG_FILE" --output-dir "$OUTPUT_DIR" > "$WORK_DIR/nas-validation.out" 2> "$WORK_DIR/nas-validation.err"; then
+    fail "NAS validation unexpectedly passed for missing target"
+  fi
+  grep -q "NAS target does not exist" "$WORK_DIR/nas-validation.err" || fail "NAS validation error missing"
+  assert_no_archives
+  assert_no_nas_files
+  assert_tmp_clean
+  pass "nas-validation"
+}
+
 test_build() {
+  local artifact
   run_generator --config "$CONFIG_FILE" --output-dir "$OUTPUT_DIR" --profile test-profile > "$WORK_DIR/build.out" 2> "$WORK_DIR/build.err"
   assert_one_archive
+  artifact="$(latest_archive)"
+  assert_sidecars_for_archive "$artifact"
   assert_tmp_clean
   pass "build"
+}
+
+test_nas_copy() {
+  local artifact copied_artifact base
+  rm -f "$OUTPUT_DIR"/recovery-pack-* "$NAS_DIR"/recovery-pack-*
+  run_generator --copy-to-nas --config "$CONFIG_FILE" --output-dir "$OUTPUT_DIR" --profile test-profile > "$WORK_DIR/nas-copy.out" 2> "$WORK_DIR/nas-copy.err"
+  assert_one_archive
+  artifact="$(latest_archive)"
+  base="$(basename "${artifact%.tar.gz.age}")"
+  copied_artifact="$NAS_DIR/$(basename "$artifact")"
+  [ -s "$copied_artifact" ] || fail "encrypted artifact was not copied to NAS target"
+  [ -s "$NAS_DIR/$base.manifest.txt" ] || fail "manifest sidecar was not copied to NAS target"
+  [ -s "$NAS_DIR/$base.sha256" ] || fail "checksum sidecar was not copied to NAS target"
+  cmp -s "$artifact" "$copied_artifact" || fail "copied encrypted artifact differs from source"
+  cmp -s "${artifact%.tar.gz.age}.manifest.txt" "$NAS_DIR/$base.manifest.txt" || fail "copied manifest sidecar differs from source"
+  cmp -s "${artifact%.tar.gz.age}.sha256" "$NAS_DIR/$base.sha256" || fail "copied checksum sidecar differs from source"
+  assert_tmp_clean
+  pass "nas-copy"
 }
 
 test_verify() {
@@ -160,8 +221,11 @@ main() {
   rm -rf "$WORK_DIR"
   setup_fixture_config
   test_dry_run
+  test_nas_dry_run
+  test_nas_validation
   test_build
   test_verify
+  test_nas_copy
   test_cleanup
 }
 

@@ -40,7 +40,10 @@ Default path:
 Expected behavior:
 
 - Verify the NAS path exists before generation or fail with a clear error.
-- Copy only encrypted artifacts and safe sidecars.
+- Copy only encrypted artifacts and safe sidecars when `--copy-to-nas` is
+  explicitly requested.
+- Safe sidecars are limited to the generated manifest and encrypted-artifact
+  checksum.
 - Keep retention simple at first, such as monthly or last-N artifacts.
 - Do not store plaintext staging data on NAS.
 

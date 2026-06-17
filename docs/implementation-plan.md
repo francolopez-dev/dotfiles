@@ -62,7 +62,9 @@ Complete as of 2026-06-17 after the audit-blocker fixes documented in
 
 ## Remaining Work
 
-- Phase 2B: recovery pack distribution mechanisms.
+- Phase 2B-2: Restic integration.
+- Phase 2B-3: email reports.
+- Phase 2B-4: optional Hetzner uploads.
 - Phase 2C: automation, scheduling, monitoring, and retention.
 - Phase 3: sync setup, Atuin client config, and Omarchy desktop polish.
 
@@ -98,6 +100,42 @@ Phase 2A validation:
   - dry-run test
   - build test
   - verify test
+  - cleanup test
+
+## Phase 2B-1 Status
+
+Complete as of 2026-06-17. Implemented explicit NAS copy for encrypted
+Recovery Pack artifacts and safe sidecars only.
+
+Completed in Phase 2B-1:
+
+- Added `--copy-to-nas` to `scripts/generate-recovery-pack.sh`.
+- Added `--nas-dir` override for tests and one-off runs.
+- Added `RECOVERY_PACK_NAS_PATH` to `config/recovery-pack.conf`, defaulting to
+  `/storage/backups/recovery-pack/`.
+- Added manifest and encrypted-artifact checksum sidecars:
+  - `recovery-pack-YYYY-MM-DD-HHMMSS.manifest.txt`
+  - `recovery-pack-YYYY-MM-DD-HHMMSS.sha256`
+- Validates that the NAS target already exists and is writable.
+- Dry-run reports the NAS copy target and copy plan without creating archives
+  or copying files.
+- Copies only:
+  - encrypted `.tar.gz.age` artifact
+  - `.manifest.txt` sidecar
+  - `.sha256` sidecar
+- Kept Restic, email, Hetzner, scheduling, monitoring, and retention out of
+  scope.
+
+Phase 2B-1 validation:
+
+- `shellcheck -x scripts/*.sh tests/recovery-pack/run-tests.sh`: PASS
+- `tests/recovery-pack/run-tests.sh`: PASS
+  - dry-run test
+  - NAS dry-run test
+  - NAS validation test
+  - build test
+  - verify test
+  - NAS copy test
   - cleanup test
 
 ## Phase 2 Planning Checkpoint
@@ -145,10 +183,10 @@ Phase 2A does not implement:
 
 Phase 2B adds distribution mechanisms:
 
-- NAS copy
-- Restic integration
-- email reports
-- optional Hetzner uploads
+- Phase 2B-1: NAS copy. Complete.
+- Phase 2B-2: Restic integration. Remaining.
+- Phase 2B-3: email reports. Remaining.
+- Phase 2B-4: optional Hetzner uploads. Remaining.
 
 Phase 2C adds operational automation:
 
@@ -167,7 +205,7 @@ Review the Phase 2 design docs: `docs/architecture.md`,
 `docs/secrets-classification.md`, `docs/recovery-pack-spec.md`,
 `docs/backup-flow.md`, `docs/break-glass-recovery.md`, and
 `docs/travel-recovery.md`, plus `docs/recovery-pack-usage.md`. After review,
-implement Phase 2B distribution in a separate session. Add NAS copy first, then
-Restic integration, then email reports, then optional Hetzner upload. Preserve
-the Phase 2A generator boundary: do not add scheduling, monitoring, or
-retention until Phase 2C. Do not include Tailscale machine state.
+implement Phase 2B-2 Restic integration in a separate session. Preserve the
+Phase 2A generator boundary and the Phase 2B-1 NAS copy boundary. Do not add
+email reports, Hetzner upload, scheduling, monitoring, or retention until their
+separate phases. Do not include Tailscale machine state.

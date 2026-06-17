@@ -11,7 +11,9 @@ Travel recovery covers the case where the primary machine is unavailable while a
 ## Before Travel
 
 - Confirm Vaultwarden access from a second device.
-- Confirm at least one Age identity is available through a safe path.
+- Confirm at least one Age bootstrap identity is available outside the Recovery
+  Pack through a safe path, such as encrypted USB, future YubiKey resident key,
+  or approved printed seed.
 - Confirm latest encrypted Recovery Pack exists.
 - Confirm NAS and Restic backups have recent successful reports.
 - Confirm Tailscale login method works without the lost machine.
@@ -25,16 +27,17 @@ Travel recovery covers the case where the primary machine is unavailable while a
 4. Retrieve the encrypted Recovery Pack from the best available target:
    - NAS over VPN/Tailscale if available
    - Restic
-   - encrypted email copy
+   - encrypted email copy, only if explicitly enabled before travel
    - optional Hetzner
-5. Decrypt only what is needed.
-6. Restore SSH and Age keys.
-7. Log in to Tailscale; do not restore Tailscale state.
-8. Restore VPN/WireGuard only if needed.
+5. Retrieve the Age bootstrap identity from its out-of-band location.
+6. Decrypt only what is needed.
+7. Restore SSH and Age keys.
+8. Log in to Tailscale; do not restore Tailscale state.
+9. Restore VPN/WireGuard only if needed.
 
 ## Minimum Travel Recovery Set
 
-- Age identity capable of decrypting the Recovery Pack.
+- Age bootstrap identity capable of decrypting the Recovery Pack.
 - Vaultwarden access.
 - SSH key for critical infrastructure.
 - Tailscale login path.

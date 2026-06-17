@@ -62,17 +62,53 @@ Complete as of 2026-06-17 after the audit-blocker fixes documented in
 
 ## Remaining Work
 
-- Phase 2: encrypted recovery pack implementation after design-doc review.
+- Phase 2B: recovery pack distribution mechanisms.
+- Phase 2C: automation, scheduling, monitoring, and retention.
 - Phase 3: sync setup, Atuin client config, and Omarchy desktop polish.
+
+## Phase 2A Status
+
+Complete as of 2026-06-17. Implemented a safe, config-driven Recovery Pack
+generation framework that can run against dummy test fixtures without reading
+real user secrets.
+
+Completed in Phase 2A:
+
+- Added `scripts/generate-recovery-pack.sh`.
+- Added safe default config at `config/recovery-pack.conf`.
+- Added usage documentation at `docs/recovery-pack-usage.md`.
+- Added dummy fixture tests under `tests/recovery-pack/`.
+- Implemented dry-run mode with config validation, planned input listing,
+  missing optional path reporting, archive structure output, and recipient
+  output.
+- Implemented manifest generation with category, source path, archive path,
+  classification, and reason.
+- Implemented `CHECKSUMS.sha256` generation.
+- Implemented archive creation and Age encryption.
+- Implemented `--verify` restore validation without restoring files onto the
+  system.
+- Implemented temporary workspace cleanup via trap.
+- Kept NAS, Restic, email, Hetzner, scheduling, monitoring, and retention out
+  of scope.
+
+Phase 2A validation:
+
+- `shellcheck -x scripts/generate-recovery-pack.sh tests/recovery-pack/run-tests.sh`: PASS
+- `tests/recovery-pack/run-tests.sh`: PASS
+  - dry-run test
+  - build test
+  - verify test
+  - cleanup test
 
 ## Phase 2 Planning Checkpoint
 
-Created design documents only. No recovery scripts have been implemented.
+Created design documents first, then implemented only the Phase 2A local
+generation framework.
 
 - `docs/architecture.md`: platform boundaries and source-of-truth model.
 - `docs/secrets-classification.md`: Tier 1 Vaultwarden, Tier 2 Recovery Pack, Tier 3 Git.
 - `docs/recovery-pack-spec.md`: Recovery Pack contents, exclusions, archive layout, encryption expectations.
-- `docs/backup-flow.md`: NAS primary, Restic secondary, email reporting, optional encrypted email attachment, optional Hetzner.
+- `docs/backup-flow.md`: NAS primary, Restic secondary, email reporting, disabled-by-default encrypted email attachment, optional Hetzner.
 - `docs/break-glass-recovery.md`: emergency recovery procedure.
 - `docs/travel-recovery.md`: travel recovery procedure.
 
@@ -82,9 +118,43 @@ Design decisions captured:
 - Do not restore Tailscale machine state.
 - Tailscale recovery is login/rejoin based.
 - Recovery Pack stores SSH, Age, WireGuard, VPN, certificates, and infrastructure exports.
+- At least one Age bootstrap identity must exist outside the Recovery Pack at all times.
+- Day-1 infrastructure exports are Cloudflare zones, Tailscale ACL/config export without machine state, router backup, firewall backup, Proxmox cluster config, Vaultwarden backup metadata, and Restic repository info.
 - Vaultwarden stores passwords, API keys, MFA, and recovery codes.
 - Git stores documentation, inventory, configuration, profiles, and scripts.
-- NAS remains primary storage; Restic is secondary; Hetzner is optional; email is reports/audit trail/emergency encrypted copy.
+- NAS remains primary storage at `/storage/backups/recovery-pack/`; Restic is secondary; Hetzner is optional; email is reports/audit trail, with encrypted emergency attachments disabled by default.
+
+## Phase 2 Scope Split
+
+Phase 2A implements only Recovery Pack artifact generation:
+
+- inventory collection
+- manifest generation
+- checksums
+- temporary directory cleanup
+- Age encryption
+- dry-run mode
+- restore test
+
+Phase 2A does not implement:
+
+- NAS copy
+- Restic integration
+- email reports
+- Hetzner uploads
+
+Phase 2B adds distribution mechanisms:
+
+- NAS copy
+- Restic integration
+- email reports
+- optional Hetzner uploads
+
+Phase 2C adds operational automation:
+
+- scheduling
+- monitoring
+- retention
 
 ## Known Issues
 
@@ -96,7 +166,8 @@ Design decisions captured:
 Review the Phase 2 design docs: `docs/architecture.md`,
 `docs/secrets-classification.md`, `docs/recovery-pack-spec.md`,
 `docs/backup-flow.md`, `docs/break-glass-recovery.md`, and
-`docs/travel-recovery.md`. After review, implement Phase 2 recovery tooling in
-a separate session. Start with `scripts/generate-recovery-pack.sh`, but preserve
-the documented architecture and exclusions. Do not include Tailscale machine
-state.
+`docs/travel-recovery.md`, plus `docs/recovery-pack-usage.md`. After review,
+implement Phase 2B distribution in a separate session. Add NAS copy first, then
+Restic integration, then email reports, then optional Hetzner upload. Preserve
+the Phase 2A generator boundary: do not add scheduling, monitoring, or
+retention until Phase 2C. Do not include Tailscale machine state.

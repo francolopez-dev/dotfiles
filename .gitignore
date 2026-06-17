@@ -9,7 +9,7 @@
 .config/dotfiles/profile
 
 # Recovery pack working dir & encrypted artifacts (Phase 2)
-recovery-pack/
+/recovery-pack/
 *.tar.gz.age
 *.age
 

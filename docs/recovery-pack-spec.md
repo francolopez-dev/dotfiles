@@ -2,13 +2,14 @@
 
 The Recovery Pack is an Age-encrypted archive containing the minimum non-password material needed to regain infrastructure access after a machine loss or disaster.
 
-This document is a specification only. It intentionally does not implement `generate-recovery-pack.sh`.
+The Phase 2A generator is implemented in `scripts/generate-recovery-pack.sh`.
 
 ## Goals
 
 - Capture critical key material and infrastructure exports.
 - Keep plaintext only in temporary working storage.
-- Encrypt before copying to NAS, Restic, email, or optional Hetzner.
+- Encrypt before copying to NAS, Restic, explicitly enabled email emergency
+  copy, or optional Hetzner.
 - Make recovery testable and boring.
 - Avoid backing up disposable machine state.
 
@@ -31,10 +32,36 @@ Candidate input classes:
   - private keys
   - CA files
 - Infrastructure exports:
-  - service inventories
-  - DNS/provider exports
-  - router/firewall exports
-  - small bootstrap files that cannot be recreated from Git
+  - Cloudflare zone exports
+  - Tailscale ACL/config export, excluding machine state
+  - router backup
+  - firewall backup
+  - Proxmox cluster config
+  - Vaultwarden backup metadata, excluding plaintext vault exports
+  - Restic repository info needed to locate and verify repositories
+
+## Age Identity Bootstrap
+
+Recovery must not depend on an Age identity that exists only inside the
+Recovery Pack. At least one Age identity capable of decrypting the latest
+Recovery Pack must exist outside the Recovery Pack at all times.
+
+Primary Age identity options:
+
+- Encrypted USB drive kept separate from the Recovery Pack.
+- YubiKey resident key, when implemented.
+- Printed recovery seed, only if the selected Age identity method supports it.
+
+Secondary Age identity:
+
+- Stored on NAS as a separately managed secret, not only inside the Recovery
+  Pack artifact.
+
+Recovery rule:
+
+- The Recovery Pack may contain Age identities for restoring a full working
+  environment, but it must never be the only place where a decrypting identity
+  exists.
 
 ## Explicit Exclusions
 
@@ -81,6 +108,8 @@ The pack should be encrypted with Age recipients configured outside the script, 
 Required behavior:
 
 - Refuse to run without at least one recipient.
+- Refuse to run unless at least one configured decrypting identity path exists
+  outside the Recovery Pack, or dry-run mode explicitly skips that check.
 - Encrypt before copying to persistent targets.
 - Never write plaintext pack contents into the repo.
 - Use a temporary working directory and clean it on exit.
@@ -121,10 +150,26 @@ Recovery should validate:
 - Manifest and checksums match.
 - SSH and Age files have safe permissions after restore.
 
-## Open Decisions Before Implementation
+## Fixed Paths
 
-- Exact local path for Age identities.
-- Exact NAS mount/path.
-- Whether email emergency copy sends the full encrypted artifact or only reports by default.
-- Which infrastructure exports are required on day one.
-- Whether Recovery Pack generation should be interactive or config-file driven.
+Default NAS destination:
+
+```text
+/storage/backups/recovery-pack/
+```
+
+The generator should allow this to be overridden by config or environment, but
+the documented default path is fixed so automation and tests have a stable
+target.
+
+Default local Age identity directory:
+
+```text
+~/.config/age/
+```
+
+## Generation Model
+
+Recovery Pack generation is config-file driven. The generator reads explicit
+allow-lists from `config/recovery-pack.conf` and does not discover secret paths
+automatically.

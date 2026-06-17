@@ -30,6 +30,11 @@ The Recovery Pack stores key material and infrastructure files needed to regain 
 
 The Recovery Pack is always encrypted with Age before leaving temporary working storage.
 
+At least one Age bootstrap identity capable of decrypting the Recovery Pack
+must exist outside the Recovery Pack at all times. The Recovery Pack may store
+Age identities for restoring a full environment, but it must not be the only
+place where a decrypting identity exists.
+
 ## Tier 3: Git Repository
 
 Git stores reproducible intent and documentation:

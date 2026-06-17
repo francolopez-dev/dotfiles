@@ -25,6 +25,12 @@ has not started.
   explicitly requested.
 - Resolved: generic Arch is no longer silently labeled Omarchy; Omarchy markers or
   `DOTFILES_ASSUME_OMARCHY=1` are required.
+- Resolved follow-up: Omarchy profiles now include device and purpose in the name:
+  `desktop-personal-omarchy`, `desktop-work-omarchy`,
+  `laptop-personal-omarchy`, and `laptop-work-omarchy`.
+- Resolved follow-up: old saved profile names migrate before wizard fallback.
+- Resolved follow-up: Omarchy desktop/laptop package set includes `networkmanager`
+  and `tailscale`.
 
 ## Findings
 

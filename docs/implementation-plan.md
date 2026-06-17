@@ -8,7 +8,9 @@ Complete as of 2026-06-17 after the audit-blocker fixes documented in
 ## Completed in Phase 1
 
 - Renamed profiles to OS-explicit names.
-- Rebuilt `work-omarchy` for the Lenovo Omarchy work laptop.
+- Rebuilt Omarchy profiles around device + purpose + OS:
+  `desktop-personal-omarchy`, `desktop-work-omarchy`,
+  `laptop-personal-omarchy`, and `laptop-work-omarchy`.
 - Preserved a separate `work-macos` profile.
 - Added `profiles/stow-os.map` for OS-aware stow filtering.
 - Added safe per-package stow conflict handling with skip, backup, and adopt flows.
@@ -25,20 +27,31 @@ Complete as of 2026-06-17 after the audit-blocker fixes documented in
 - Hardened stow conflict handling so uncertain conflict parsing skips safely.
 - Changed remote bootstrap dirty-repo behavior to stop unless auto-stash is explicitly requested.
 - Tightened Arch detection so generic Arch is not silently labeled Omarchy.
+- Added saved-profile migration for old names such as `work-laptop`,
+  `personal-laptop`, `domum-workstation`, and the interim Omarchy profile names.
+- Added `networkmanager` and `tailscale` to the Omarchy desktop package set.
+- Added skipped-conflict summary output for Stow packages.
 
 ## Validation Checkpoint
 
 - `shellcheck -x bootstrap.sh scripts/*.sh`: PASS
 - `scripts/validate-profiles.sh`: PASS
 - `./bootstrap.sh --dry-run --profile minimal`: PASS
-- `./bootstrap.sh --dry-run --profile work-omarchy`: PASS
+- `./bootstrap.sh --dry-run --profile laptop-work-omarchy`: PASS
+- `./bootstrap.sh --dry-run --profile laptop-personal-omarchy`: PASS
+- `./bootstrap.sh --dry-run --profile desktop-personal-omarchy`: PASS
+- `./bootstrap.sh --dry-run --profile desktop-work-omarchy`: PASS
 - `./bootstrap.sh --dry-run --profile personal-macos`: PASS
-- `OS_OVERRIDE=omarchy ./bootstrap.sh --dry-run --profile work-omarchy`: PASS
+- `./bootstrap.sh --dry-run --profile work-macos`: PASS
+- `OS_OVERRIDE=omarchy ./bootstrap.sh --dry-run --profile laptop-work-omarchy`: PASS
 - Dry-run temporary-HOME state test: PASS, no profile file and no default log/home mutation.
 - Wizard cancellation pseudo-terminal test: PASS, exit code 2 and no profile file.
 - Non-interactive conflict test: PASS, conflict reported and skipped without backup.
 - `--backup-conflicts` test: PASS, conflict backed up only when explicitly requested.
 - Remote dirty-repo bootstrap test: PASS, stopped without auto-stashing.
+- Saved profile migration tests: PASS for `work-laptop` and `domum-workstation`.
+- Repeated run after migration: PASS, uses saved profile without wizard.
+- `--first-time` wizard override: PASS, opens wizard even with a saved profile.
 
 ## Remaining Work
 

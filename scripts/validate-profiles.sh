@@ -29,7 +29,7 @@ known_service() {
 
 profile_os() {
   case "$1" in
-    desktop-omarchy|work-omarchy) printf "omarchy\n" ;;
+    desktop-personal-omarchy|desktop-work-omarchy|laptop-personal-omarchy|laptop-work-omarchy) printf "omarchy\n" ;;
     personal-macos|work-macos) printf "macos\n" ;;
     server-debian) printf "debian\n" ;;
     server-ubuntu) printf "ubuntu\n" ;;

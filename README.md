@@ -10,8 +10,10 @@ Supported machine classes (and only these):
 
 | Class | OS | Pkg manager | Example profile |
 |-------|----|-------------|-----------------|
-| Primary desktop | **Omarchy** (Arch/Hyprland) | pacman + yay | `desktop-omarchy` |
-| Work laptop | **Omarchy** (Lenovo/Hyprland) | pacman + yay | `work-omarchy` |
+| Personal desktop | **Omarchy** (Arch/Hyprland) | pacman + yay | `desktop-personal-omarchy` |
+| Work desktop | **Omarchy** (Arch/Hyprland) | pacman + yay | `desktop-work-omarchy` |
+| Personal laptop | **Omarchy** (Lenovo/Hyprland) | pacman + yay | `laptop-personal-omarchy` |
+| Work laptop | **Omarchy** (Lenovo/Hyprland) | pacman + yay | `laptop-work-omarchy` |
 | Personal laptop | **macOS** | Homebrew | `personal-macos` |
 | Work laptop | **macOS** | Homebrew | `work-macos` |
 | Personal server | **Debian** | apt | `server-debian` |
@@ -106,13 +108,25 @@ On first run, or when `--first-time` is passed, the profile wizard reads from
 `/dev/tty` so it still works when the installer is launched through
 `curl | bash`. It filters profile choices by detected OS:
 
-- Omarchy: `desktop-omarchy`, `work-omarchy`, `minimal`
+- Omarchy: `desktop-personal-omarchy`, `desktop-work-omarchy`, `laptop-personal-omarchy`, `laptop-work-omarchy`, `minimal`
 - macOS: `personal-macos`, `work-macos`, `minimal`
 - Debian: `server-debian`, `minimal`
 - Ubuntu: `server-ubuntu`, `minimal`
 
-Canceling the wizard exits without saving a profile. Non-interactive first-run
-fallbacks use `minimal` for that run only and do not persist it.
+The wizard also reports detected chassis when available and orders Omarchy
+choices for laptop or desktop hardware. Canceling the wizard exits without
+saving a profile. Non-interactive first-run fallbacks use `minimal` for that run
+only and do not persist it.
+
+Old saved profile names are migrated automatically:
+
+- `work-laptop` or `work-omarchy` on Omarchy -> `laptop-work-omarchy`
+- `personal-laptop` on Omarchy -> `laptop-personal-omarchy`
+- `domum-workstation` or `desktop-omarchy` on Omarchy -> `desktop-personal-omarchy`
+- `personal-laptop` on macOS -> `personal-macos`
+- `work-laptop` on macOS -> `work-macos`
+- `linux-server-personal` on Debian -> `server-debian`
+- `linux-server-work` on Ubuntu -> `server-ubuntu`
 
 Validate every profile manually with:
 
@@ -132,6 +146,13 @@ Before a real stow, the script simulates each package and detects conflicts.
 With a tty it asks per package: skip, backup then stow, or adopt. Without a tty,
 the default is non-destructive skip with a clear conflict report. `--adopt` and
 `--backup-conflicts` provide explicit non-interactive behavior.
+
+If packages are skipped due to conflicts, bootstrap prints a summary and a
+follow-up command such as:
+
+```bash
+./bootstrap.sh --profile laptop-work-omarchy --backup-conflicts
+```
 
 ## 🖥 OS detection
 
@@ -259,6 +280,6 @@ root
 
 ## 🗺 Roadmap
 
-- **Phase 1 (complete):** bootstrap orchestrator, package groups, OS-explicit profiles, safe stow.
+- **Phase 1 (complete):** bootstrap orchestrator, package groups, device/role/OS-explicit profiles, safe stow.
 - **Phase 2:** Age recovery pack + disaster-recovery docs.
 - **Phase 3:** Syncthing/Tailscale sync, Atuin client, Omarchy desktop polish.

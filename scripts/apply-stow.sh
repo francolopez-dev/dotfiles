@@ -157,6 +157,7 @@ handle_conflicting_pkg() {
   case "$action" in
     skip)
       warn "Skipping '$pkg' due to conflicts."
+      SKIPPED_CONFLICT_PACKAGES+=("$pkg")
       ;;
     backup)
       backup_paths "${conflicts[@]}"
@@ -173,6 +174,7 @@ handle_conflicting_pkg() {
 main() {
   info "Stow packages for profile '$PROFILE' (os=$OS): ${STOW_PACKAGES[*]:-<none>}"
 
+  SKIPPED_CONFLICT_PACKAGES=()
   local pkg oses preview_status preview_output conflict_output conflict
   for pkg in "${STOW_PACKAGES[@]}"; do
     if [ ! -d "$STOW_DIR/$pkg" ]; then
@@ -207,12 +209,19 @@ main() {
     if [ "$preview_status" -ne 0 ] || preview_mentions_conflict "$preview_output"; then
       warn "Stow preview for '$pkg' reported a conflict, but no paths could be parsed. Skipping for safety."
       printf "%s\n" "$preview_output" >&2
+      SKIPPED_CONFLICT_PACKAGES+=("$pkg")
       continue
     fi
 
     info "Stowing: $pkg"
     stow_pkg "$pkg" normal || warn "stow reported issues for: $pkg"
   done
+
+  if [ "${#SKIPPED_CONFLICT_PACKAGES[@]}" -gt 0 ]; then
+    warn "Skipped Stow packages due to conflicts:"
+    printf "  %s\n" "${SKIPPED_CONFLICT_PACKAGES[@]}" >&2
+    info "To apply later: ./bootstrap.sh --profile $PROFILE --backup-conflicts"
+  fi
 
   ok "Stow step complete."
 }

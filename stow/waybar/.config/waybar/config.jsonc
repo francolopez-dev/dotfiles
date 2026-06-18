@@ -6,7 +6,7 @@
   "spacing": 0,
   "modules-left": ["custom/power", "hyprland/workspaces"],
   "modules-center": ["custom/island"],
-  "modules-right": ["tray", "bluetooth", "network", "pulseaudio", "cpu", "memory", "custom/gpu", "battery", "clock"],
+  "modules-right": ["tray", "cpu", "memory", "custom/gpu", "custom/vpn", "custom/ethernet", "custom/wifi", "bluetooth", "pulseaudio", "battery", "custom/date", "clock"],
 
   "custom/power": {
     "format": "󰐥",
@@ -19,18 +19,8 @@
     "on-click": "activate",
     "format": "{icon}",
     "format-icons": {
-      "1": "󰎤",
-      "2": "󰎧",
-      "3": "󰎪",
-      "4": "󰎭",
-      "5": "󰎱",
-      "6": "󰎳",
-      "7": "󰎶",
-      "8": "󰎹",
-      "9": "󰎼",
-      "10": "󰽽",
-      "active": "󰮯",
-      "default": "󰧞"
+      "active": "",
+      "default": ""
     },
     "persistent-workspaces": {
       "1": [],
@@ -42,10 +32,16 @@
   },
 
   "clock": {
-    "format": "{:%b %d  %I:%M %p}",
-    "format-alt": "{:%A, %B %d  %I:%M %p}",
+    "format": "{:%I:%M %p}",
+    "format-alt": "{:%H:%M}",
     "tooltip": false,
     "on-click-right": "omarchy-launch-floating-terminal-with-presentation omarchy-tz-select"
+  },
+
+  "custom/date": {
+    "exec": "date '+%b%d'",
+    "interval": 60,
+    "tooltip": false
   },
 
   "custom/island": {
@@ -71,16 +67,26 @@
     "on-click": "omarchy-launch-bluetooth"
   },
 
-  "network": {
-    "interval": 3,
-    "format-icons": ["󰤯", "󰤟", "󰤢", "󰤥", "󰤨"],
-    "format-wifi": "{icon} {essid}",
-    "format-ethernet": "󰀂 wired",
-    "format-disconnected": "󰤮 offline",
-    "tooltip-format-wifi": "{essid}  {signalStrength}%  {frequency} GHz",
-    "tooltip-format-ethernet": "{ifname}: {ipaddr}",
-    "tooltip-format-disconnected": "Disconnected",
+  "custom/wifi": {
+    "exec": "~/.config/waybar/scripts/wifi.sh",
+    "return-type": "json",
+    "interval": 5,
+    "tooltip": true,
     "on-click": "omarchy-launch-wifi"
+  },
+
+  "custom/ethernet": {
+    "exec": "~/.config/waybar/scripts/ethernet.sh",
+    "return-type": "json",
+    "interval": 5,
+    "tooltip": true
+  },
+
+  "custom/vpn": {
+    "exec": "~/.config/waybar/scripts/vpn.sh",
+    "return-type": "json",
+    "interval": 10,
+    "tooltip": true
   },
 
   "pulseaudio": {

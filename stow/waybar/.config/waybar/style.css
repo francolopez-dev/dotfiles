@@ -4,10 +4,17 @@
 @define-color surface #11131f;
 @define-color surface-hover #181b2b;
 @define-color text #d7dcff;
+@define-color text-soft #aeb7e8;
 @define-color muted #6b7280;
+@define-color idle #858baa;
 @define-color purple #bd93f9;
 @define-color blue #7dd3fc;
+@define-color cyan #67e8f9;
 @define-color green #50fa7b;
+@define-color teal #5eead4;
+@define-color battery-soft #8fb3ad;
+@define-color battery-warm #c7b978;
+@define-color battery-low #c98f6f;
 @define-color yellow #f1fa8c;
 @define-color orange #ffb86c;
 @define-color red #ff6e6e;
@@ -21,7 +28,7 @@
 }
 
 window#waybar {
-  background: alpha(@bar-bg, 0.85);
+  background: alpha(@bar-bg, 0.78);
   color: @text;
 }
 
@@ -36,15 +43,18 @@ window#waybar {
 #custom-power,
 #workspaces,
 #clock,
+#custom-date,
 #tray,
 #bluetooth,
-#network,
+#custom-wifi,
+#custom-ethernet,
+#custom-vpn,
 #pulseaudio,
 #cpu,
 #memory,
 #custom-gpu,
 #battery {
-  padding: 0 8px;
+  padding: 0 5px;
 }
 
 #custom-power {
@@ -56,38 +66,49 @@ window#waybar {
 
 #custom-power:hover,
 #bluetooth:hover,
-#network:hover,
+#custom-wifi:hover,
+#custom-ethernet:hover,
+#custom-vpn:hover,
 #pulseaudio:hover,
 #cpu:hover,
 #memory:hover,
 #custom-gpu:hover,
 #battery:hover,
+#custom-date:hover,
 #clock:hover {
   background: alpha(@surface-hover, 0.72);
 }
 
 #workspaces button {
   all: initial;
-  color: @muted;
-  padding: 0 6px;
+  color: @idle;
+  padding: 0 5px;
   margin: 0 1px;
-  min-width: 16px;
-  opacity: 0.72;
+  min-width: 13px;
+  opacity: 0.82;
 }
 
 #workspaces button.active,
 #workspaces button.focused {
-  color: @green;
+  color: @cyan;
   opacity: 1;
 }
 
 #workspaces button.visible {
+  color: @purple;
+}
+
+#workspaces button:not(.empty):not(.active):not(.focused):nth-child(odd) {
+  color: @purple;
+}
+
+#workspaces button:not(.empty):not(.active):not(.focused):nth-child(even) {
   color: @blue;
 }
 
 #workspaces button.empty {
-  color: alpha(@muted, 0.62);
-  opacity: 0.45;
+  color: alpha(@idle, 0.72);
+  opacity: 0.68;
 }
 
 #workspaces button.urgent {
@@ -129,30 +150,66 @@ window#waybar {
 #clock {
   color: @text;
   font-weight: 600;
+  padding-left: 6px;
+  padding-right: 10px;
+}
+
+#custom-date {
+  color: alpha(@text-soft, 0.78);
+  font-weight: 600;
+  padding-left: 5px;
+  padding-right: 6px;
 }
 
 #tray {
   color: @muted;
+  margin-right: 8px;
 }
 
 #bluetooth {
-  color: @muted;
+  color: @idle;
 }
 
 #bluetooth.connected {
+  color: @purple;
+}
+
+#custom-wifi {
+  color: @cyan;
+}
+
+#custom-wifi.mid {
   color: @blue;
 }
 
-#network {
-  color: @blue;
+#custom-wifi.weak {
+  color: @yellow;
 }
 
-#network.disconnected {
+#custom-wifi.off {
   color: @muted;
 }
 
+#custom-ethernet {
+  color: @teal;
+}
+
+#custom-ethernet.off {
+  color: alpha(@muted, 0.72);
+}
+
+#custom-vpn {
+  color: @purple;
+  margin-right: 10px;
+}
+
+#custom-vpn.off {
+  color: alpha(@muted, 0.72);
+}
+
 #pulseaudio {
-  color: @green;
+  color: @blue;
+  margin-right: 10px;
 }
 
 #pulseaudio.high {
@@ -167,10 +224,18 @@ window#waybar {
   color: @muted;
 }
 
+#bluetooth {
+  margin-right: 2px;
+}
+
 #cpu,
 #memory,
 #custom-gpu {
-  color: @blue;
+  color: @idle;
+}
+
+#custom-gpu {
+  margin-right: 10px;
 }
 
 #cpu.warm,
@@ -190,28 +255,29 @@ window#waybar {
 }
 
 #battery {
-  color: @green;
+  color: @battery-soft;
+  margin-right: 10px;
 }
 
 #battery.full {
-  color: @green;
+  color: alpha(@green, 0.72);
 }
 
 #battery.medium {
-  color: @yellow;
+  color: @battery-warm;
 }
 
 #battery.warning:not(.charging) {
-  color: @orange;
+  color: @battery-low;
 }
 
 #battery.critical:not(.charging) {
-  color: @red;
+  color: alpha(@red, 0.82);
 }
 
 #battery.charging,
 #battery.plugged {
-  color: @purple;
+  color: @idle;
 }
 
 tooltip {

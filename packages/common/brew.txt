@@ -16,3 +16,4 @@ curl
 wget
 nano
 # ca-certificates is provided by the system on macOS
+atuin

@@ -129,6 +129,7 @@ Once the repo is cloned, prefer the unified CLI:
 | `dotfiles recovery health` | Check NAS Recovery Pack health |
 | `dotfiles sync status` | Show sync agent state |
 | `dotfiles sync setup` | Re-run sync setup for the active profile |
+| `dotfiles desktop reload waybar` | Restart Waybar after editing Omarchy desktop files |
 
 The root orchestrator remains available for installer/recovery internals:
 
@@ -164,7 +165,8 @@ dotfiles                         (stow/scripts/bin/dotfiles — day-to-day CLI)
         ├─ update / bootstrap / status / doctor
         ├─ profile show | select | reconfigure | validate
         ├─ recovery build | verify | health | retention
-        └─ sync status | setup | doctor
+        ├─ sync status | setup | doctor
+        └─ desktop reload [waybar]
 ```
 
 ### Flags (root `bootstrap.sh`)
@@ -304,7 +306,7 @@ dotfiles/
 │   ├── wezterm/ aerospace/ borders/ scripts/
 │   ├── recovery-pack/              # systemd user automation for Recovery Pack
 │   └── atuin/ syncthing/ hypr/ waybar/ rofi/ wallpapers/ themes/
-│                                   # parked Phase 3A skeletons
+│                                   # Phase 3A app + Omarchy desktop layer
 ├── assets/                 # wallpapers/ themes/ (single source of truth)
 ├── scripts/                # logic only, never symlinked
 │   ├── bootstrap.sh        # remote curl entrypoint
@@ -339,6 +341,31 @@ sudo tailscale up
 
 Profiles use friendly service names such as `tailscale`; on Omarchy/Arch this
 maps to `tailscaled.service`.
+
+See [`docs/sync.md`](docs/sync.md) for Atuin and Syncthing setup notes.
+
+------------------------------------------------------------------------
+
+## 🧑‍💻 Omarchy desktop editing
+
+Omarchy desktop dotfiles live in the per-OS base layer and apply to Omarchy
+profiles automatically. The main files are:
+
+```text
+stow/hypr/.config/hypr/conf.d/99-personal.conf
+stow/waybar/.config/waybar/config.jsonc
+stow/waybar/.config/waybar/style.css
+stow/rofi/.config/rofi/config.rasi
+```
+
+After editing Waybar, reload it with:
+
+```bash
+dotfiles desktop reload waybar
+```
+
+See [`docs/desktop-omarchy.md`](docs/desktop-omarchy.md) for the edit, commit,
+push, and `dotfiles update` workflow.
 
 ------------------------------------------------------------------------
 ## Troubleshooting

@@ -38,23 +38,31 @@ setup_one() {
   local agent="$1"
   case "$agent" in
     tailscale)
-      if need_cmd tailscale && tailscale status >/dev/null 2>&1; then
+      if ! need_cmd tailscale; then
+        info "tailscale: not installed yet; bootstrap package install should add it for this profile."
+        info "tailscale: after install, join your tailnet with: sudo tailscale up"
+      elif tailscale status >/dev/null 2>&1; then
         info "tailscale: already up."
       else
-        info "tailscale: not connected. To join your tailnet, run: sudo tailscale up"
+        info "tailscale: not connected. To join your tailnet, run exactly: sudo tailscale up"
       fi
       ;;
     syncthing)
-      info "syncthing: ensuring ~/.config/syncthing exists (enable the service via SERVICES)."
-      run mkdir -p "$HOME/.config/syncthing"
+      if ! need_cmd syncthing; then
+        info "syncthing: not installed. Add it to the profile package groups before enabling this agent."
+      else
+        info "syncthing: installed. No folders are created automatically. Configure folders in the UI."
+        info "syncthing: safe starter folders: Documents, Projects, Notes, Wallpapers."
+        run mkdir -p "$HOME/.config/syncthing"
+      fi
       ;;
     atuin)
       if ! need_cmd atuin; then
-        info "atuin: not installed; add it to a package group first."
+        info "atuin: not installed yet; bootstrap package install should add it for this profile."
       elif atuin status >/dev/null 2>&1; then
         info "atuin: already logged in and syncing."
       else
-        info "atuin: to enable shell-history sync, run: atuin login && atuin sync"
+        info "atuin: installed but not logged in. Later, run: atuin login && atuin sync"
       fi
       ;;
     *)

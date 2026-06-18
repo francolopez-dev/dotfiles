@@ -285,9 +285,9 @@ Phase 2C implemented operational automation:
 - monitoring
 - retention
 
-Phase 3A skeleton files exist for review, but active profiles do not enable
-Atuin, Syncthing, wallpapers, themes, Hyprland, Waybar, or Rofi overrides during
-Phase 2 stabilization.
+Phase 3A Omarchy desktop files are now active through `profiles/stow-os-base`.
+Waybar has a conservative Omarchy-friendly config, Hyprland stays include-only,
+and wallpapers/themes are shared library directories.
 
 ## Phase 2B-fix Status (remote bootstrap mode forwarding)
 
@@ -319,7 +319,8 @@ Phase 2B-fix validation:
 
 ## Phase 3A Status (layered config + sync step)
 
-Complete as of 2026-06-17.
+In progress. The layered stow model and CLI base are complete; desktop polish and
+sync setup were continued on 2026-06-18.
 
 Completed:
 
@@ -336,9 +337,18 @@ Completed:
 - Updated `scripts/validate-profiles.sh`: optional `STOW_PACKAGES`, validates
   `stow-base`/`stow-os-base` references, recognizes `SYNC` agents.
 - Added `docs/extending.md` cheatsheet with future-improvement notes.
+- Replaced placeholder Waybar files with a clean Omarchy-friendly config using
+  workspaces, clock, tray, bluetooth, network, audio, and battery.
+- Added `dotfiles desktop reload waybar` as the simple reload workflow.
+- Kept Hyprland as custom include files only; no Omarchy core files are modified.
+- Added `docs/desktop-omarchy.md` and `docs/sync.md`.
+- Added Atuin to Omarchy/macOS common package lists and kept Syncthing out of
+  `laptop-work-omarchy` until a profile explicitly enables it.
+- Improved `dotfiles doctor` headings so hard failures, warnings, and optional
+  not-configured sync/recovery items are visually separate.
 
 Constraints honored: Recovery Pack logic untouched; NetworkManager behavior
-untouched; sync logins remain manual with no credential storage.
+untouched; sync logins remain manual with no credential storage; no Phase 4 work.
 
 Phase 3A validation:
 
@@ -381,6 +391,23 @@ Phase 3B validation:
 - `tests/cli/run-tests.sh`: PASS
 - `dotfiles help`, `dotfiles help update`, `dotfiles version`, `dotfiles status`,
   and `dotfiles update --dry-run --no-apply`: PASS
+
+## Phase 3A Live Lenovo Checks
+
+After pulling this change on the Lenovo Omarchy laptop, run:
+
+```bash
+dotfiles update
+dotfiles doctor
+dotfiles sync status
+dotfiles desktop reload waybar
+```
+
+If the desktop helper is not available yet, use:
+
+```bash
+omarchy restart waybar
+```
 
 ## Known Issues
 

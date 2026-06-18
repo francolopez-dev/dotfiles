@@ -12,6 +12,7 @@ btop
 htop
 neovim
 zsh
+atuin
 curl
 wget
 ca-certificates

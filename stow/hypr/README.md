@@ -1,5 +1,15 @@
 # hypr stow package (Omarchy desktop)
 
-Skeleton package. On Omarchy, customizations go into custom-include files
-(e.g. `~/.config/hypr/custom.conf`) so they survive Omarchy core updates —
-never fork or edit Omarchy's own config. Real configs land when testing on Omarchy.
+This package only provides personal include files under
+`~/.config/hypr/conf.d/`. Do not fork Omarchy's main Hyprland config in this
+repo.
+
+For this layer to apply, the live Omarchy `~/.config/hypr/hyprland.conf` must
+source the include directory:
+
+```conf
+source = ~/.config/hypr/conf.d/*.conf
+```
+
+Keep machine-specific monitor and workspace choices commented unless they are
+safe for every Omarchy machine using `profiles/stow-os-base`.

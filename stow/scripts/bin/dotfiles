@@ -138,6 +138,7 @@ Manage:
   profile       show | select | reconfigure | validate
   recovery      build | verify | health | retention
   sync          status | setup | doctor
+  desktop       reload [waybar]
 
 Other:
   help [cmd]    Show help (optionally for one command)
@@ -207,6 +208,14 @@ dotfiles sync — tailscale / atuin / syncthing.
   dotfiles sync status   show sync agents' state
   dotfiles sync setup    (re)run setup-syncing.sh for active profile
   dotfiles sync doctor   diagnose sync agents (login state, service units)
+EOF
+      ;;
+    desktop)
+      cat <<'EOF'
+dotfiles desktop — desktop helpers.
+
+  dotfiles desktop reload          reload supported desktop components
+  dotfiles desktop reload waybar   restart Waybar only
 EOF
       ;;
     version)
@@ -380,9 +389,9 @@ _sync_status() {
     fi
     case "$agent" in
       tailscale)
-        if need_cmd tailscale && tailscale status >/dev/null 2>&1; then state="ok"; else state="check"; fi ;;
+        if ! need_cmd tailscale; then state="missing"; elif tailscale status >/dev/null 2>&1; then state="ok"; else state="not connected"; fi ;;
       atuin)
-        if need_cmd atuin && atuin status >/dev/null 2>&1; then state="ok"; else state="not logged in"; fi ;;
+        if ! need_cmd atuin; then state="missing"; elif atuin status >/dev/null 2>&1; then state="ok"; else state="not logged in"; fi ;;
       syncthing)
         if need_cmd syncthing; then state="present"; else state="missing"; fi ;;
     esac
@@ -395,6 +404,7 @@ cmd_doctor() {
   local rc=0 os _pkg profile
   read -r os _pkg < <(_detect_os_pair)
   profile="$(_active_profile)"
+  info "Hard failures"
   info "Validating profiles..."
   bash "$SCRIPTS/validate-profiles.sh" || rc=1
   info "Checking required tools..."
@@ -404,16 +414,18 @@ cmd_doctor() {
   if [ -n "$profile" ]; then
     info "Checking stow preview..."
     _stow_status "$profile" "$os" | sed 's/^/  /'
+    printf "\n"
   else
     warn "No saved profile; skipping stow preview."
     rc=1
   fi
+  info "Warnings"
   if [ -x "$SCRIPTS/recovery-pack-health.sh" ]; then
     info "Recovery pack health (best-effort)..."
     bash "$SCRIPTS/recovery-pack-health.sh" 2>/dev/null || warn "recovery-pack-health reported issues"
   fi
-  info "Sync diagnostics..."
-  cmd_sync doctor || rc=1
+  info "Optional / not configured"
+  cmd_sync doctor || warn "sync diagnostics reported warnings"
   return "$rc"
 }
 
@@ -477,25 +489,53 @@ cmd_sync() {
       exec bash "$SCRIPTS/setup-syncing.sh" --profile "$profile" --os "$os" "$@"
       ;;
     doctor)
+      local profile agent declared=0 sync_rc=0
+      profile="$(_active_profile)"
       info "Sync diagnostics:"
-      if need_cmd tailscale; then
-        tailscale status 2>&1 | head -5 || true
-      else
-        warn "tailscale not installed"
-      fi
-      if need_cmd atuin; then
-        atuin status 2>&1 | head -5 || warn "atuin not logged in"
-      else
-        dim "atuin not installed"
-      fi
-      if need_cmd syncthing; then
-        ok "syncthing present"
-      else
-        dim "syncthing not installed"
-      fi
+      for agent in tailscale atuin syncthing; do
+        if [ -n "$profile" ] && _profile_has_agent "$profile" "$agent"; then
+          declared=1
+          case "$agent" in
+            tailscale)
+              if ! need_cmd tailscale; then warn "tailscale declared but not installed"; sync_rc=1; continue; fi
+              tailscale status >/dev/null 2>&1 && ok "tailscale connected" || dim "tailscale installed; not connected (run: sudo tailscale up)"
+              ;;
+            atuin)
+              if ! need_cmd atuin; then warn "atuin declared but not installed"; sync_rc=1; continue; fi
+              atuin status >/dev/null 2>&1 && ok "atuin logged in" || dim "atuin installed; not logged in"
+              ;;
+            syncthing)
+              if need_cmd syncthing; then ok "syncthing present"; else warn "syncthing declared but not installed"; sync_rc=1; fi
+              ;;
+          esac
+        else
+          dim "$agent not configured for this profile"
+        fi
+      done
+      [ "$declared" = "1" ] || dim "no sync agents declared"
+      return "$sync_rc"
       ;;
     -h|--help|"") cmd_help sync ;;
     *) _die_with_help "dotfiles sync: unknown subcommand: $sub" ;;
+  esac
+}
+
+cmd_desktop() {
+  local sub="${1:-}" target="${2:-waybar}"
+  case "$sub:$target" in
+    reload:waybar|reload:)
+      if need_cmd omarchy; then
+        exec omarchy restart waybar
+      elif need_cmd pkill && need_cmd waybar; then
+        pkill waybar >/dev/null 2>&1 || true
+        waybar >/dev/null 2>&1 &
+        disown
+      else
+        die "cannot reload Waybar: install omarchy or waybar"
+      fi
+      ;;
+    -h:*|--help:*|:*) cmd_help desktop ;;
+    *) _die_with_help "dotfiles desktop: unknown subcommand: $sub ${target:-}" ;;
   esac
 }
 
@@ -518,6 +558,7 @@ main() {
     profile)   cmd_profile "$@" ;;
     recovery)  cmd_recovery "$@" ;;
     sync)      cmd_sync "$@" ;;
+    desktop)   cmd_desktop "$@" ;;
     *)
       err "unknown command: $cmd"
       echo

@@ -1,17 +1,60 @@
-/* Waybar personal style overrides.
- * On Omarchy, this supplements or overrides the default theme.
- * Import Omarchy's base theme first if needed:
- *   @import url("/usr/share/omarchy/waybar/style.css");
- */
+@import "../omarchy/current/theme/waybar.css";
 
-/* Example overrides — uncomment and adjust. */
-/*
 * {
-  font-family: "JetBrains Mono", monospace;
-  font-size: 13px;
+  border: none;
+  border-radius: 0;
+  min-height: 0;
+  font-family: "JetBrainsMono Nerd Font", "JetBrains Mono", monospace;
+  font-size: 12px;
 }
 
 window#waybar {
-  background-color: rgba(30, 30, 46, 0.85);
+  background: alpha(@background, 0.85);
+  color: @foreground;
 }
-*/
+
+.modules-left {
+  margin-left: 8px;
+}
+
+.modules-right {
+  margin-right: 8px;
+}
+
+#custom-linux,
+#workspaces,
+#clock,
+#tray,
+#bluetooth,
+#network,
+#pulseaudio,
+#battery {
+  padding: 0 8px;
+}
+
+#workspaces button {
+  all: initial;
+  color: @foreground;
+  padding: 0 7px;
+  opacity: 0.6;
+}
+
+#workspaces button.active,
+#workspaces button.focused {
+  opacity: 1;
+}
+
+#workspaces button.urgent,
+#battery.critical:not(.charging) {
+  color: #f38ba8;
+}
+
+#battery.warning:not(.charging) {
+  color: #f9e2af;
+}
+
+tooltip {
+  background: @background;
+  color: @foreground;
+  border: 1px solid alpha(@foreground, 0.2);
+}

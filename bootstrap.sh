@@ -97,6 +97,7 @@ ok "Profile validation passed: $PROFILE"
 pkg_args=(--profile "$PROFILE" --os "$OS" --pkgmgr "$PKGMGR")
 [ "$ENFORCE" = "1" ] && pkg_args+=(--enforce)
 bash "$SCRIPTS/install-packages.sh" "${pkg_args[@]}"
+bash "$SCRIPTS/validate-installed-packages.sh" --profile "$PROFILE" --os "$OS" --pkgmgr "$PKGMGR"
 
 # 4) Clean stale incompatible stow links from older profile mistakes.
 bash "$SCRIPTS/cleanup-stale-stow-links.sh" --os "$OS"
@@ -107,11 +108,17 @@ stow_args=(--profile "$PROFILE" --os "$OS")
 [ "$BACKUP_CONFLICTS" = "1" ] && stow_args+=(--backup-conflicts)
 bash "$SCRIPTS/apply-stow.sh" "${stow_args[@]}"
 
+# 5b) Configure desktop integration that should be live user state, not stow state.
+bash "$SCRIPTS/configure-omarchy-terminal.sh" --profile "$PROFILE" --os "$OS" --pkgmgr "$PKGMGR"
+
 # 6) Enable services
 bash "$SCRIPTS/enable-services.sh" --profile "$PROFILE" --os "$OS"
 
 # 7) Set up sync agents (Tailscale, Syncthing, Atuin) declared by the profile.
 bash "$SCRIPTS/setup-syncing.sh" --profile "$PROFILE" --os "$OS"
+
+# 8) Validate terminal launch paths after all desktop integration is in place.
+bash "$SCRIPTS/validate-terminal-integration.sh" --profile "$PROFILE" --os "$OS" --pkgmgr "$PKGMGR"
 
 log ""
 ok "Bootstrap complete for profile '$PROFILE' on $OS."

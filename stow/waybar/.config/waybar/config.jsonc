@@ -120,7 +120,7 @@
     "format": "󰍛 {usage}%",
     "tooltip": true,
     "on-click": "omarchy-launch-or-focus-tui btop",
-    "on-click-right": "alacritty",
+    "on-click-right": "xdg-terminal-exec",
     "states": {
       "warm": 60,
       "hot": 85

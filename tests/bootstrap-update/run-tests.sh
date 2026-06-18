@@ -82,6 +82,7 @@ run_bootstrap_piped() {
   local local_repo="$1" remote="$2" out="$3"; shift 3
   DOTFILES_UPDATE_MODE=dropped-on-left cat "$SCRIPT_UNDER_TEST" \
     | env REPO_DIR="$local_repo" REPO_URL="$remote" DOTFILES_BOOTSTRAP_SKIP_HANDOFF=1 \
+        UPDATE_REPO_URL="file://$REPO_DIR/scripts/update-repo.sh" \
         bash -s -- "$@" > "$out" 2>&1
 }
 
@@ -90,6 +91,7 @@ run_bootstrap_env_after_pipe() {
   local local_repo="$1" remote="$2" out="$3"; shift 3
   cat "$SCRIPT_UNDER_TEST" \
     | env REPO_DIR="$local_repo" REPO_URL="$remote" DOTFILES_BOOTSTRAP_SKIP_HANDOFF=1 \
+        UPDATE_REPO_URL="file://$REPO_DIR/scripts/update-repo.sh" \
         "$@" bash > "$out" 2>&1
 }
 

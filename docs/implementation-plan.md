@@ -350,6 +350,38 @@ Phase 3A validation:
   shortcuts stow only on the matching OS, no duplicate stow lines, step 7
   (setup-syncing) runs.
 
+## Phase 3B Status (unified CLI)
+
+Implemented as of 2026-06-18.
+
+Completed:
+
+- Added `stow/scripts/bin/dotfiles` as the single day-to-day CLI entrypoint.
+- Added `scripts/update-repo.sh` as the shared internal implementation for
+  safe, stash, stash-rebase, and confirmed reset update modes.
+- Refactored `scripts/bootstrap.sh` to load and call the shared update helper
+  instead of carrying a duplicate git-update implementation.
+- Added `dotfiles update` as pull + apply by default, with `--no-apply`,
+  `--dry-run`, `--stash`, `--stash-rebase`, and `--reset --confirm`.
+- Added routing for `bootstrap`, `profile`, `recovery`, and `sync`
+  subcommands while leaving existing scripts callable by path.
+- Added read-only `status`, `doctor`, and `sync status` summaries for OS,
+  profile, git, stow preview, services, and sync agents.
+- Updated README and extending docs to make `dotfiles` the preferred surface
+  and keep `curl | bash` framed as installer/recovery.
+- Repointed `recovery-pack.service` `ExecStart` to route through
+  `%h/bin/dotfiles recovery build` (absolute path; `--user` units do not load
+  the shell `PATH`) instead of calling `generate-recovery-pack.sh` directly.
+  Behavior-preserving: the same flags reach the same script.
+
+Phase 3B validation:
+
+- `shellcheck -x bootstrap.sh scripts/*.sh stow/scripts/bin/dotfiles tests/*/run-tests.sh`: PASS
+- `tests/bootstrap-update/run-tests.sh`: PASS
+- `tests/cli/run-tests.sh`: PASS
+- `dotfiles help`, `dotfiles help update`, `dotfiles version`, `dotfiles status`,
+  and `dotfiles update --dry-run --no-apply`: PASS
+
 ## Known Issues
 
 - Lenovo built-in Intel I226-V Ethernet may freeze intermittently; use USB Ethernet or Wi-Fi if it remains unstable.

@@ -1,7 +1,7 @@
 # Dotfiles — Personal Platform (Franco)
 
 A Git-based personal platform that rebuilds any of my machines from scratch:
-**install OS → clone repo → `./bootstrap.sh` → back to work.**
+**install OS → install dotfiles once → `dotfiles update` → back to work.**
 
 Guiding rule: *machines are disposable, Git is the source of truth, secrets never
 live in Git.*
@@ -23,7 +23,17 @@ Supported machine classes (and only these):
 
 ## 🚀 Install / Update
 
-One command, from any supported machine:
+After the repo has been installed and stowed, use the unified CLI for normal
+work:
+
+```bash
+dotfiles update       # pull latest config and re-apply it
+dotfiles status       # quick read-only machine summary
+dotfiles doctor       # deeper read-only diagnostics
+```
+
+The remote `curl | bash` path is still supported, but it is the installer,
+first-machine, and emergency-repair entrypoint. From any supported machine:
 
 ``` bash
 curl -fsSL https://raw.githubusercontent.com/jfrancolopez/dotfiles/main/scripts/bootstrap.sh | bash
@@ -104,7 +114,23 @@ Reset mode discards local commits and working-tree changes. The legacy
 `DOTFILES_BOOTSTRAP_AUTO_STASH=1` and `--auto-stash` paths map to
 `DOTFILES_UPDATE_MODE=stash`.
 
-Once the repo is cloned, run it directly:
+Once the repo is cloned, prefer the unified CLI:
+
+| Command | Purpose |
+|---------|---------|
+| `dotfiles update` | Pull latest config and re-apply it to this machine |
+| `dotfiles update --no-apply` | Pull only |
+| `dotfiles bootstrap` | Apply config without pulling |
+| `dotfiles status` | Show OS, profile, git, stow, services, and sync summary |
+| `dotfiles doctor` | Run read-only diagnostics |
+| `dotfiles profile show` | Show active profile and declarations |
+| `dotfiles profile select` | Pick and persist a profile |
+| `dotfiles recovery build` | Build an encrypted Recovery Pack |
+| `dotfiles recovery health` | Check NAS Recovery Pack health |
+| `dotfiles sync status` | Show sync agent state |
+| `dotfiles sync setup` | Re-run sync setup for the active profile |
+
+The root orchestrator remains available for installer/recovery internals:
 
 ``` bash
 cd ~/dotfiles
@@ -114,14 +140,15 @@ cd ~/dotfiles
 ./bootstrap.sh --dry-run --profile minimal   # preview, change nothing and save nothing
 ```
 
-Safe to run multiple times — it is idempotent.
+Both `dotfiles bootstrap` and `./bootstrap.sh` are safe to run multiple times;
+the root orchestrator is idempotent.
 
 ------------------------------------------------------------------------
 
 ## 🧩 How it works
 
 ```
-curl bootstrap.sh | bash         (scripts/bootstrap.sh — remote entrypoint)
+curl bootstrap.sh | bash         (scripts/bootstrap.sh — installer/recovery entrypoint)
         │  install min deps, clone/update repo
         ▼
 ./bootstrap.sh                   (root orchestrator)
@@ -132,6 +159,12 @@ curl bootstrap.sh | bash         (scripts/bootstrap.sh — remote entrypoint)
         ├─ scripts/apply-stow.sh       → symlink base + OS-base + profile stow packages
         ├─ scripts/enable-services.sh  → enable profile's services
         └─ scripts/setup-syncing.sh    → set up profile's sync agents (Tailscale/Syncthing/Atuin)
+
+dotfiles                         (stow/scripts/bin/dotfiles — day-to-day CLI)
+        ├─ update / bootstrap / status / doctor
+        ├─ profile show | select | reconfigure | validate
+        ├─ recovery build | verify | health | retention
+        └─ sync status | setup | doctor
 ```
 
 ### Flags (root `bootstrap.sh`)

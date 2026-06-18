@@ -1,0 +1,529 @@
+#!/usr/bin/env bash
+set -euo pipefail
+# ============================================================
+# dotfiles — unified CLI for the personal platform.
+#
+# This script is stowed to ~/bin/dotfiles. It is a thin dispatcher: each
+# `cmd_<name>` function routes to one of the in-repo scripts. No business
+# logic is duplicated here — only argument parsing and composition.
+#
+# Repo discovery order:
+#   1. $DOTFILES_DIR (if set and contains bootstrap.sh + scripts/lib.sh)
+#   2. resolve the script through its symlink → repo root (two levels up
+#      from stow/scripts/bin/dotfiles)
+#   3. $HOME/dotfiles
+# ============================================================
+
+# -----------------------------
+# Repo discovery
+# -----------------------------
+_resolve_self() {
+  local src="${BASH_SOURCE[0]:-$0}" dir
+  while [ -L "$src" ]; do
+    dir="$(cd "$(dirname "$src")" && pwd)"
+    src="$(readlink "$src")"
+    case "$src" in /*) ;; *) src="$dir/$src" ;; esac
+  done
+  printf "%s\n" "$(cd "$(dirname "$src")" && pwd)/$(basename "$src")"
+}
+
+_validate_repo() {
+  [ -f "$1/bootstrap.sh" ] && [ -f "$1/scripts/lib.sh" ]
+}
+
+_find_repo() {
+  local self real candidate
+  if [ -n "${DOTFILES_DIR:-}" ] && _validate_repo "$DOTFILES_DIR"; then
+    printf "%s\n" "$DOTFILES_DIR"; return 0
+  fi
+  self="$(_resolve_self)"
+  real="$(dirname "$(dirname "$(dirname "$self")")")"   # bin/ → scripts/ → stow/ → repo
+  candidate="$(dirname "$real")"
+  if _validate_repo "$candidate"; then
+    printf "%s\n" "$candidate"; return 0
+  fi
+  if _validate_repo "$HOME/dotfiles"; then
+    printf "%s\n" "$HOME/dotfiles"; return 0
+  fi
+  printf "ERROR: could not locate dotfiles repo. Set DOTFILES_DIR.\n" >&2
+  return 1
+}
+
+REPO_DIR="$(_find_repo)"
+export REPO_DIR
+SCRIPTS="$REPO_DIR/scripts"
+# shellcheck source=scripts/lib.sh
+. "$SCRIPTS/lib.sh"
+
+PROFILE_STATE_FILE="${PROFILE_STATE_FILE:-$HOME/.config/dotfiles/profile}"
+
+# -----------------------------
+# Small helpers
+# -----------------------------
+_active_profile() {
+  if [ -r "$PROFILE_STATE_FILE" ]; then
+    head -n1 "$PROFILE_STATE_FILE" | tr -d '[:space:]'
+  fi
+}
+
+_require_active_profile() {
+  local profile
+  profile="$(_active_profile)"
+  [ -n "$profile" ] || die "no saved profile at $PROFILE_STATE_FILE (run: dotfiles profile select)"
+  printf "%s\n" "$profile"
+}
+
+_detect_os_pair() {
+  bash "$SCRIPTS/detect-os.sh" 2>/dev/null || printf "unknown unknown\n"
+}
+
+_profile_conf() {
+  printf "%s/profiles/%s.conf\n" "$REPO_DIR" "$1"
+}
+
+_profile_has_agent() {
+  local profile="$1" agent="$2" conf
+  conf="$(_profile_conf "$profile")"
+  [ -f "$conf" ] || return 1
+  SYNC=()
+  # shellcheck source=/dev/null
+  . "$conf"
+  local item
+  for item in "${SYNC[@]:-}"; do
+    [ "$item" = "$agent" ] && return 0
+  done
+  return 1
+}
+
+_join_parts() {
+  local sep="$1"; shift
+  local first=1 part
+  for part in "$@"; do
+    if [ "$first" = "1" ]; then
+      printf "%s" "$part"
+      first=0
+    else
+      printf "%s%s" "$sep" "$part"
+    fi
+  done
+  printf "\n"
+}
+
+_die_with_help() {
+  err "$1"
+  echo
+  cmd_help
+  exit 2
+}
+
+# -----------------------------
+# help / version
+# -----------------------------
+cmd_help() {
+  local sub="${1:-}"
+  case "$sub" in
+    "")
+      cat <<'EOF'
+dotfiles — your machine's config, in one command
+
+Usage: dotfiles <command> [options]
+
+Common:
+  update        Pull latest config and re-apply it to this machine
+  status        Show what this machine is and whether it's in sync
+  doctor        Diagnose common problems (read-only)
+
+Manage:
+  bootstrap     Apply config without pulling (first-time / dry-run)
+  profile       show | select | reconfigure | validate
+  recovery      build | verify | health | retention
+  sync          status | setup | doctor
+
+Other:
+  help [cmd]    Show help (optionally for one command)
+  version       Show repo branch and commit
+
+Run 'dotfiles help <command>' for details.
+EOF
+      ;;
+    update)
+      cat <<'EOF'
+dotfiles update — pull the latest config and re-apply it.
+
+Usage: dotfiles update [options]
+
+  (default)            safe pull (fast-forward only) then apply
+  --stash              stash local changes, pull, pop
+  --stash-rebase       stash + rebase local commits onto origin/main
+  --reset --confirm    discard local changes/commits, hard reset (DESTRUCTIVE)
+  --no-apply           update the repo only; do not re-apply config
+  --dry-run            show what would happen, change nothing
+  --profile NAME       apply a specific profile
+
+Examples:
+  dotfiles update
+  dotfiles update --stash
+  dotfiles update --no-apply
+EOF
+      ;;
+    bootstrap)
+      cat <<'EOF'
+dotfiles bootstrap — apply config without pulling the repo.
+
+Usage: dotfiles bootstrap [--first-time] [--dry-run] [--profile NAME]
+                          [--enforce] [--adopt] [--backup-conflicts]
+EOF
+      ;;
+    status)
+      echo "dotfiles status — read-only summary of OS, profile, git, stow, services, sync."
+      ;;
+    doctor)
+      echo "dotfiles doctor — read-only platform diagnostics (validates profile, scans stow conflicts, checks tools, sync)."
+      ;;
+    profile)
+      cat <<'EOF'
+dotfiles profile — manage the active profile.
+
+  dotfiles profile show          print active/saved profile + declarations
+  dotfiles profile select        interactive picker (persists)
+  dotfiles profile reconfigure   re-run wizard even if a profile is saved
+  dotfiles profile validate      validate profile files
+EOF
+      ;;
+    recovery)
+      cat <<'EOF'
+dotfiles recovery — encrypted recovery pack management.
+
+  dotfiles recovery build [--dry-run] [flags]   build/verify a recovery pack
+  dotfiles recovery verify ARTIFACT.age         verify an encrypted artifact
+  dotfiles recovery health [--max-age N]        NAS artifact health check
+  dotfiles recovery retention [--keep N]        prune old NAS artifacts
+EOF
+      ;;
+    sync)
+      cat <<'EOF'
+dotfiles sync — tailscale / atuin / syncthing.
+
+  dotfiles sync status   show sync agents' state
+  dotfiles sync setup    (re)run setup-syncing.sh for active profile
+  dotfiles sync doctor   diagnose sync agents (login state, service units)
+EOF
+      ;;
+    version)
+      echo "dotfiles version — show repo branch and commit short SHA."
+      ;;
+    *)
+      err "unknown help topic: $sub"; cmd_help; exit 2 ;;
+  esac
+}
+
+cmd_version() {
+  local branch sha
+  branch="$(git -C "$REPO_DIR" rev-parse --abbrev-ref HEAD 2>/dev/null || echo unknown)"
+  sha="$(git -C "$REPO_DIR" rev-parse --short HEAD 2>/dev/null || echo unknown)"
+  printf "dotfiles %s @ %s (%s)\n" "$sha" "$branch" "$REPO_DIR"
+}
+
+# -----------------------------
+# update / bootstrap
+# -----------------------------
+cmd_update() {
+  local mode="safe" confirm_reset=0 no_apply=0 dry_run=0
+  local -a apply_args=()
+  local -a update_args=()
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --stash) mode="stash"; shift ;;
+      --stash-rebase) mode="stash-rebase"; shift ;;
+      --reset) mode="reset"; shift ;;
+      --confirm) confirm_reset=1; shift ;;
+      --no-apply) no_apply=1; shift ;;
+      --dry-run) dry_run=1; apply_args+=(--dry-run); shift ;;
+      --profile) apply_args+=(--profile "${2:-}"); shift 2 ;;
+      --profile=*) apply_args+=(--profile "${1#*=}"); shift ;;
+      -h|--help) cmd_help update; return 0 ;;
+      *) _die_with_help "dotfiles update: unknown argument: $1" ;;
+    esac
+  done
+
+  if [ "$mode" = "reset" ] && [ "$confirm_reset" != "1" ]; then
+    die "dotfiles update --reset requires --confirm (this discards local commits and changes)"
+  fi
+
+  if [ "$dry_run" = "1" ]; then
+    info "[dry-run] would run: $SCRIPTS/update-repo.sh --mode $mode$([ "$confirm_reset" = "1" ] && printf ' --confirm-reset' || true)"
+    if [ "$no_apply" != "1" ]; then
+      info "[dry-run] would run: $REPO_DIR/bootstrap.sh ${apply_args[*]}"
+    fi
+    return 0
+  fi
+
+  update_args=(--mode "$mode")
+  [ "$confirm_reset" = "1" ] && update_args+=(--confirm-reset)
+  UPDATE_MODE="$mode" CONFIRM_RESET="$confirm_reset" REPO_DIR="$REPO_DIR" \
+    bash "$SCRIPTS/update-repo.sh" "${update_args[@]}"
+
+  if [ "$no_apply" = "1" ]; then
+    ok "Repo updated. Skipping apply (--no-apply)."
+    return 0
+  fi
+
+  info "Re-applying configuration..."
+  exec bash "$REPO_DIR/bootstrap.sh" "${apply_args[@]}"
+}
+
+cmd_bootstrap() {
+  exec bash "$REPO_DIR/bootstrap.sh" "$@"
+}
+
+# -----------------------------
+# status / doctor
+# -----------------------------
+cmd_status() {
+  local os pkg profile branch dirty ahead behind stow_line services_line sync_line
+  read -r os pkg < <(_detect_os_pair)
+  profile="$(_active_profile)"
+  profile="${profile:-<none>}"
+  if [ -d "$REPO_DIR/.git" ]; then
+    branch="$(git -C "$REPO_DIR" rev-parse --abbrev-ref HEAD 2>/dev/null || echo unknown)"
+    if [ -z "$(git -C "$REPO_DIR" status --porcelain 2>/dev/null)" ]; then
+      dirty="clean"
+    else
+      dirty="dirty"
+    fi
+    if git -C "$REPO_DIR" rev-parse --verify -q origin/main >/dev/null 2>&1; then
+      read -r behind ahead < <(git -C "$REPO_DIR" rev-list --left-right --count "origin/main...$branch" 2>/dev/null || echo "? ?")
+    else
+      behind="?"; ahead="?"
+    fi
+  else
+    branch="<no-git>"; dirty="?"; ahead="?"; behind="?"
+  fi
+  stow_line="$(_stow_status "$profile" "$os")"
+  services_line="$(_services_status "$profile" "$os")"
+  sync_line="$(_sync_status "$profile")"
+  printf "Machine:   %s (%s)\n" "$os" "$pkg"
+  printf "Profile:   %s\n" "$profile"
+  printf "Repo:      %s  branch %s · %s · ahead %s · behind %s\n" \
+    "$REPO_DIR" "$branch" "$dirty" "$ahead" "$behind"
+  printf "Stow:      %s\n" "$stow_line"
+  printf "Services:  %s\n" "$services_line"
+  printf "Sync:      %s\n" "$sync_line"
+  printf "Tip:       run 'dotfiles doctor' for a full check.\n"
+}
+
+_stow_status() {
+  local profile="$1" os="$2" out conflicts previews
+  [ "$profile" != "<none>" ] || { printf "no saved profile"; return 0; }
+  need_cmd stow || { printf "stow missing"; return 0; }
+  set +e
+  out="$(DRY_RUN=1 bash "$SCRIPTS/apply-stow.sh" --profile "$profile" --os "$os" 2>&1)"
+  set -e
+  previews="$(printf "%s\n" "$out" | grep -c "Stow preview:" || true)"
+  conflicts="$(printf "%s\n" "$out" | grep -Ec "conflict|existing target|All operations aborted|reported issues" || true)"
+  if [ "$conflicts" = "0" ]; then
+    printf "%s package previews healthy" "$previews"
+  else
+    printf "%s package previews · %s possible conflicts" "$previews" "$conflicts"
+  fi
+}
+
+_service_unit_for() {
+  local os="$1" svc="$2"
+  case "$os:$svc" in
+    omarchy:tailscale|debian:tailscale|ubuntu:tailscale) printf "tailscaled.service\n" ;;
+    omarchy:ssh) printf "sshd.service\n" ;;
+    debian:ssh|ubuntu:ssh) printf "ssh.service\n" ;;
+    *:libvirtd) printf "libvirtd.service\n" ;;
+    *) printf "%s.service\n" "$svc" ;;
+  esac
+}
+
+_services_status() {
+  local profile="$1" os="$2" conf svc unit state parts=()
+  [ "$profile" != "<none>" ] || { printf "no saved profile"; return 0; }
+  conf="$(_profile_conf "$profile")"
+  [ -f "$conf" ] || { printf "profile file missing"; return 0; }
+  SERVICES=()
+  # shellcheck source=/dev/null
+  . "$conf"
+  [ "${#SERVICES[@]}" -gt 0 ] || { printf "none declared"; return 0; }
+  for svc in "${SERVICES[@]}"; do
+    if [ "$os" = "macos" ]; then
+      if need_cmd brew && brew services list 2>/dev/null | grep -q "^${svc}[[:space:]].*started"; then
+        state="ok"
+      else
+        state="check"
+      fi
+    elif need_cmd systemctl; then
+      unit="$(_service_unit_for "$os" "$svc")"
+      if systemctl is-active --quiet "$unit" 2>/dev/null || systemctl --user is-active --quiet "$unit" 2>/dev/null; then
+        state="ok"
+      else
+        state="check"
+      fi
+    else
+      state="unknown"
+    fi
+    parts+=("$svc $state")
+  done
+  _join_parts " · " "${parts[@]}"
+}
+
+_sync_status() {
+  local profile="$1" agent state parts=()
+  [ "$profile" != "<none>" ] || { printf "no saved profile"; return 0; }
+  for agent in tailscale atuin syncthing; do
+    if ! _profile_has_agent "$profile" "$agent"; then
+      parts+=("$agent n/a")
+      continue
+    fi
+    case "$agent" in
+      tailscale)
+        if need_cmd tailscale && tailscale status >/dev/null 2>&1; then state="ok"; else state="check"; fi ;;
+      atuin)
+        if need_cmd atuin && atuin status >/dev/null 2>&1; then state="ok"; else state="not logged in"; fi ;;
+      syncthing)
+        if need_cmd syncthing; then state="present"; else state="missing"; fi ;;
+    esac
+    parts+=("$agent $state")
+  done
+  _join_parts " · " "${parts[@]}"
+}
+
+cmd_doctor() {
+  local rc=0 os _pkg profile
+  read -r os _pkg < <(_detect_os_pair)
+  profile="$(_active_profile)"
+  info "Validating profiles..."
+  bash "$SCRIPTS/validate-profiles.sh" || rc=1
+  info "Checking required tools..."
+  for t in git stow curl; do
+    if need_cmd "$t"; then ok "$t present"; else warn "$t missing"; rc=1; fi
+  done
+  if [ -n "$profile" ]; then
+    info "Checking stow preview..."
+    _stow_status "$profile" "$os" | sed 's/^/  /'
+  else
+    warn "No saved profile; skipping stow preview."
+    rc=1
+  fi
+  if [ -x "$SCRIPTS/recovery-pack-health.sh" ]; then
+    info "Recovery pack health (best-effort)..."
+    bash "$SCRIPTS/recovery-pack-health.sh" 2>/dev/null || warn "recovery-pack-health reported issues"
+  fi
+  info "Sync diagnostics..."
+  cmd_sync doctor || rc=1
+  return "$rc"
+}
+
+# -----------------------------
+# profile / sync / recovery
+# -----------------------------
+cmd_profile() {
+  local sub="${1:-show}"; shift || true
+  local os _pkg; read -r os _pkg < <(_detect_os_pair)
+  case "$sub" in
+    show)
+      local p; p="$(_active_profile)"
+      if [ -z "$p" ]; then
+        warn "no profile saved at $PROFILE_STATE_FILE"
+        return 1
+      fi
+      printf "active profile: %s\n" "$p"
+      local conf="$REPO_DIR/profiles/$p.conf"
+      if [ -f "$conf" ]; then
+        printf "declarations (%s):\n" "$conf"
+        sed -n 's/^/  /p' "$conf"
+      fi
+      ;;
+    select)
+      exec bash "$SCRIPTS/select-profile.sh" --os "$os" "$@"
+      ;;
+    reconfigure)
+      exec bash "$SCRIPTS/select-profile.sh" --os "$os" --first-time "$@"
+      ;;
+    validate)
+      exec bash "$SCRIPTS/validate-profiles.sh" "$@"
+      ;;
+    -h|--help) cmd_help profile ;;
+    *) _die_with_help "dotfiles profile: unknown subcommand: $sub" ;;
+  esac
+}
+
+cmd_recovery() {
+  local sub="${1:-}"; shift || true
+  case "$sub" in
+    build)     exec bash "$SCRIPTS/generate-recovery-pack.sh" "$@" ;;
+    verify)    exec bash "$SCRIPTS/generate-recovery-pack.sh" --verify "$@" ;;
+    health)    exec bash "$SCRIPTS/recovery-pack-health.sh" "$@" ;;
+    retention) exec bash "$SCRIPTS/recovery-pack-retention.sh" "$@" ;;
+    -h|--help|"") cmd_help recovery ;;
+    *) _die_with_help "dotfiles recovery: unknown subcommand: $sub" ;;
+  esac
+}
+
+cmd_sync() {
+  local sub="${1:-}"; shift || true
+  case "$sub" in
+    status)
+      local profile
+      profile="$(_active_profile)"
+      _sync_status "${profile:-<none>}"
+      ;;
+    setup)
+      local os _pkg profile; read -r os _pkg < <(_detect_os_pair)
+      profile="$(_require_active_profile)"
+      exec bash "$SCRIPTS/setup-syncing.sh" --profile "$profile" --os "$os" "$@"
+      ;;
+    doctor)
+      info "Sync diagnostics:"
+      if need_cmd tailscale; then
+        tailscale status 2>&1 | head -5 || true
+      else
+        warn "tailscale not installed"
+      fi
+      if need_cmd atuin; then
+        atuin status 2>&1 | head -5 || warn "atuin not logged in"
+      else
+        dim "atuin not installed"
+      fi
+      if need_cmd syncthing; then
+        ok "syncthing present"
+      else
+        dim "syncthing not installed"
+      fi
+      ;;
+    -h|--help|"") cmd_help sync ;;
+    *) _die_with_help "dotfiles sync: unknown subcommand: $sub" ;;
+  esac
+}
+
+# -----------------------------
+# Dispatch
+# -----------------------------
+main() {
+  if [ $# -eq 0 ]; then
+    cmd_help
+    return 0
+  fi
+  local cmd="$1"; shift
+  case "$cmd" in
+    help|-h|--help) cmd_help "$@" ;;
+    version|--version) cmd_version ;;
+    update)    cmd_update "$@" ;;
+    bootstrap) cmd_bootstrap "$@" ;;
+    status)    cmd_status "$@" ;;
+    doctor)    cmd_doctor "$@" ;;
+    profile)   cmd_profile "$@" ;;
+    recovery)  cmd_recovery "$@" ;;
+    sync)      cmd_sync "$@" ;;
+    *)
+      err "unknown command: $cmd"
+      echo
+      cmd_help
+      exit 2 ;;
+  esac
+}
+
+main "$@"

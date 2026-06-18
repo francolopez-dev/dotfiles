@@ -5,7 +5,7 @@ Wants=network-online.target
 
 [Service]
 Type=oneshot
-ExecStart=%h/dotfiles/scripts/generate-recovery-pack.sh --copy-to-nas --restic --email --profile %H
+ExecStart=%h/bin/dotfiles recovery build --copy-to-nas --restic --email --profile %H
 Environment=DOTFILES_PROFILE=%H
 StandardOutput=journal
 StandardError=journal

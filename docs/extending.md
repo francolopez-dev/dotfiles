@@ -4,6 +4,28 @@ This is the one go-to cheatsheet. Each change is a **one-place, obvious edit**.
 The three-tier stow model resolves dotfiles as
 `stow-base (global) + stow-os-base (per-OS) + profile STOW_PACKAGES`.
 
+## Run things via `dotfiles`
+Use the unified `dotfiles` CLI for day-to-day operations:
+
+```bash
+dotfiles update
+dotfiles status
+dotfiles doctor
+dotfiles profile show
+dotfiles recovery build
+dotfiles sync status
+```
+
+`curl | bash` and root `./bootstrap.sh` remain installer/recovery internals.
+They should keep working, but normal workflows should not require remembering
+script paths.
+
+## Add a CLI subcommand
+Add one `cmd_<name>()` function in `stow/scripts/bin/dotfiles`, then add the
+dispatch case and help text in that same file. Keep the function thin: parse
+CLI flags, fill in active profile/OS when needed, and call the existing script
+that owns the real behavior. Avoid adding standalone `dotfiles-*` commands.
+
 ## Add an app
 Add the package name to a `packages/<group>/<manager>.txt` list
 (`pacman.txt`, `aur.txt`, `brew.txt`, `brew-cask.txt`, `apt.txt`). If it needs a

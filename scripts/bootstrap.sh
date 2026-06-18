@@ -13,9 +13,11 @@ set -euo pipefail
 
 REPO_URL="${REPO_URL:-https://github.com/jfrancolopez/dotfiles.git}"
 REPO_DIR="${REPO_DIR:-$HOME/dotfiles}"
+UPDATE_REPO_URL="${UPDATE_REPO_URL:-https://raw.githubusercontent.com/jfrancolopez/dotfiles/main/scripts/update-repo.sh}"
 UPDATE_MODE="${DOTFILES_UPDATE_MODE:-safe}"
 CONFIRM_RESET="${DOTFILES_CONFIRM_RESET:-0}"
 FORWARD_ARGS=()
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" 2>/dev/null && pwd || true)"
 
 # Track whether a CLI flag set the mode, so legacy env fallback does not override it.
 FLAG_SET_MODE=0
@@ -41,17 +43,6 @@ fi
 
 log() { printf "%s\n" "$*"; }
 need_cmd() { command -v "$1" >/dev/null 2>&1; }
-
-validate_update_mode() {
-  case "$UPDATE_MODE" in
-    safe|stash|stash-rebase|reset) return 0 ;;
-    *)
-      log "ERROR: Unsupported DOTFILES_UPDATE_MODE: $UPDATE_MODE"
-      log "Supported modes: safe, stash, stash-rebase, reset"
-      exit 1
-      ;;
-  esac
-}
 
 is_omarchy_host() {
   [ "${DOTFILES_ASSUME_OMARCHY:-0}" = "1" ] && return 0
@@ -105,6 +96,8 @@ install_min_deps() {
 # -----------------------------
 clone_or_update_repo() {
   if [ -d "$REPO_DIR/.git" ]; then
+    load_update_repo
+    validate_update_mode
     update_existing_repo
   else
     log "Cloning repo..."
@@ -112,147 +105,19 @@ clone_or_update_repo() {
   fi
 }
 
-current_branch() {
-  git -C "$REPO_DIR" rev-parse --abbrev-ref HEAD 2>/dev/null || printf "unknown\n"
-}
-
-dirty_status() {
-  if [ -n "$(git -C "$REPO_DIR" status --porcelain)" ]; then
-    printf "yes\n"
+load_update_repo() {
+  local helper=""
+  if [ -n "$SCRIPT_DIR" ] && [ -f "$SCRIPT_DIR/update-repo.sh" ]; then
+    helper="$SCRIPT_DIR/update-repo.sh"
+  elif [ -f "$REPO_DIR/scripts/update-repo.sh" ]; then
+    helper="$REPO_DIR/scripts/update-repo.sh"
   else
-    printf "no\n"
+    helper="${TMPDIR:-/tmp}/dotfiles-update-repo.$$.$RANDOM.sh"
+    log "Fetching update helper..."
+    curl -fsSL "$UPDATE_REPO_URL" -o "$helper"
   fi
-}
-
-ahead_behind() {
-  git -C "$REPO_DIR" rev-list --left-right --count origin/main...HEAD
-}
-
-print_update_state() {
-  local branch="$1" dirty="$2" behind="$3" ahead="$4"
-  log "Update state:"
-  log "  branch: $branch"
-  log "  dirty working tree: $dirty"
-  log "  behind origin/main: $behind"
-  log "  ahead of origin/main: $ahead"
-}
-
-block_update() {
-  local reason="$1" branch="$2" dirty="$3" behind="$4" ahead="$5" suggestion="$6"
-  log "ERROR: $reason"
-  print_update_state "$branch" "$dirty" "$behind" "$ahead"
-  log "Refusing to update so local work is not hidden or overwritten."
-  log "Suggested command:"
-  log "  $suggestion"
-  exit 1
-}
-
-stash_dirty() {
-  local label="$1"
-  if [ "$(dirty_status)" = "yes" ]; then
-    log "Local changes detected. Stashing because update mode is '$UPDATE_MODE'..."
-    git -C "$REPO_DIR" stash push -u -m "bootstrap $label $(date +%F-%H%M%S)"
-    AUTO_STASHED=1
-  else
-    AUTO_STASHED=0
-  fi
-}
-
-pop_stash_if_needed() {
-  if [ "${AUTO_STASHED:-0}" = "1" ]; then
-    log "Re-applying stashed changes..."
-    if ! git -C "$REPO_DIR" stash pop; then
-      log "ERROR: stash pop had conflicts. Resolve them in $REPO_DIR, then rerun bootstrap."
-      exit 1
-    fi
-  fi
-}
-
-update_existing_repo() {
-  local branch dirty behind ahead
-  log "Repo exists. Updating with mode: $UPDATE_MODE"
-  git -C "$REPO_DIR" fetch --prune origin main
-
-  branch="$(current_branch)"
-  dirty="$(dirty_status)"
-  read -r behind ahead < <(ahead_behind)
-
-  if [ "$branch" != "main" ]; then
-    block_update \
-      "Current branch is not main." \
-      "$branch" "$dirty" "$behind" "$ahead" \
-      "cd $REPO_DIR && git checkout main"
-  fi
-
-  case "$UPDATE_MODE" in
-    safe)
-      [ "$dirty" = "no" ] || block_update \
-        "Working tree has local changes." \
-        "$branch" "$dirty" "$behind" "$ahead" \
-        "cd $REPO_DIR && git status --short"
-      if [ "$ahead" != "0" ] && [ "$behind" != "0" ]; then
-        block_update \
-          "Branch has diverged from origin/main." \
-          "$branch" "$dirty" "$behind" "$ahead" \
-          "curl -fsSL https://raw.githubusercontent.com/jfrancolopez/dotfiles/main/scripts/bootstrap.sh | DOTFILES_UPDATE_MODE=stash-rebase bash"
-      fi
-      [ "$ahead" = "0" ] || block_update \
-        "Branch has unpushed local commits." \
-        "$branch" "$dirty" "$behind" "$ahead" \
-        "curl -fsSL https://raw.githubusercontent.com/jfrancolopez/dotfiles/main/scripts/bootstrap.sh | DOTFILES_UPDATE_MODE=stash-rebase bash"
-      if [ "$behind" != "0" ]; then
-        log "Fast-forwarding main from origin/main..."
-        git -C "$REPO_DIR" merge --ff-only origin/main
-      else
-        log "Repo is already up to date."
-      fi
-      ;;
-    stash)
-      if [ "$ahead" != "0" ] && [ "$behind" != "0" ]; then
-        block_update \
-          "Branch has diverged from origin/main; stash mode does not rebase commits." \
-          "$branch" "$dirty" "$behind" "$ahead" \
-          "curl -fsSL https://raw.githubusercontent.com/jfrancolopez/dotfiles/main/scripts/bootstrap.sh | DOTFILES_UPDATE_MODE=stash-rebase bash"
-      fi
-      [ "$ahead" = "0" ] || block_update \
-        "Branch has unpushed local commits; stash mode does not rebase commits." \
-        "$branch" "$dirty" "$behind" "$ahead" \
-        "curl -fsSL https://raw.githubusercontent.com/jfrancolopez/dotfiles/main/scripts/bootstrap.sh | DOTFILES_UPDATE_MODE=stash-rebase bash"
-      stash_dirty "auto-stash"
-      if [ "$behind" != "0" ]; then
-        log "Fast-forwarding main from origin/main..."
-        git -C "$REPO_DIR" merge --ff-only origin/main
-      else
-        log "Repo is already up to date."
-      fi
-      pop_stash_if_needed
-      ;;
-    stash-rebase)
-      stash_dirty "stash-rebase"
-      if [ "$ahead" != "0" ] || [ "$behind" != "0" ]; then
-        log "Rebasing local commits onto origin/main..."
-        if ! git -C "$REPO_DIR" rebase origin/main; then
-          log "ERROR: rebase had conflicts. Resolve them in $REPO_DIR, then run git rebase --continue or git rebase --abort."
-          exit 1
-        fi
-      else
-        log "Repo is already up to date."
-      fi
-      pop_stash_if_needed
-      ;;
-    reset)
-      if [ "$CONFIRM_RESET" != "1" ]; then
-        block_update \
-          "Reset mode requires DOTFILES_CONFIRM_RESET=1." \
-          "$branch" "$dirty" "$behind" "$ahead" \
-          "curl -fsSL https://raw.githubusercontent.com/jfrancolopez/dotfiles/main/scripts/bootstrap.sh | DOTFILES_UPDATE_MODE=reset DOTFILES_CONFIRM_RESET=1 bash"
-      fi
-      log "WARNING: Reset mode discards local commits and working-tree changes."
-      log "Resetting main to origin/main..."
-      git -C "$REPO_DIR" reset --hard origin/main
-      git -C "$REPO_DIR" clean -fd
-      ;;
-  esac
+  # shellcheck source=scripts/update-repo.sh
+  . "$helper"
 }
 
 main() {
@@ -262,7 +127,6 @@ main() {
   log "Target: $REPO_DIR"
   log "Update: $UPDATE_MODE"
   log "----------------------------------"
-  validate_update_mode
 
   if ! need_cmd git || ! need_cmd curl; then
     log "Installing minimal dependencies..."

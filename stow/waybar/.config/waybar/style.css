@@ -1,5 +1,17 @@
 @import "../omarchy/current/theme/waybar.css";
 
+@define-color bar-bg #06070d;
+@define-color surface #11131f;
+@define-color surface-hover #181b2b;
+@define-color text #d7dcff;
+@define-color muted #6b7280;
+@define-color purple #bd93f9;
+@define-color blue #7dd3fc;
+@define-color green #50fa7b;
+@define-color yellow #f1fa8c;
+@define-color orange #ffb86c;
+@define-color red #ff6e6e;
+
 * {
   border: none;
   border-radius: 0;
@@ -9,8 +21,8 @@
 }
 
 window#waybar {
-  background: alpha(@background, 0.85);
-  color: @foreground;
+  background: alpha(@bar-bg, 0.85);
+  color: @text;
 }
 
 .modules-left {
@@ -21,40 +33,190 @@ window#waybar {
   margin-right: 8px;
 }
 
-#custom-linux,
+#custom-power,
 #workspaces,
 #clock,
 #tray,
 #bluetooth,
 #network,
 #pulseaudio,
+#cpu,
+#memory,
+#custom-gpu,
 #battery {
   padding: 0 8px;
 }
 
+#custom-power {
+  color: @purple;
+  font-size: 14px;
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
+#custom-power:hover,
+#bluetooth:hover,
+#network:hover,
+#pulseaudio:hover,
+#cpu:hover,
+#memory:hover,
+#custom-gpu:hover,
+#battery:hover,
+#clock:hover {
+  background: alpha(@surface-hover, 0.72);
+}
+
 #workspaces button {
   all: initial;
-  color: @foreground;
-  padding: 0 7px;
-  opacity: 0.6;
+  color: @muted;
+  padding: 0 6px;
+  margin: 0 1px;
+  min-width: 16px;
+  opacity: 0.72;
 }
 
 #workspaces button.active,
 #workspaces button.focused {
+  color: @green;
   opacity: 1;
 }
 
-#workspaces button.urgent,
-#battery.critical:not(.charging) {
-  color: #f38ba8;
+#workspaces button.visible {
+  color: @blue;
+}
+
+#workspaces button.empty {
+  color: alpha(@muted, 0.62);
+  opacity: 0.45;
+}
+
+#workspaces button.urgent {
+  color: @red;
+  opacity: 1;
+}
+
+#custom-island {
+  background: alpha(@surface, 0.68);
+  border: 1px solid alpha(@purple, 0.22);
+  border-radius: 999px;
+  color: @muted;
+  margin: 4px 0;
+  padding: 0 14px;
+  min-width: 0;
+}
+
+#custom-island.playing {
+  color: @green;
+  border-color: alpha(@green, 0.32);
+}
+
+#custom-island.paused {
+  color: @yellow;
+  border-color: alpha(@yellow, 0.28);
+}
+
+#custom-island.recording {
+  color: @red;
+  border-color: alpha(@red, 0.35);
+}
+
+#custom-island.idle {
+  background: transparent;
+  border-color: transparent;
+  padding: 0;
+}
+
+#clock {
+  color: @text;
+  font-weight: 600;
+}
+
+#tray {
+  color: @muted;
+}
+
+#bluetooth {
+  color: @muted;
+}
+
+#bluetooth.connected {
+  color: @blue;
+}
+
+#network {
+  color: @blue;
+}
+
+#network.disconnected {
+  color: @muted;
+}
+
+#pulseaudio {
+  color: @green;
+}
+
+#pulseaudio.high {
+  color: @yellow;
+}
+
+#pulseaudio.danger {
+  color: @orange;
+}
+
+#pulseaudio.muted {
+  color: @muted;
+}
+
+#cpu,
+#memory,
+#custom-gpu {
+  color: @blue;
+}
+
+#cpu.warm,
+#memory.warm,
+#custom-gpu.warm {
+  color: @yellow;
+}
+
+#cpu.hot,
+#memory.hot,
+#custom-gpu.hot {
+  color: @red;
+}
+
+#custom-gpu.unavailable {
+  color: @muted;
+}
+
+#battery {
+  color: @green;
+}
+
+#battery.full {
+  color: @green;
+}
+
+#battery.medium {
+  color: @yellow;
 }
 
 #battery.warning:not(.charging) {
-  color: #f9e2af;
+  color: @orange;
+}
+
+#battery.critical:not(.charging) {
+  color: @red;
+}
+
+#battery.charging,
+#battery.plugged {
+  color: @purple;
 }
 
 tooltip {
-  background: @background;
-  color: @foreground;
-  border: 1px solid alpha(@foreground, 0.2);
+  background: alpha(@bar-bg, 0.96);
+  color: @text;
+  border: 1px solid alpha(@purple, 0.28);
+  border-radius: 10px;
 }

@@ -4,20 +4,34 @@
   "position": "top",
   "height": 28,
   "spacing": 0,
-  "modules-left": ["custom/linux", "hyprland/workspaces"],
-  "modules-center": ["clock"],
-  "modules-right": ["tray", "bluetooth", "network", "pulseaudio", "battery"],
+  "modules-left": ["custom/power", "hyprland/workspaces"],
+  "modules-center": ["custom/island"],
+  "modules-right": ["tray", "bluetooth", "network", "pulseaudio", "cpu", "memory", "custom/gpu", "battery", "clock"],
 
-  "custom/linux": {
-    "format": "",
-    "tooltip-format": "Linux\nSuper + Alt + Space",
+  "custom/power": {
+    "format": "󰐥",
+    "tooltip-format": "System menu\nSuper + Alt + Space",
     "on-click": "omarchy-menu",
     "on-click-right": "xdg-terminal-exec"
   },
 
   "hyprland/workspaces": {
     "on-click": "activate",
-    "format": "{name}",
+    "format": "{icon}",
+    "format-icons": {
+      "1": "󰎤",
+      "2": "󰎧",
+      "3": "󰎪",
+      "4": "󰎭",
+      "5": "󰎱",
+      "6": "󰎳",
+      "7": "󰎶",
+      "8": "󰎹",
+      "9": "󰎼",
+      "10": "󰽽",
+      "active": "󰮯",
+      "default": "󰧞"
+    },
     "persistent-workspaces": {
       "1": [],
       "2": [],
@@ -28,19 +42,27 @@
   },
 
   "clock": {
-    "format": "{:%a %I:%M %p}",
-    "format-alt": "{:%Y-%m-%d %I:%M %p}",
-    "tooltip": false
+    "format": "{:%b %d  %I:%M %p}",
+    "format-alt": "{:%A, %B %d  %I:%M %p}",
+    "tooltip": false,
+    "on-click-right": "omarchy-launch-floating-terminal-with-presentation omarchy-tz-select"
+  },
+
+  "custom/island": {
+    "exec": "~/.config/waybar/scripts/island.sh",
+    "return-type": "json",
+    "interval": 2,
+    "tooltip": true
   },
 
   "tray": {
-    "icon-size": 14,
-    "spacing": 8
+    "icon-size": 13,
+    "spacing": 9
   },
 
   "bluetooth": {
     "format": "",
-    "format-connected": " {num_connections}",
+    "format-connected": "󰂱 {num_connections}",
     "format-disabled": "󰂲",
     "format-off": "󰂲",
     "format-no-controller": "",
@@ -51,10 +73,11 @@
 
   "network": {
     "interval": 3,
-    "format-wifi": " {essid}",
-    "format-ethernet": "󰈀 wired",
+    "format-icons": ["󰤯", "󰤟", "󰤢", "󰤥", "󰤨"],
+    "format-wifi": "{icon} {essid}",
+    "format-ethernet": "󰀂 wired",
     "format-disconnected": "󰤮 offline",
-    "tooltip-format-wifi": "{essid} ({signalStrength}%)",
+    "tooltip-format-wifi": "{essid}  {signalStrength}%  {frequency} GHz",
     "tooltip-format-ethernet": "{ifname}: {ipaddr}",
     "tooltip-format-disconnected": "Disconnected",
     "on-click": "omarchy-launch-wifi"
@@ -64,6 +87,10 @@
     "scroll-step": 5,
     "format": "{icon} {volume}%",
     "format-muted": " muted",
+    "states": {
+      "high": 80,
+      "danger": 95
+    },
     "format-icons": {
       "headphone": "",
       "headset": "",
@@ -74,18 +101,52 @@
     "on-click-right": "pamixer -t"
   },
 
-  "battery": {
-    "interval": 10,
+  "cpu": {
+    "interval": 3,
+    "format": "󰍛 {usage}%",
+    "tooltip": true,
+    "on-click": "omarchy-launch-or-focus-tui btop",
+    "on-click-right": "alacritty",
     "states": {
-      "warning": 20,
-      "critical": 10
+      "warm": 60,
+      "hot": 85
+    }
+  },
+
+  "memory": {
+    "interval": 5,
+    "format": "󰘚 {percentage}%",
+    "tooltip-format": "Memory {used:0.1f}G / {total:0.1f}G",
+    "on-click": "omarchy-launch-or-focus-tui btop",
+    "states": {
+      "warm": 70,
+      "hot": 88
+    }
+  },
+
+  "custom/gpu": {
+    "exec": "~/.config/waybar/scripts/gpu.sh",
+    "return-type": "json",
+    "interval": 4,
+    "tooltip": true,
+    "on-click": "omarchy-launch-or-focus-tui btop",
+    "on-click-right": "omarchy-launch-floating-terminal-with-presentation nvidia-smi"
+  },
+
+  "battery": {
+    "interval": 5,
+    "states": {
+      "medium": 60,
+      "warning": 30,
+      "critical": 15
     },
-    "format": "{capacity}% {icon}",
-    "format-charging": "{capacity}% ",
-    "format-plugged": "{capacity}% ",
-    "format-full": "100% ",
-    "format-icons": ["", "", "", "", ""],
-    "tooltip-format": "{timeTo} ({power}W)",
-    "on-click": "omarchy-menu power"
+    "format": "{icon} {capacity}%",
+    "format-charging": "󰂄 {capacity}%",
+    "format-plugged": " {capacity}%",
+    "format-full": "󰂅 100%",
+    "format-icons": ["󰁺", "󰁻", "󰁼", "󰁽", "󰁾", "󰁿", "󰂀", "󰂁", "󰂂", "󰁹"],
+    "tooltip-format": "{timeTo}  {power}W",
+    "on-click": "omarchy-menu power",
+    "on-click-right": "notify-send -u low \"$(omarchy-battery-status)\""
   }
 }

@@ -1,0 +1,187 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+CLASS="omarchy-quick-notes"
+STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles"
+STATE_FILE="$STATE_DIR/notes.state"
+MANUAL_OPEN_FILE="$STATE_DIR/quick-surfaces-manual-open"
+NVIM_SOCKET="$STATE_DIR/notes-nvim.sock"
+NOTES_DIR="$HOME/Documents/Notes"
+INBOX_FILE="$NOTES_DIR/inbox.md"
+TOP_OFFSET=28
+BOTTOM_OFFSET=96
+HIDDEN_WORKSPACE="99"
+
+ensure_notes() {
+  mkdir -p "$NOTES_DIR/inbox" "$NOTES_DIR/archive" "$NOTES_DIR/projects" "$NOTES_DIR/daily" "$STATE_DIR"
+  [ -f "$INBOX_FILE" ] || : >"$INBOX_FILE"
+}
+
+note_address() {
+  hyprctl clients -j | jq -r --arg class "$CLASS" 'map(select(.class == $class))[0].address // empty'
+}
+
+monitor_json() {
+  hyprctl monitors -j | jq -c 'map(select(.focused))[0] // .[0]'
+}
+
+geometry() {
+  monitor_json | jq -r --argjson top "$TOP_OFFSET" --argjson bottom "$BOTTOM_OFFSET" '[.x, (.y + $top), .width, (.height - $top - $bottom)] | @tsv'
+}
+
+window_geometry() {
+  local address="$1"
+  local monitor_id
+  monitor_id="$(hyprctl clients -j | jq -r --arg address "$address" 'map(select(.address == $address))[0].monitor // empty')"
+  if [ -n "$monitor_id" ]; then
+    hyprctl monitors -j | jq -r --argjson id "$monitor_id" --argjson top "$TOP_OFFSET" --argjson bottom "$BOTTOM_OFFSET" 'map(select(.id == $id))[0] | [.x, (.y + $top), .width, (.height - $top - $bottom)] | @tsv'
+  else
+    geometry
+  fi
+}
+
+active_workspace_id() {
+  hyprctl activeworkspace -j | jq -r '.id'
+}
+
+note_workspace_id() {
+  local address="$1"
+  hyprctl clients -j | jq -r --arg address "$address" 'map(select(.address == $address))[0].workspace.id // empty'
+}
+
+is_on_active_workspace() {
+  local address="$1"
+  [ "$(note_workspace_id "$address")" = "$(active_workspace_id)" ]
+}
+
+move_to_active_workspace() {
+  local address="$1" workspace
+  workspace="$(active_workspace_id)"
+  hyprctl dispatch movetoworkspacesilent "$workspace,address:$address" >/dev/null
+}
+
+mark_manual_open() {
+  date +%s%N >"$MANUAL_OPEN_FILE"
+}
+
+show_window() {
+  local address="$1" mon_x mon_y mon_w mon_h width height
+  read -r mon_x mon_y mon_w mon_h < <(geometry)
+  width=$((mon_w * 28 / 100))
+  height=$mon_h
+
+  mark_manual_open
+  move_to_active_workspace "$address"
+  sleep 0.05
+  hyprctl dispatch setfloating "address:$address" >/dev/null
+  hyprctl dispatch resizewindowpixel "exact $width $height,address:$address" >/dev/null
+  hyprctl dispatch movewindowpixel "exact $mon_x $mon_y,address:$address" >/dev/null
+  hyprctl dispatch resizewindowpixel "exact $width $height,address:$address" >/dev/null
+  hyprctl dispatch focuswindow "address:$address" >/dev/null
+  printf 'open\n' >"$STATE_FILE"
+  omarchy-quake layout >/dev/null 2>&1 || true
+}
+
+hide_window() {
+  local address="$1"
+  hyprctl dispatch movetoworkspacesilent "$HIDDEN_WORKSPACE,address:$address" >/dev/null
+  printf 'closed\n' >"$STATE_FILE"
+}
+
+hide_notes() {
+  local address
+  address="$(note_address)"
+  [ -n "$address" ] && hide_window "$address"
+}
+
+launch_window() {
+  local file="${1:-$INBOX_FILE}"
+  rm -f "$NVIM_SOCKET"
+  uwsm-app -- wezterm start --always-new-process --class "$CLASS" --cwd "$NOTES_DIR" nvim --listen "$NVIM_SOCKET" "$file" >/dev/null 2>&1 &
+  printf '%s\n' "$!" >"$STATE_DIR/notes-launch.pid"
+}
+
+launch_fallback_window() {
+  local file="${1:-$INBOX_FILE}"
+  rm -f "$NVIM_SOCKET"
+  uwsm-app -- alacritty --class "$CLASS" --working-directory "$NOTES_DIR" --command nvim --listen "$NVIM_SOCKET" "$file" >/dev/null 2>&1 &
+  printf '%s\n' "$!" >"$STATE_DIR/notes-launch.pid"
+}
+
+wait_for_window() {
+  local address=""
+  for _ in {1..40}; do
+    address="$(note_address)"
+    if [ -n "$address" ]; then
+      printf '%s\n' "$address"
+      return 0
+    fi
+    sleep 0.05
+  done
+  return 1
+}
+
+open_file_in_nvim() {
+  local file="$1"
+  if [ -S "$NVIM_SOCKET" ] && nvim --server "$NVIM_SOCKET" --remote "$file" >/dev/null 2>&1; then
+    return 0
+  fi
+  return 1
+}
+
+open_notes() {
+  local file="${1:-$INBOX_FILE}" address launch_pid
+  ensure_notes
+  address="$(note_address)"
+
+  if [ -n "$address" ]; then
+    open_file_in_nvim "$file" || true
+    show_window "$address"
+    return 0
+  fi
+
+  launch_window "$file"
+  if ! address="$(wait_for_window)"; then
+    launch_pid="$(cat "$STATE_DIR/notes-launch.pid" 2>/dev/null || true)"
+    [ -n "$launch_pid" ] && kill "$launch_pid" 2>/dev/null || true
+    launch_fallback_window "$file"
+    address="$(wait_for_window)"
+  fi
+  show_window "$address"
+}
+
+toggle_notes() {
+  local address state
+  ensure_notes
+  address="$(note_address)"
+  state="$(cat "$STATE_FILE" 2>/dev/null || printf 'closed')"
+
+  if [ -z "$address" ]; then
+    open_notes "$INBOX_FILE"
+  elif [ "$state" = "open" ] && is_on_active_workspace "$address"; then
+    hide_window "$address"
+  else
+    show_window "$address"
+  fi
+}
+
+status() {
+  local address state
+  address="$(note_address)"
+  state="$(cat "$STATE_FILE" 2>/dev/null || printf 'closed')"
+  if [ -n "$address" ] && [ "$state" = "open" ] && is_on_active_workspace "$address"; then
+    jq -cn '{text: "󰎞", tooltip: "Notes drawer open", class: "open"}'
+  elif [ -n "$address" ]; then
+    jq -cn '{text: "󰎞", tooltip: "Notes drawer hidden", class: "hidden"}'
+  else
+    jq -cn '{text: "󰎞", tooltip: "Notes drawer closed", class: "closed"}'
+  fi
+}
+
+case "${1:-toggle}" in
+  toggle) toggle_notes ;;
+  open) open_notes "${2:-$INBOX_FILE}" ;;
+  hide) hide_notes ;;
+  status) status ;;
+  *) printf 'usage: omarchy-notes [toggle|open [file]|hide|status]\n' >&2; exit 2 ;;
+esac

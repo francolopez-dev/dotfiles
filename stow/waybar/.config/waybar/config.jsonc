@@ -4,7 +4,7 @@
   "position": "top",
   "height": 28,
   "spacing": 0,
-  "modules-left": ["custom/power", "hyprland/workspaces"],
+  "modules-left": ["custom/power", "custom/notes", "hyprland/workspaces"],
   "modules-center": ["custom/island"],
   "modules-right": ["tray", "cpu", "memory", "custom/gpu", "custom/vpn", "custom/ethernet", "custom/wifi", "bluetooth", "pulseaudio", "battery", "custom/date", "clock"],
 
@@ -13,6 +13,14 @@
     "tooltip-format": "System menu\nSuper + Alt + Space",
     "on-click": "omarchy-menu",
     "on-click-right": "xdg-terminal-exec"
+  },
+
+  "custom/notes": {
+    "exec": "omarchy-notes status",
+    "return-type": "json",
+    "interval": 1,
+    "tooltip": true,
+    "on-click": "omarchy-notes toggle"
   },
 
   "hyprland/workspaces": {

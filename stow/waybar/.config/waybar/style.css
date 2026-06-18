@@ -41,6 +41,7 @@ window#waybar {
 }
 
 #custom-power,
+#custom-notes,
 #workspaces,
 #clock,
 #custom-date,
@@ -64,7 +65,23 @@ window#waybar {
   padding-right: 10px;
 }
 
+#custom-notes {
+  color: alpha(@muted, 0.78);
+  font-size: 13px;
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+#custom-notes.open {
+  color: @cyan;
+}
+
+#custom-notes.hidden {
+  color: @purple;
+}
+
 #custom-power:hover,
+#custom-notes:hover,
 #bluetooth:hover,
 #custom-wifi:hover,
 #custom-ethernet:hover,

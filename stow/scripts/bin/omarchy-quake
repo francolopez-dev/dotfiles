@@ -1,0 +1,189 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+CLASS="omarchy-quake-terminal"
+NOTES_CLASS="omarchy-quick-notes"
+STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles"
+STATE_FILE="$STATE_DIR/quake.state"
+NOTES_STATE_FILE="$STATE_DIR/notes.state"
+MANUAL_OPEN_FILE="$STATE_DIR/quick-surfaces-manual-open"
+TOP_OFFSET=28
+BOTTOM_OFFSET=28
+TMUX_SESSION="quake"
+
+mkdir -p "$STATE_DIR"
+
+quake_address() {
+  hyprctl clients -j | jq -r --arg class "$CLASS" 'map(select(.class == $class))[0].address // empty'
+}
+
+notes_address() {
+  hyprctl clients -j | jq -r --arg class "$NOTES_CLASS" 'map(select(.class == $class))[0].address // empty'
+}
+
+monitor_json() {
+  hyprctl monitors -j | jq -c 'map(select(.focused))[0] // .[0]'
+}
+
+geometry() {
+  monitor_json | jq -r --argjson top "$TOP_OFFSET" --argjson bottom "$BOTTOM_OFFSET" '[.x, (.y + $top), .width, (.height - $top - $bottom)] | @tsv'
+}
+
+window_geometry() {
+  local address="$1"
+  local monitor_id
+  monitor_id="$(hyprctl clients -j | jq -r --arg address "$address" 'map(select(.address == $address))[0].monitor // empty')"
+  if [ -n "$monitor_id" ]; then
+    hyprctl monitors -j | jq -r --argjson id "$monitor_id" --argjson top "$TOP_OFFSET" --argjson bottom "$BOTTOM_OFFSET" 'map(select(.id == $id))[0] | [.x, (.y + $top), .width, (.height - $top - $bottom)] | @tsv'
+  else
+    geometry
+  fi
+}
+
+active_workspace_id() {
+  hyprctl activeworkspace -j | jq -r '.id'
+}
+
+notes_workspace_id() {
+  local address="$1"
+  hyprctl clients -j | jq -r --arg address "$address" 'map(select(.address == $address))[0].workspace.id // empty'
+}
+
+quake_workspace_id() {
+  local address="$1"
+  hyprctl clients -j | jq -r --arg address "$address" 'map(select(.address == $address))[0].workspace.id // empty'
+}
+
+is_on_active_workspace() {
+  local address="$1"
+  [ "$(quake_workspace_id "$address")" = "$(active_workspace_id)" ]
+}
+
+move_to_active_workspace() {
+  local address="$1" workspace
+  workspace="$(active_workspace_id)"
+  hyprctl dispatch movetoworkspacesilent "$workspace,address:$address" >/dev/null
+}
+
+notes_open_on_active_workspace() {
+  local address state
+  address="$(notes_address)"
+  state="$(cat "$NOTES_STATE_FILE" 2>/dev/null || printf 'closed')"
+  [ -n "$address" ] && [ "$state" = "open" ] && [ "$(notes_workspace_id "$address")" = "$(active_workspace_id)" ]
+}
+
+mark_manual_open() {
+  date +%s%N >"$MANUAL_OPEN_FILE"
+}
+
+layout_window() {
+  local address="$1" should_focus="${2:-0}" mon_x mon_y mon_w mon_h notes_w term_x term_w height
+  read -r mon_x mon_y mon_w mon_h < <(geometry)
+  height=$((mon_h * 48 / 100))
+
+  notes_w=$((mon_w * 28 / 100))
+  term_x=$((mon_x + notes_w))
+  term_w=$((mon_w - notes_w))
+
+  mark_manual_open
+  move_to_active_workspace "$address"
+  sleep 0.05
+  hyprctl dispatch setfloating "address:$address" >/dev/null
+  hyprctl dispatch resizewindowpixel "exact $term_w $height,address:$address" >/dev/null
+  hyprctl dispatch movewindowpixel "exact $term_x $mon_y,address:$address" >/dev/null
+  hyprctl dispatch resizewindowpixel "exact $term_w $height,address:$address" >/dev/null
+  if [ "$should_focus" = "1" ]; then
+    hyprctl dispatch focuswindow "address:$address" >/dev/null
+  fi
+  printf 'open\n' >"$STATE_FILE"
+}
+
+show_window() {
+  layout_window "$1" 1
+}
+
+hide_window() {
+  local address="$1"
+  hyprctl dispatch closewindow "address:$address" >/dev/null
+  printf 'closed\n' >"$STATE_FILE"
+}
+
+hide_quake() {
+  local address
+  address="$(quake_address)"
+  [ -n "$address" ] && hide_window "$address"
+}
+
+launch_window() {
+  uwsm-app -- wezterm start --always-new-process --class "$CLASS" --cwd "$HOME" zsh -lc "tmux new-session -A -s $TMUX_SESSION" >/dev/null 2>&1 &
+  printf '%s\n' "$!" >"$STATE_DIR/quake-launch.pid"
+}
+
+launch_fallback_window() {
+  uwsm-app -- alacritty --class "$CLASS" --working-directory "$HOME" --command zsh -lc "tmux new-session -A -s $TMUX_SESSION" >/dev/null 2>&1 &
+  printf '%s\n' "$!" >"$STATE_DIR/quake-launch.pid"
+}
+
+wait_for_window() {
+  local address=""
+  for _ in {1..40}; do
+    address="$(quake_address)"
+    if [ -n "$address" ]; then
+      printf '%s\n' "$address"
+      return 0
+    fi
+    sleep 0.05
+  done
+  return 1
+}
+
+toggle_quake() {
+  local address state launch_pid
+  address="$(quake_address)"
+  state="$(cat "$STATE_FILE" 2>/dev/null || printf 'closed')"
+
+  if [ -z "$address" ]; then
+    launch_window
+    if ! address="$(wait_for_window)"; then
+      launch_pid="$(cat "$STATE_DIR/quake-launch.pid" 2>/dev/null || true)"
+      [ -n "$launch_pid" ] && kill "$launch_pid" 2>/dev/null || true
+      launch_fallback_window
+      address="$(wait_for_window)"
+    fi
+    show_window "$address"
+  elif [ "$state" = "open" ] && is_on_active_workspace "$address"; then
+    hide_window "$address"
+  else
+    show_window "$address"
+  fi
+}
+
+status() {
+  local address state
+  address="$(quake_address)"
+  state="$(cat "$STATE_FILE" 2>/dev/null || printf 'closed')"
+  if [ -n "$address" ] && [ "$state" = "open" ] && is_on_active_workspace "$address"; then
+    jq -cn '{text: "", tooltip: "Quake terminal open", class: "open"}'
+  elif [ -n "$address" ]; then
+    jq -cn '{text: "", tooltip: "Quake terminal hidden", class: "hidden"}'
+  else
+    jq -cn '{text: "", tooltip: "Quake terminal closed", class: "closed"}'
+  fi
+}
+
+layout_quake() {
+  local address state
+  address="$(quake_address)"
+  state="$(cat "$STATE_FILE" 2>/dev/null || printf 'closed')"
+  if [ -n "$address" ] && [ "$state" = "open" ] && is_on_active_workspace "$address"; then
+    layout_window "$address" 0
+  fi
+}
+
+case "${1:-toggle}" in
+  toggle) toggle_quake ;;
+  hide) hide_quake ;;
+  layout) layout_quake ;;
+  status) status ;;
+  *) printf 'usage: omarchy-quake [toggle|hide|layout|status]\n' >&2; exit 2 ;;
+esac

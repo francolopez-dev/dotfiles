@@ -79,6 +79,35 @@ os_list_contains() {
   return 1
 }
 
+effective_packages_contains() {
+  local wanted="$1" pkg
+  for pkg in "${EFFECTIVE_PACKAGES[@]}"; do
+    [ "$pkg" = "$wanted" ] && return 0
+  done
+  return 1
+}
+
+ensure_omarchy_hypr_conf_d_source() {
+  local conf="$HOME/.config/hypr/hyprland.conf"
+  local source_line='source = ~/.config/hypr/conf.d/*.conf'
+
+  [ "$OS" = "omarchy" ] || return 0
+  effective_packages_contains hypr || return 0
+  [ -f "$conf" ] || return 0
+
+  if grep -Fqx "$source_line" "$conf"; then
+    return 0
+  fi
+
+  if [ "$DRY_RUN" = "1" ]; then
+    info "[dry-run] would enable Hyprland conf.d source in $conf"
+    return 0
+  fi
+
+  info "Enabling Hyprland conf.d source in $conf"
+  printf '\n# Dotfiles managed personal overlays\n%s\n' "$source_line" >>"$conf"
+}
+
 stow_preview() {
   local pkg="$1"
   (cd "$REPO_DIR" && stow --no -v --no-folding -t "$HOME" "$pkg" 2>&1)
@@ -243,6 +272,8 @@ main() {
     printf "  %s\n" "${SKIPPED_CONFLICT_PACKAGES[@]}" >&2
     info "To apply later: ./bootstrap.sh --profile $PROFILE --backup-conflicts"
   fi
+
+  ensure_omarchy_hypr_conf_d_source
 
   ok "Stow step complete."
 }

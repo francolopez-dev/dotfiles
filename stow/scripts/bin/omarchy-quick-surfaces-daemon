@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles"
+LOCK_FILE="$STATE_DIR/quick-surfaces-daemon.lock"
+MANUAL_OPEN_FILE="$STATE_DIR/quick-surfaces-manual-open"
+SOCKET="$XDG_RUNTIME_DIR/hypr/$HYPRLAND_INSTANCE_SIGNATURE/.socket2.sock"
+
+mkdir -p "$STATE_DIR"
+
+exec 9>"$LOCK_FILE"
+flock -n 9 || exit 0
+
+hide_surfaces() {
+  local event_at opened_at
+  event_at="$(date +%s%N)"
+  sleep 0.15
+  if [ -f "$MANUAL_OPEN_FILE" ]; then
+    opened_at="$(cat "$MANUAL_OPEN_FILE" 2>/dev/null || printf 0)"
+    if [ "$opened_at" -gt "$event_at" ] 2>/dev/null; then
+      return 0
+    fi
+  fi
+  omarchy-notes hide >/dev/null 2>&1 || true
+  omarchy-quake hide >/dev/null 2>&1 || true
+}
+
+while true; do
+  if [ ! -S "$SOCKET" ]; then
+    sleep 1
+    continue
+  fi
+
+  socat -U - "UNIX-CONNECT:$SOCKET" 2>/dev/null | while IFS= read -r event; do
+    case "$event" in
+      workspace*|focusedmon*) hide_surfaces ;;
+    esac
+  done || true
+
+  sleep 1
+done

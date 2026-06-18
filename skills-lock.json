@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "omarchy": {
+      "source": "basecamp/omarchy",
+      "sourceType": "github",
+      "skillPath": "default/omarchy-skill/SKILL.md",
+      "computedHash": "83b4e408ea18fac1bd50a8acf38ad6e245c92b3e8e7223c440e7e12c5f340afc"
+    }
+  }
+}

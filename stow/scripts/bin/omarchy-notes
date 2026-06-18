@@ -9,7 +9,7 @@ NVIM_SOCKET="$STATE_DIR/notes-nvim.sock"
 NOTES_DIR="$HOME/Documents/Notes"
 INBOX_FILE="$NOTES_DIR/inbox.md"
 TOP_OFFSET=28
-BOTTOM_OFFSET=96
+BOTTOM_OFFSET=180
 HIDDEN_WORKSPACE="99"
 
 ensure_notes() {
@@ -26,7 +26,7 @@ monitor_json() {
 }
 
 geometry() {
-  monitor_json | jq -r --argjson top "$TOP_OFFSET" --argjson bottom "$BOTTOM_OFFSET" '[.x, (.y + $top), .width, (.height - $top - $bottom)] | @tsv'
+  monitor_json | jq -r --argjson top "$TOP_OFFSET" --argjson bottom "$BOTTOM_OFFSET" '[.x, (.y + $top), .width, (((.height / .scale) | floor) - $top - $bottom)] | @tsv'
 }
 
 window_geometry() {
@@ -34,7 +34,7 @@ window_geometry() {
   local monitor_id
   monitor_id="$(hyprctl clients -j | jq -r --arg address "$address" 'map(select(.address == $address))[0].monitor // empty')"
   if [ -n "$monitor_id" ]; then
-    hyprctl monitors -j | jq -r --argjson id "$monitor_id" --argjson top "$TOP_OFFSET" --argjson bottom "$BOTTOM_OFFSET" 'map(select(.id == $id))[0] | [.x, (.y + $top), .width, (.height - $top - $bottom)] | @tsv'
+    hyprctl monitors -j | jq -r --argjson id "$monitor_id" --argjson top "$TOP_OFFSET" --argjson bottom "$BOTTOM_OFFSET" 'map(select(.id == $id))[0] | [.x, (.y + $top), .width, (((.height / .scale) | floor) - $top - $bottom)] | @tsv'
   else
     geometry
   fi

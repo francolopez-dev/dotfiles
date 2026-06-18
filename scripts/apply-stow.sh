@@ -15,6 +15,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
 PROFILES_DIR="${PROFILES_DIR:-$REPO_DIR/profiles}"
 STOW_DIR="${STOW_DIR:-$REPO_DIR/stow}"
 STOW_OS_MAP="${STOW_OS_MAP:-$PROFILES_DIR/stow-os.map}"
+STOW_BASE="${STOW_BASE:-$PROFILES_DIR/stow-base}"
+STOW_OS_BASE="${STOW_OS_BASE:-$PROFILES_DIR/stow-os-base}"
 
 PROFILE="" OS="" ADOPT=0 BACKUP_CONFLICTS=0
 while [ $# -gt 0 ]; do
@@ -37,6 +39,25 @@ STOW_PACKAGES=()
 
 need_cmd stow || die "stow is not installed (run the package step first)."
 [ -d "$STOW_DIR" ] || die "stow dir not found: $STOW_DIR"
+
+# Packages for the current OS from the per-OS base manifest (`<os>: pkg pkg`).
+os_base_packages() {
+  read_list "$STOW_OS_BASE" | awk -v want="$OS:" '$1 == want { $1=""; print }'
+}
+
+# Effective list = global base + OS base + profile extras, deduped in order.
+# (Plain whitespace-delimited "seen" string keeps this portable to bash 3.2.)
+build_effective_packages() {
+  local pkg seen=" "
+  EFFECTIVE_PACKAGES=()
+  for pkg in $(read_list "$STOW_BASE") $(os_base_packages) "${STOW_PACKAGES[@]:-}"; do
+    [ -n "$pkg" ] || continue
+    case "$seen" in *" $pkg "*) continue ;; esac
+    seen="$seen$pkg "
+    EFFECTIVE_PACKAGES+=("$pkg")
+  done
+}
+build_effective_packages
 
 map_os_for_pkg() {
   local pkg="$1" key oses
@@ -172,11 +193,11 @@ handle_conflicting_pkg() {
 }
 
 main() {
-  info "Stow packages for profile '$PROFILE' (os=$OS): ${STOW_PACKAGES[*]:-<none>}"
+  info "Stow packages for profile '$PROFILE' (os=$OS): ${EFFECTIVE_PACKAGES[*]:-<none>}"
 
   SKIPPED_CONFLICT_PACKAGES=()
   local pkg oses preview_status preview_output conflict_output conflict
-  for pkg in "${STOW_PACKAGES[@]}"; do
+  for pkg in "${EFFECTIVE_PACKAGES[@]}"; do
     if [ ! -d "$STOW_DIR/$pkg" ]; then
       warn "missing stow package: $pkg (skipping)"
       continue

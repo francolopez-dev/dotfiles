@@ -17,14 +17,20 @@ UPDATE_MODE="${DOTFILES_UPDATE_MODE:-safe}"
 CONFIRM_RESET="${DOTFILES_CONFIRM_RESET:-0}"
 FORWARD_ARGS=()
 
+# Track whether a CLI flag set the mode, so legacy env fallback does not override it.
+FLAG_SET_MODE=0
 while [ $# -gt 0 ]; do
   case "$1" in
-    --auto-stash) UPDATE_MODE="stash"; shift ;;
+    --update-mode) UPDATE_MODE="${2:-}"; FLAG_SET_MODE=1; shift 2 ;;
+    --update-mode=*) UPDATE_MODE="${1#*=}"; FLAG_SET_MODE=1; shift ;;
+    --confirm-reset) CONFIRM_RESET=1; shift ;;
+    --auto-stash) UPDATE_MODE="stash"; FLAG_SET_MODE=1; shift ;;
     *) FORWARD_ARGS+=("$1"); shift ;;
   esac
 done
 
-if [ -z "${DOTFILES_UPDATE_MODE:-}" ] && [ "${DOTFILES_BOOTSTRAP_AUTO_STASH:-0}" = "1" ]; then
+# Legacy fallback: only fires when neither DOTFILES_UPDATE_MODE nor a CLI flag set a mode.
+if [ -z "${DOTFILES_UPDATE_MODE:-}" ] && [ "$FLAG_SET_MODE" = "0" ] && [ "${DOTFILES_BOOTSTRAP_AUTO_STASH:-0}" = "1" ]; then
   UPDATE_MODE="stash"
 fi
 
@@ -188,12 +194,12 @@ update_existing_repo() {
         block_update \
           "Branch has diverged from origin/main." \
           "$branch" "$dirty" "$behind" "$ahead" \
-          "DOTFILES_UPDATE_MODE=stash-rebase curl -fsSL https://raw.githubusercontent.com/jfrancolopez/dotfiles/main/scripts/bootstrap.sh | bash"
+          "curl -fsSL https://raw.githubusercontent.com/jfrancolopez/dotfiles/main/scripts/bootstrap.sh | DOTFILES_UPDATE_MODE=stash-rebase bash"
       fi
       [ "$ahead" = "0" ] || block_update \
         "Branch has unpushed local commits." \
         "$branch" "$dirty" "$behind" "$ahead" \
-        "DOTFILES_UPDATE_MODE=stash-rebase curl -fsSL https://raw.githubusercontent.com/jfrancolopez/dotfiles/main/scripts/bootstrap.sh | bash"
+        "curl -fsSL https://raw.githubusercontent.com/jfrancolopez/dotfiles/main/scripts/bootstrap.sh | DOTFILES_UPDATE_MODE=stash-rebase bash"
       if [ "$behind" != "0" ]; then
         log "Fast-forwarding main from origin/main..."
         git -C "$REPO_DIR" merge --ff-only origin/main
@@ -206,12 +212,12 @@ update_existing_repo() {
         block_update \
           "Branch has diverged from origin/main; stash mode does not rebase commits." \
           "$branch" "$dirty" "$behind" "$ahead" \
-          "DOTFILES_UPDATE_MODE=stash-rebase curl -fsSL https://raw.githubusercontent.com/jfrancolopez/dotfiles/main/scripts/bootstrap.sh | bash"
+          "curl -fsSL https://raw.githubusercontent.com/jfrancolopez/dotfiles/main/scripts/bootstrap.sh | DOTFILES_UPDATE_MODE=stash-rebase bash"
       fi
       [ "$ahead" = "0" ] || block_update \
         "Branch has unpushed local commits; stash mode does not rebase commits." \
         "$branch" "$dirty" "$behind" "$ahead" \
-        "DOTFILES_UPDATE_MODE=stash-rebase curl -fsSL https://raw.githubusercontent.com/jfrancolopez/dotfiles/main/scripts/bootstrap.sh | bash"
+        "curl -fsSL https://raw.githubusercontent.com/jfrancolopez/dotfiles/main/scripts/bootstrap.sh | DOTFILES_UPDATE_MODE=stash-rebase bash"
       stash_dirty "auto-stash"
       if [ "$behind" != "0" ]; then
         log "Fast-forwarding main from origin/main..."
@@ -239,7 +245,7 @@ update_existing_repo() {
         block_update \
           "Reset mode requires DOTFILES_CONFIRM_RESET=1." \
           "$branch" "$dirty" "$behind" "$ahead" \
-          "DOTFILES_UPDATE_MODE=reset DOTFILES_CONFIRM_RESET=1 curl -fsSL https://raw.githubusercontent.com/jfrancolopez/dotfiles/main/scripts/bootstrap.sh | bash"
+          "curl -fsSL https://raw.githubusercontent.com/jfrancolopez/dotfiles/main/scripts/bootstrap.sh | DOTFILES_UPDATE_MODE=reset DOTFILES_CONFIRM_RESET=1 bash"
       fi
       log "WARNING: Reset mode discards local commits and working-tree changes."
       log "Resetting main to origin/main..."

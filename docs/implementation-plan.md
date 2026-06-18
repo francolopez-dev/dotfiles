@@ -289,6 +289,67 @@ Phase 3A skeleton files exist for review, but active profiles do not enable
 Atuin, Syncthing, wallpapers, themes, Hyprland, Waybar, or Rofi overrides during
 Phase 2 stabilization.
 
+## Phase 2B-fix Status (remote bootstrap mode forwarding)
+
+Complete as of 2026-06-17. Fixed the broken remote update-mode command.
+
+Root cause: in `VAR=val curl … | bash`, the `VAR=val` prefix applies only to the
+`curl` process; `bash` runs as a separate pipeline element and never inherits it.
+So `DOTFILES_UPDATE_MODE=stash curl … | bash` always ran in `safe` mode. The
+literal form cannot be fixed (shell semantics); it is documented as a known
+limitation and guarded by a regression test.
+
+Completed:
+
+- Added `--update-mode`, `--update-mode=`, and `--confirm-reset` argument
+  forwarding in `scripts/bootstrap.sh` (pipe-safe via `bash -s -- …`).
+- Kept legacy `--auto-stash` and `DOTFILES_BOOTSTRAP_AUTO_STASH=1`; the legacy
+  env fallback now only fires when no env or flag set a mode.
+- Fixed every README example to the correct env-after-pipe form plus a flag form.
+- Fixed in-script `block_update` suggested commands to env-after-pipe form.
+- Added pipe-aware tests reproducing real `curl | bash` semantics.
+
+Phase 2B-fix validation:
+
+- `shellcheck -x bootstrap.sh scripts/*.sh tests/*/run-tests.sh`: PASS
+- `tests/bootstrap-update/run-tests.sh`: PASS (12 tests)
+  - flag-update-mode-stash, flag-update-mode-stash-rebase, flag-confirm-reset
+  - env-after-pipe-stash, legacy-auto-stash
+  - regression-env-before-pipe-is-safe
+
+## Phase 3A Status (layered config + sync step)
+
+Complete as of 2026-06-17.
+
+Completed:
+
+- Added three-tier stow model: `profiles/stow-base` (global) and
+  `profiles/stow-os-base` (per-OS), merged with per-profile `STOW_PACKAGES` in
+  `scripts/apply-stow.sh` (deduped, bash-3.2 portable), with the per-package
+  `stow-os.map` gate unchanged.
+- Slimmed all `profiles/*.conf` to apps + profile-only extras; shared dotfiles
+  removed from every profile. `recovery-pack` kept where it resolves.
+- Added optional `SYNC=()` to profiles; `STOW_PACKAGES`/`SYNC` are now optional.
+- Added `scripts/setup-syncing.sh` (Tailscale/Syncthing/Atuin), idempotent and
+  non-destructive, wired in as bootstrap step 7. Adding an agent = one `case`
+  branch + `SYNC=()` entry.
+- Updated `scripts/validate-profiles.sh`: optional `STOW_PACKAGES`, validates
+  `stow-base`/`stow-os-base` references, recognizes `SYNC` agents.
+- Added `docs/extending.md` cheatsheet with future-improvement notes.
+
+Constraints honored: Recovery Pack logic untouched; NetworkManager behavior
+untouched; sync logins remain manual with no credential storage.
+
+Phase 3A validation:
+
+- `shellcheck -x bootstrap.sh scripts/*.sh tests/*/run-tests.sh`: PASS
+- `scripts/validate-profiles.sh`: PASS (base manifests + all 9 profiles)
+- `tests/recovery-pack/run-tests.sh`: PASS (unchanged, green)
+- `tests/stow-cleanup/run-tests.sh`: PASS
+- Dry-run per profile: global base stows on all (incl. minimal), OS-base
+  shortcuts stow only on the matching OS, no duplicate stow lines, step 7
+  (setup-syncing) runs.
+
 ## Known Issues
 
 - Lenovo built-in Intel I226-V Ethernet may freeze intermittently; use USB Ethernet or Wi-Fi if it remains unstable.

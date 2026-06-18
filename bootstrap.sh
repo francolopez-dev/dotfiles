@@ -4,8 +4,8 @@ set -euo pipefail
 # Personal Platform — root orchestrator ("the one command")
 #
 # Runs, in order:
-#   detect-os -> select-profile -> install-packages -> apply-stow -> enable-services
-# (setup-syncing arrives in Phase 3.)
+#   detect-os -> select-profile -> install-packages -> apply-stow
+#     -> enable-services -> setup-syncing
 #
 # Usage:
 #   ./bootstrap.sh [--dry-run] [--profile NAME] [--first-time] [--enforce] [--adopt] [--backup-conflicts] [--log FILE]
@@ -110,7 +110,8 @@ bash "$SCRIPTS/apply-stow.sh" "${stow_args[@]}"
 # 6) Enable services
 bash "$SCRIPTS/enable-services.sh" --profile "$PROFILE" --os "$OS"
 
-# 7) (Phase 3) setup-syncing — not yet implemented.
+# 7) Set up sync agents (Tailscale, Syncthing, Atuin) declared by the profile.
+bash "$SCRIPTS/setup-syncing.sh" --profile "$PROFILE" --os "$OS"
 
 log ""
 ok "Bootstrap complete for profile '$PROFILE' on $OS."

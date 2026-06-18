@@ -10,6 +10,8 @@ PROFILES_DIR="${PROFILES_DIR:-$REPO_DIR/profiles}"
 PACKAGES_DIR="${PACKAGES_DIR:-$REPO_DIR/packages}"
 STOW_DIR="${STOW_DIR:-$REPO_DIR/stow}"
 STOW_OS_MAP="${STOW_OS_MAP:-$PROFILES_DIR/stow-os.map}"
+STOW_BASE="${STOW_BASE:-$PROFILES_DIR/stow-base}"
+STOW_OS_BASE="${STOW_OS_BASE:-$PROFILES_DIR/stow-os-base}"
 
 PROFILE=""
 while [ $# -gt 0 ]; do
@@ -23,6 +25,13 @@ done
 known_service() {
   case "$1" in
     tailscale|syncthing|libvirtd|borders) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+known_sync_agent() {
+  case "$1" in
+    tailscale|syncthing|atuin) return 0 ;;
     *) return 1 ;;
   esac
 }
@@ -79,7 +88,9 @@ validate_one() {
   profile="$(basename "$profile_file" .conf)"
   os="$(profile_os "$profile")"
 
-  unset PACKAGE_GROUPS STOW_PACKAGES SERVICES
+  unset PACKAGE_GROUPS STOW_PACKAGES SERVICES SYNC
+  STOW_PACKAGES=()
+  SYNC=()
   # shellcheck source=/dev/null
   if ! . "$profile_file"; then
     err "$profile: could not source profile"
@@ -87,8 +98,15 @@ validate_one() {
   fi
 
   require_array "$profile" PACKAGE_GROUPS || fail=1
-  require_array "$profile" STOW_PACKAGES || fail=1
   require_array "$profile" SERVICES || fail=1
+  # STOW_PACKAGES and SYNC are optional now (shared dotfiles live in stow-base /
+  # stow-os-base). Default them above so unset is fine; if declared, must be arrays.
+  if declare -p STOW_PACKAGES >/dev/null 2>&1; then
+    require_array "$profile" STOW_PACKAGES || fail=1
+  fi
+  if declare -p SYNC >/dev/null 2>&1; then
+    require_array "$profile" SYNC || fail=1
+  fi
   [ "$fail" = "0" ] || { err "$profile: FAIL"; return 1; }
 
   set +u
@@ -118,6 +136,13 @@ validate_one() {
       fail=1
     fi
   done
+
+  for item in "${SYNC[@]}"; do
+    if ! known_sync_agent "$item"; then
+      err "$profile: unknown sync agent: $item (allowed: tailscale syncthing atuin)"
+      fail=1
+    fi
+  done
   set -u
 
   if [ "$fail" = "0" ]; then
@@ -128,8 +153,35 @@ validate_one() {
   return "$fail"
 }
 
+validate_base_manifests() {
+  local fail=0 pkg
+  for pkg in $(read_list "$STOW_BASE"); do
+    if [ ! -d "$STOW_DIR/$pkg" ]; then
+      err "stow-base: missing stow package: $pkg"
+      fail=1
+    fi
+  done
+  # stow-os-base lines: `<os>: pkg pkg ...`
+  while read -r os_label rest; do
+    [ -n "$os_label" ] || continue
+    for pkg in $rest; do
+      if [ ! -d "$STOW_DIR/$pkg" ]; then
+        err "stow-os-base ($os_label): missing stow package: $pkg"
+        fail=1
+      fi
+    done
+  done < <(read_list "$STOW_OS_BASE")
+  if [ "$fail" = "0" ]; then
+    ok "base manifests: PASS"
+  else
+    err "base manifests: FAIL"
+  fi
+  return "$fail"
+}
+
 main() {
   local files=() f failures=0
+  validate_base_manifests || failures=1
   if [ -n "$PROFILE" ]; then
     [ -f "$PROFILES_DIR/$PROFILE.conf" ] || die "Unknown profile: $PROFILE"
     files=("$PROFILES_DIR/$PROFILE.conf")

@@ -40,12 +40,13 @@ If the repo already exists, the default update mode is safe:
 
 The remote bootstrap never merges, rebases, stashes, or resets by default.
 
-Remote bootstrap flags must be passed either with environment variables:
+Remote bootstrap flags must be passed either with environment variables **placed
+on `bash`, after the pipe**:
 
 ```bash
-DOTFILES_FIRST_TIME=1 curl -fsSL https://raw.githubusercontent.com/jfrancolopez/dotfiles/main/scripts/bootstrap.sh | bash
-DOTFILES_PROFILE=laptop-work-omarchy curl -fsSL https://raw.githubusercontent.com/jfrancolopez/dotfiles/main/scripts/bootstrap.sh | bash
-DOTFILES_BACKUP_CONFLICTS=1 curl -fsSL https://raw.githubusercontent.com/jfrancolopez/dotfiles/main/scripts/bootstrap.sh | bash
+curl -fsSL https://raw.githubusercontent.com/jfrancolopez/dotfiles/main/scripts/bootstrap.sh | DOTFILES_FIRST_TIME=1 bash
+curl -fsSL https://raw.githubusercontent.com/jfrancolopez/dotfiles/main/scripts/bootstrap.sh | DOTFILES_PROFILE=laptop-work-omarchy bash
+curl -fsSL https://raw.githubusercontent.com/jfrancolopez/dotfiles/main/scripts/bootstrap.sh | DOTFILES_BACKUP_CONFLICTS=1 bash
 ```
 
 or with Bash's `-s --` argument separator:
@@ -55,7 +56,12 @@ curl -fsSL https://raw.githubusercontent.com/jfrancolopez/dotfiles/main/scripts/
 curl -fsSL https://raw.githubusercontent.com/jfrancolopez/dotfiles/main/scripts/bootstrap.sh | bash -s -- --profile laptop-work-omarchy
 ```
 
-Do not use `bash --first-time`; Bash will treat that as an option to Bash itself.
+> **Important — env placement.** In a pipeline, `VAR=val curl … | bash` applies
+> `VAR` only to the **`curl`** process, *not* to `bash`. So
+> `DOTFILES_UPDATE_MODE=stash curl … | bash` is silently ignored and runs in
+> `safe` mode. Put the env var on `bash` (after the pipe) as shown above, or use
+> the `bash -s -- --flag` form. Do not use `bash --first-time`; Bash treats that
+> as an option to Bash itself.
 
 ### Remote update modes
 
@@ -68,25 +74,30 @@ curl -fsSL https://raw.githubusercontent.com/jfrancolopez/dotfiles/main/scripts/
 Force first-time wizard:
 
 ```bash
-DOTFILES_FIRST_TIME=1 curl -fsSL https://raw.githubusercontent.com/jfrancolopez/dotfiles/main/scripts/bootstrap.sh | bash
+curl -fsSL https://raw.githubusercontent.com/jfrancolopez/dotfiles/main/scripts/bootstrap.sh | DOTFILES_FIRST_TIME=1 bash
 ```
 
 Auto-stash dirty files, then fast-forward:
 
 ```bash
-DOTFILES_UPDATE_MODE=stash curl -fsSL https://raw.githubusercontent.com/jfrancolopez/dotfiles/main/scripts/bootstrap.sh | bash
+# env form (placed on bash, after the pipe)
+curl -fsSL https://raw.githubusercontent.com/jfrancolopez/dotfiles/main/scripts/bootstrap.sh | DOTFILES_UPDATE_MODE=stash bash
+# flag form (also pipe-safe)
+curl -fsSL https://raw.githubusercontent.com/jfrancolopez/dotfiles/main/scripts/bootstrap.sh | bash -s -- --update-mode stash
 ```
 
 Rebase local commits onto `origin/main`, stashing dirty files first if needed:
 
 ```bash
-DOTFILES_UPDATE_MODE=stash-rebase curl -fsSL https://raw.githubusercontent.com/jfrancolopez/dotfiles/main/scripts/bootstrap.sh | bash
+curl -fsSL https://raw.githubusercontent.com/jfrancolopez/dotfiles/main/scripts/bootstrap.sh | DOTFILES_UPDATE_MODE=stash-rebase bash
+curl -fsSL https://raw.githubusercontent.com/jfrancolopez/dotfiles/main/scripts/bootstrap.sh | bash -s -- --update-mode stash-rebase
 ```
 
 Emergency reset to `origin/main`:
 
 ```bash
-DOTFILES_UPDATE_MODE=reset DOTFILES_CONFIRM_RESET=1 curl -fsSL https://raw.githubusercontent.com/jfrancolopez/dotfiles/main/scripts/bootstrap.sh | bash
+curl -fsSL https://raw.githubusercontent.com/jfrancolopez/dotfiles/main/scripts/bootstrap.sh | DOTFILES_UPDATE_MODE=reset DOTFILES_CONFIRM_RESET=1 bash
+curl -fsSL https://raw.githubusercontent.com/jfrancolopez/dotfiles/main/scripts/bootstrap.sh | bash -s -- --update-mode reset --confirm-reset
 ```
 
 Reset mode discards local commits and working-tree changes. The legacy
@@ -118,8 +129,9 @@ curl bootstrap.sh | bash         (scripts/bootstrap.sh — remote entrypoint)
         ├─ scripts/detect-os.sh        → omarchy | macos | debian | ubuntu
         ├─ scripts/select-profile.sh   → choose & persist a profile
         ├─ scripts/install-packages.sh → install profile's package groups
-        ├─ scripts/apply-stow.sh       → symlink profile's stow packages
-        └─ scripts/enable-services.sh  → enable profile's services
+        ├─ scripts/apply-stow.sh       → symlink base + OS-base + profile stow packages
+        ├─ scripts/enable-services.sh  → enable profile's services
+        └─ scripts/setup-syncing.sh    → set up profile's sync agents (Tailscale/Syncthing/Atuin)
 ```
 
 ### Flags (root `bootstrap.sh`)
@@ -148,16 +160,33 @@ packages/<group>/{pacman.txt, aur.txt, brew.txt, brew-cask.txt, apt.txt}
 Groups: `common, desktop, server, personal, work, gaming, virtualization`.
 Per-manager lists cleanly handle cross-distro name drift without a mapping table.
 
-## 🎛 Profiles (`profiles/*.conf`)
+## 🎛 Profiles (`profiles/*.conf`) and the three-tier stow model
 
-A profile is a small sourced shell file declaring **intent** — which package
-groups, stow packages, and services a machine wants:
+Dotfiles resolve in **three tiers** so nothing is duplicated across profiles:
+
+| Tier | What | Scope | Lives in |
+|------|------|-------|----------|
+| Global base | shell/terminal config, aliases | every profile, every OS (incl. `minimal`) | `profiles/stow-base` |
+| OS base | keyboard shortcuts, desktop/WM config | every profile on that OS | `profiles/stow-os-base` |
+| Profile | apps to install (+ rare profile-only dotfiles) | per profile | `profiles/*.conf` |
+
+The effective stow list is `stow-base + stow-os-base (for the host OS) +
+the profile's STOW_PACKAGES`, deduped, with the per-package `stow-os.map` gate
+still applied on top.
+
+A profile is a small sourced shell file declaring **intent** — package groups,
+*profile-only* stow extras, services, and sync agents:
 
 ``` sh
 PACKAGE_GROUPS=(common desktop personal gaming virtualization)
-STOW_PACKAGES=(shell zsh bash nvim btop git ssh tmux scripts wezterm recovery-pack)
+STOW_PACKAGES=(nvim btop wezterm recovery-pack)  # optional; shared dotfiles come from stow-base
 SERVICES=(tailscale libvirtd)
+SYNC=(tailscale atuin)                            # optional; see setup-syncing.sh
 ```
+
+To add a global alias edit `stow/shell`; to add an OS shortcut edit
+`stow/hypr` (omarchy) or `stow/aerospace` (macOS) — it applies to every
+that-OS profile automatically. See [`docs/extending.md`](docs/extending.md).
 
 The chosen profile is persisted per-machine (gitignored) at
 `~/.config/dotfiles/profile`.
@@ -200,9 +229,11 @@ apply everywhere; current desktop-specific filters are:
 - macOS only: `aerospace`, `borders`
 - Omarchy only: `hypr`, `waybar`, `rofi`, `wallpapers`, `themes`, `recovery-pack`
 
-Phase 3A stow packages for Atuin, Syncthing, and Omarchy desktop polish are
-present as parked skeletons but are not enabled in active profiles during Phase
-2 stabilization.
+As of Phase 3A, `atuin` ships in the global base (`profiles/stow-base`) and the
+Omarchy desktop dotfiles (`hypr`, `waybar`, `rofi`, `wallpapers`, `themes`) ship
+in the per-OS base (`profiles/stow-os-base`). They are stowed automatically for
+the relevant OS. `syncthing` config is managed via `SYNC=()` /
+`scripts/setup-syncing.sh` rather than stow.
 
 Before a real stow, the script simulates each package and detects conflicts.
 With a tty it asks per package: skip, backup then stow, or adopt. Without a tty,
@@ -232,6 +263,8 @@ dotfiles/
 ├── bootstrap.sh            # root orchestrator ("one command")
 ├── packages/               # package groups (per-OS lists)
 ├── profiles/               # intent definitions (*.conf)
+│   ├── stow-base           # global base stow packages (every profile/OS)
+│   ├── stow-os-base        # per-OS base stow packages (shortcuts/desktop)
 │   └── stow-os.map         # OS allow-list for desktop-specific stow packages
 ├── stow/                   # GNU Stow packages → symlinked into $HOME
 │   ├── zsh/ bash/ shell/ nvim/ btop/ git/ ssh/ tmux/
@@ -244,6 +277,7 @@ dotfiles/
 │   ├── bootstrap.sh        # remote curl entrypoint
 │   ├── lib.sh detect-os.sh select-profile.sh
 │   ├── install-packages.sh apply-stow.sh enable-services.sh
+│   ├── setup-syncing.sh    # sync agents (Tailscale/Syncthing/Atuin)
 │   ├── validate-profiles.sh
 │   └── install.sh          # DEPRECATED shim → ../bootstrap.sh
 └── docs/
@@ -351,4 +385,6 @@ root
 
 - **Phase 1 (complete):** bootstrap orchestrator, package groups, device/role/OS-explicit profiles, safe stow.
 - **Phase 2:** Age Recovery Pack + disaster-recovery docs, distribution, timer, retention, health.
-- **Phase 3:** Syncthing/Tailscale sync, Atuin client, Omarchy desktop polish.
+- **Phase 3A (in progress):** layered stow model (base/OS-base/profile),
+  `setup-syncing` step (Tailscale/Syncthing/Atuin), Omarchy desktop polish.
+  See [`docs/extending.md`](docs/extending.md) for the "how do I add X" cheatsheet.

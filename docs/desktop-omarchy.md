@@ -73,6 +73,29 @@ source = ~/.config/hypr/conf.d/*.conf
 Keep machine-specific monitor layouts commented unless they are safe across all
 Omarchy profiles.
 
+Profile display metadata belongs in `profiles/<profile>.conf`, not in this
+shared Hypr include. Bootstrap exports that metadata to:
+
+```text
+~/.config/dotfiles/profile.env
+```
+
+Quick notes and quake terminal source that file for sizing preferences, then use
+live `hyprctl monitors -j` data to size themselves on the active monitor. This is
+intentional for docked laptops and multi-monitor desktops where the actual screen
+layout changes during the day.
+
+Supported quick-surface monitor modes:
+
+```text
+focused
+largest
+primary
+named:<monitor-name>
+```
+
+Use `focused` for laptops unless a fixed dock setup needs a named monitor.
+
 Validate live Hypr changes with:
 
 ```bash

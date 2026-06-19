@@ -111,6 +111,9 @@ bash "$SCRIPTS/apply-stow.sh" "${stow_args[@]}"
 # 5b) Configure desktop integration that should be live user state, not stow state.
 bash "$SCRIPTS/configure-omarchy-terminal.sh" --profile "$PROFILE" --os "$OS" --pkgmgr "$PKGMGR"
 
+# 5c) Generate profile metadata consumed by helper scripts and desktop surfaces.
+bash "$SCRIPTS/configure-profile-settings.sh" --profile "$PROFILE" --os "$OS"
+
 # 6) Enable services
 bash "$SCRIPTS/enable-services.sh" --profile "$PROFILE" --os "$OS"
 

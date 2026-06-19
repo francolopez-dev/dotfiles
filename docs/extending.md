@@ -46,6 +46,31 @@ Add the stow package to that profile's `STOW_PACKAGES=(…)` in
 `profiles/<profile>.conf`. Use this only for genuinely profile-specific config;
 shared dotfiles belong in `stow-base`.
 
+## Add profile display / hardware hints
+Add optional metadata to `profiles/<profile>.conf` when scripts need to know the
+machine class or display intent without hardcoding a hostname/model:
+
+```sh
+DISPLAY_CLASS="laptop"
+DISPLAY_DEFAULT_RESOLUTION="1920x1080"
+DISPLAY_DEFAULT_SCALE="1"
+DISPLAY_LAYOUT_HINT="mobile-docked"
+QUICK_SURFACE_MONITOR_MODE="focused"
+QUICK_SURFACE_NOTES_WIDTH_PERCENT="28"
+QUICK_SURFACE_QUAKE_HEIGHT_PERCENT="48"
+QUICK_SURFACE_TOP_OFFSET="28"
+QUICK_SURFACE_BOTTOM_OFFSET="28"
+DISPLAY_MODES=(
+  "internal:1920x1080@60:scale=1"
+  "docked-multi:focused-monitor"
+)
+HARDWARE_PACKAGE_GROUPS=(laptop)
+```
+
+Bootstrap writes these values to `~/.config/dotfiles/profile.env`. Helper scripts
+can source that file, but should still use live system state for things that
+change at runtime, such as docked monitor layout.
+
 ## Add a sync agent
 Add one `case` branch in `scripts/setup-syncing.sh` and list the agent in the
 profile's `SYNC=(…)` array. Allowed today: `tailscale`, `syncthing`, `atuin`.
@@ -66,5 +91,6 @@ Create `profiles/<name>.conf` with `PACKAGE_GROUPS`, optional `STOW_PACKAGES`,
 - Per-host overrides (a `hosts/<hostname>` tier above profiles).
 - Secret-aware sync automation (auto-login for Tailscale/Atuin via secrets store).
 - Firefox sync strategy.
+- Hardware package group expansion from `HARDWARE_PACKAGE_GROUPS`.
 - VM / Omarchy postinstall hooks.
 - Developer-workstation bootstrap variant.

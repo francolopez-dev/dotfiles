@@ -36,6 +36,30 @@ known_sync_agent() {
   esac
 }
 
+optional_array() {
+  local profile="$1" name="$2" decl
+  if ! decl="$(declare -p "$name" 2>/dev/null)"; then
+    return 0
+  fi
+  case "$decl" in
+    declare\ -a*) return 0 ;;
+    *)
+      err "$profile: $name must be an array"
+      return 1
+      ;;
+  esac
+}
+
+optional_number() {
+  local profile="$1" name="$2" value
+  value="${!name:-}"
+  [ -z "$value" ] && return 0
+  case "$value" in
+    *[!0-9]*) err "$profile: $name must be a positive integer"; return 1 ;;
+    *) return 0 ;;
+  esac
+}
+
 profile_os() {
   case "$1" in
     desktop-personal-omarchy|desktop-work-omarchy|laptop-personal-omarchy|laptop-work-omarchy) printf "omarchy\n" ;;
@@ -88,7 +112,7 @@ validate_one() {
   profile="$(basename "$profile_file" .conf)"
   os="$(profile_os "$profile")"
 
-  unset PACKAGE_GROUPS STOW_PACKAGES SERVICES SYNC
+  unset PACKAGE_GROUPS STOW_PACKAGES SERVICES SYNC DISPLAY_MODES HARDWARE_PACKAGE_GROUPS
   STOW_PACKAGES=()
   SYNC=()
   # shellcheck source=/dev/null
@@ -107,6 +131,12 @@ validate_one() {
   if declare -p SYNC >/dev/null 2>&1; then
     require_array "$profile" SYNC || fail=1
   fi
+  optional_array "$profile" DISPLAY_MODES || fail=1
+  optional_array "$profile" HARDWARE_PACKAGE_GROUPS || fail=1
+  optional_number "$profile" QUICK_SURFACE_NOTES_WIDTH_PERCENT || fail=1
+  optional_number "$profile" QUICK_SURFACE_QUAKE_HEIGHT_PERCENT || fail=1
+  optional_number "$profile" QUICK_SURFACE_TOP_OFFSET || fail=1
+  optional_number "$profile" QUICK_SURFACE_BOTTOM_OFFSET || fail=1
   [ "$fail" = "0" ] || { err "$profile: FAIL"; return 1; }
 
   set +u

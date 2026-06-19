@@ -158,6 +158,7 @@ curl bootstrap.sh | bash         (scripts/bootstrap.sh — installer/recovery en
         ├─ scripts/select-profile.sh   → choose & persist a profile
         ├─ scripts/install-packages.sh → install profile's package groups
         ├─ scripts/apply-stow.sh       → symlink base + OS-base + profile stow packages
+        ├─ scripts/configure-profile-settings.sh → write profile metadata env
         ├─ scripts/enable-services.sh  → enable profile's services
         └─ scripts/setup-syncing.sh    → set up profile's sync agents (Tailscale/Syncthing/Atuin)
 
@@ -325,6 +326,9 @@ dotfiles/
 - Machine-specific shell env (paths, credentials) lives in a **gitignored**
   `~/.config/shell/env.local`, sourced by `env.sh`. Nothing machine-specific is
   committed. (Same idea as `~/.ssh/config.local`.)
+- Profile display and hardware hints are generated at bootstrap into
+  `~/.config/dotfiles/profile.env` for helper scripts. They are non-secret and
+  come from `profiles/*.conf`.
 - `.gitignore` blocks `*.local`, `*.age`, recovery artifacts, logs, OS cruft;
   stow-managed XDG `.local` trees are explicitly trackable.
 - Secrets never live in Git. Recovery Pack tooling is implemented in Phase 2;

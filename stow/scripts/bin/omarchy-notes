@@ -8,9 +8,16 @@ MANUAL_OPEN_FILE="$STATE_DIR/quick-surfaces-manual-open"
 NVIM_SOCKET="$STATE_DIR/notes-nvim.sock"
 NOTES_DIR="$HOME/Documents/Notes"
 INBOX_FILE="$NOTES_DIR/inbox.md"
-TOP_OFFSET=28
-BOTTOM_OFFSET=180
 HIDDEN_WORKSPACE="99"
+
+PROFILE_ENV="${XDG_CONFIG_HOME:-$HOME/.config}/dotfiles/profile.env"
+# shellcheck source=/dev/null
+[ -f "$PROFILE_ENV" ] && . "$PROFILE_ENV"
+
+MONITOR_MODE="${DOTFILES_QUICK_SURFACE_MONITOR_MODE:-focused}"
+NOTES_WIDTH_PERCENT="${DOTFILES_QUICK_SURFACE_NOTES_WIDTH_PERCENT:-28}"
+TOP_OFFSET="${DOTFILES_QUICK_SURFACE_TOP_OFFSET:-28}"
+BOTTOM_OFFSET="${DOTFILES_QUICK_SURFACE_BOTTOM_OFFSET:-28}"
 
 ensure_notes() {
   mkdir -p "$NOTES_DIR/inbox" "$NOTES_DIR/archive" "$NOTES_DIR/projects" "$NOTES_DIR/daily" "$STATE_DIR"
@@ -22,11 +29,24 @@ note_address() {
 }
 
 monitor_json() {
-  hyprctl monitors -j | jq -c 'map(select(.focused))[0] // .[0]'
+  local mode="$MONITOR_MODE"
+  case "$mode" in
+    named:*)
+      hyprctl monitors -j | jq -c --arg name "${mode#named:}" 'map(select(.name == $name))[0] // map(select(.focused))[0] // .[0]'
+      ;;
+    largest)
+      hyprctl monitors -j | jq -c 'max_by((.width / (if .scale == 0 then 1 else .scale end)) * (.height / (if .scale == 0 then 1 else .scale end))) // map(select(.focused))[0] // .[0]'
+      ;;
+    primary|focused|*)
+      hyprctl monitors -j | jq -c 'map(select(.focused))[0] // .[0]'
+      ;;
+  esac
 }
 
 geometry() {
-  monitor_json | jq -r --argjson top "$TOP_OFFSET" --argjson bottom "$BOTTOM_OFFSET" '[.x, (.y + $top), .width, (((.height / .scale) | floor) - $top - $bottom)] | @tsv'
+  monitor_json | jq -r --argjson top "$TOP_OFFSET" --argjson bottom "$BOTTOM_OFFSET" '
+    def scale: if .scale == 0 then 1 else .scale end;
+    [.x, (.y + $top), ((.width / scale) | floor), (((.height / scale) | floor) - $top - $bottom)] | @tsv'
 }
 
 window_geometry() {
@@ -34,10 +54,27 @@ window_geometry() {
   local monitor_id
   monitor_id="$(hyprctl clients -j | jq -r --arg address "$address" 'map(select(.address == $address))[0].monitor // empty')"
   if [ -n "$monitor_id" ]; then
-    hyprctl monitors -j | jq -r --argjson id "$monitor_id" --argjson top "$TOP_OFFSET" --argjson bottom "$BOTTOM_OFFSET" 'map(select(.id == $id))[0] | [.x, (.y + $top), .width, (((.height / .scale) | floor) - $top - $bottom)] | @tsv'
+    hyprctl monitors -j | jq -r --argjson id "$monitor_id" --argjson top "$TOP_OFFSET" --argjson bottom "$BOTTOM_OFFSET" '
+      map(select(.id == $id))[0] |
+      def scale: if .scale == 0 then 1 else .scale end;
+      [.x, (.y + $top), ((.width / scale) | floor), (((.height / scale) | floor) - $top - $bottom)] | @tsv'
   else
     geometry
   fi
+}
+
+percent_value() {
+  case "$1" in
+    ''|*[!0-9]*) printf '%s\n' "$2" ;;
+    *) printf '%s\n' "$1" ;;
+  esac
+}
+
+clamp() {
+  local value="$1" min="$2" max="$3"
+  [ "$value" -lt "$min" ] && value="$min"
+  [ "$value" -gt "$max" ] && value="$max"
+  printf '%s\n' "$value"
 }
 
 active_workspace_id() {
@@ -65,10 +102,18 @@ mark_manual_open() {
 }
 
 show_window() {
-  local address="$1" mon_x mon_y mon_w mon_h width height
+  local address="$1" mon_x mon_y mon_w mon_h percent width height min_width max_width
   read -r mon_x mon_y mon_w mon_h < <(geometry)
-  width=$((mon_w * 28 / 100))
-  height=$mon_h
+  percent="$(percent_value "$NOTES_WIDTH_PERCENT" 28)"
+  percent="$(clamp "$percent" 15 45)"
+  width=$((mon_w * percent / 100))
+  min_width=320
+  [ "$mon_w" -lt 900 ] && min_width=$((mon_w * 40 / 100))
+  max_width=$((mon_w - 80))
+  [ "$max_width" -lt "$min_width" ] && max_width="$mon_w"
+  width="$(clamp "$width" "$min_width" "$max_width")"
+  height="$mon_h"
+  [ "$height" -lt 240 ] && height=240
 
   mark_manual_open
   move_to_active_workspace "$address"

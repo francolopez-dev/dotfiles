@@ -138,7 +138,7 @@ Manage:
   profile       show | select | reconfigure | validate
   recovery      build | verify | health | retention
   sync          status | setup | doctor
-  desktop       reload [waybar]
+  desktop       reload [waybar] | doctor
 
 Other:
   help [cmd]    Show help (optionally for one command)
@@ -179,7 +179,12 @@ EOF
       echo "dotfiles status — read-only summary of OS, profile, git, stow, services, sync."
       ;;
     doctor)
-      echo "dotfiles doctor — read-only platform diagnostics (validates profile, scans stow conflicts, checks tools, sync)."
+      cat <<'EOF'
+dotfiles doctor — read-only platform diagnostics.
+
+  dotfiles doctor            full diagnostics
+  dotfiles doctor terminal   terminal integration diagnostics, no GUI launch
+EOF
       ;;
     profile)
       cat <<'EOF'
@@ -216,6 +221,7 @@ dotfiles desktop — desktop helpers.
 
   dotfiles desktop reload          reload supported desktop components
   dotfiles desktop reload waybar   restart Waybar only
+  dotfiles desktop doctor          desktop terminal diagnostics, no GUI launch
 EOF
       ;;
     version)
@@ -400,7 +406,28 @@ _sync_status() {
   _join_parts " · " "${parts[@]}"
 }
 
+_doctor_terminal() {
+  local os pkg profile
+  read -r os pkg < <(_detect_os_pair)
+  profile="$(_require_active_profile)"
+  exec bash "$SCRIPTS/validate-terminal-integration.sh" --profile "$profile" --os "$os" --pkgmgr "$pkg" "$@"
+}
+
 cmd_doctor() {
+  local sub="${1:-}"
+  case "$sub" in
+    terminal)
+      shift
+      _doctor_terminal "$@"
+      ;;
+    -h|--help)
+      cmd_help doctor
+      return 0
+      ;;
+    "") ;;
+    *) _die_with_help "dotfiles doctor: unknown subcommand: $sub" ;;
+  esac
+
   local rc=0 os _pkg profile
   read -r os _pkg < <(_detect_os_pair)
   profile="$(_active_profile)"
@@ -522,6 +549,10 @@ cmd_sync() {
 
 cmd_desktop() {
   local sub="${1:-}" target="${2:-waybar}"
+  if [ "$sub" = "doctor" ]; then
+    shift
+    _doctor_terminal "$@"
+  fi
   case "$sub:$target" in
     reload:waybar|reload:)
       if need_cmd omarchy; then

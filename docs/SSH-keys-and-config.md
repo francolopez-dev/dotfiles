@@ -1,11 +1,11 @@
-# SSH keys and config 
+# SSH Keys And Config
 
 
 ## Concept
 - One SSH keypair per workstation (MacBook, home Linux desktop, work laptop, etc.)
 - Servers accept multiple public keys (one per device)
 - `~/.ssh/config` is predictable, readable, and supports LAN + Tailscale hostnames
-- Works with your stow package: `stow/ssh/.ssh/config`
+- Works with the Linux-safe stow package: `stow/ssh/.ssh/config`
 
 ---
 
@@ -79,7 +79,10 @@ We will do that with:
 - Stowed: `~/.ssh/config`
 - Local: `~/.ssh/config.local`
 
-### 1) Add this to your stowed `~/.ssh/config`
+### 1) Shared stowed `~/.ssh/config`
+
+The shared config must be safe on Linux, macOS, Debian, and Ubuntu. Do not put
+macOS-only options such as `UseKeychain yes` here.
 
 ```sshconfig
 # ~/.ssh/config (stowed from dotfiles)
@@ -89,9 +92,6 @@ Host *
   ServerAliveInterval 30
   ServerAliveCountMax 3
   AddKeysToAgent yes
-  UseKeychain yes
-  IdentitiesOnly yes
-  PreferredAuthentications publickey
 
 # Load per-device overrides (NOT tracked)
 Include ~/.ssh/config.local
@@ -128,6 +128,9 @@ This file is device-specific and never committed.
 
 Host domum-core domum-core-tail 10.0.10.2 100.91.33.21
   IdentityFile ~/.ssh/id_ed25519_franco_mac
+
+Host *
+  UseKeychain yes
 ```
 
 **Linux desktop example**:
@@ -136,6 +139,9 @@ Host domum-core domum-core-tail 10.0.10.2 100.91.33.21
 Host domum-core domum-core-tail 10.0.10.2 100.91.33.21
   IdentityFile ~/.ssh/id_ed25519_franco_linux
 ```
+
+If Linux prints `Bad configuration option: usekeychain`, remove `UseKeychain`
+from shared config and keep it only in macOS-local config.
 
 
 ---
@@ -221,5 +227,11 @@ sudo systemctl restart ssh
    ssh -v domum-core
    ```
 
+For GitHub access on a new machine, add the public key to GitHub and switch the
+repo remote to SSH:
 
+```bash
+git remote set-url origin git@github.com:jfrancolopez/dotfiles.git
+ssh -T git@github.com
+```
 

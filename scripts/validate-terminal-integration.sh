@@ -3,7 +3,7 @@ set -euo pipefail
 # Validate Omarchy terminal launch paths for WezTerm.
 #
 # Usage:
-#   validate-terminal-integration.sh --profile NAME --os OS --pkgmgr MGR
+#   validate-terminal-integration.sh --profile NAME --os OS --pkgmgr MGR [--gui]
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
 # shellcheck source=scripts/lib.sh
@@ -12,7 +12,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
 PROFILES_DIR="${PROFILES_DIR:-$REPO_DIR/profiles}"
 PACKAGES_DIR="${PACKAGES_DIR:-$REPO_DIR/packages}"
 
-PROFILE="" OS="" PKGMGR=""
+PROFILE="" OS="" PKGMGR="" GUI_CHECK=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --profile) PROFILE="${2:-}"; shift 2 ;;
@@ -21,6 +21,7 @@ while [ $# -gt 0 ]; do
     --os=*) OS="${1#*=}"; shift ;;
     --pkgmgr) PKGMGR="${2:-}"; shift 2 ;;
     --pkgmgr=*) PKGMGR="${1#*=}"; shift ;;
+    --gui) GUI_CHECK=1; shift ;;
     *) die "validate-terminal-integration: unknown arg: $1" ;;
   esac
 done
@@ -66,7 +67,7 @@ validate_xdg_terminal_exec() {
 
   [ -n "$preferred" ] || fail_check "~/.config/xdg-terminals.list is missing or empty."
   case "$preferred" in
-    *wezterm*.desktop|*WezTerm*.desktop) ;;
+    *wezterm*.desktop|*WezTerm*.desktop) ok "xdg terminal preference prioritizes WezTerm: $preferred" ;;
     *) fail_check "xdg-terminal preference does not prioritize WezTerm: ${preferred:-<none>}" ;;
   esac
 
@@ -80,12 +81,16 @@ validate_xdg_terminal_exec() {
   resolved_cmd="$(xdg-terminal-exec --print-cmd 2>/dev/null || true)"
 
   case "$resolved_id" in
-    *wezterm*.desktop|*WezTerm*.desktop) ;;
+    *wezterm*.desktop|*WezTerm*.desktop) ok "xdg-terminal-exec resolves to WezTerm: $resolved_id" ;;
     *) fail_check "xdg-terminal-exec resolves to '$resolved_id', expected WezTerm." ;;
   esac
-  [ -n "$resolved_path" ] && [ -f "$resolved_path" ] || fail_check "xdg-terminal-exec resolved path is missing: ${resolved_path:-<none>}"
+  if [ -n "$resolved_path" ] && [ -f "$resolved_path" ]; then
+    ok "xdg-terminal-exec desktop entry exists: $resolved_path"
+  else
+    fail_check "xdg-terminal-exec resolved path is missing: ${resolved_path:-<none>}"
+  fi
   case "$resolved_cmd" in
-    *wezterm*) ;;
+    *wezterm*) ok "xdg-terminal-exec command launches WezTerm" ;;
     *) fail_check "xdg-terminal-exec command does not launch WezTerm: ${resolved_cmd:-<none>}" ;;
   esac
 
@@ -95,11 +100,17 @@ validate_xdg_terminal_exec() {
       *) return 0 ;;
     esac
     desktop_content="$(xdg-terminal-exec --print-content 2>/dev/null || true)"
-    printf "%s\n" "$desktop_content" | grep -q '^Exec=.*wezterm' || fail_check "WezTerm desktop entry lacks an Exec=wezterm command: $resolved_path"
+    if printf "%s\n" "$desktop_content" | grep -q '^Exec=.*wezterm'; then
+      ok "WezTerm desktop entry has Exec=wezterm"
+    else
+      fail_check "WezTerm desktop entry lacks an Exec=wezterm command: $resolved_path"
+    fi
     printf "%s\n" "$desktop_content" | grep -q '^X-TerminalArgExec=' || warn "WezTerm desktop entry lacks X-TerminalArgExec; command launch compatibility may be limited."
     printf "%s\n" "$desktop_content" | grep -q '^X-TerminalArgDir=' || warn "WezTerm desktop entry lacks X-TerminalArgDir; cwd launch compatibility may be limited."
     if printf "%s\n" "$desktop_content" | grep -q '^X-TerminalArgTitle='; then
       fail_check "WezTerm desktop entry advertises unsupported --title terminal argument: $resolved_path"
+    else
+      ok "WezTerm desktop entry avoids unsupported title argument"
     fi
   fi
 }
@@ -110,10 +121,20 @@ validate_hypr_bindings() {
   binds="$(hyprctl binds 2>/dev/null || true)"
   [ -n "$binds" ] || { warn "hyprctl binds returned no data; skipping Hyprland binding validation."; return 0; }
 
-  printf "%s\n" "$binds" | grep -q 'description: Terminal' || fail_check "Hyprland has no active binding described as Terminal."
-  printf "%s\n" "$binds" | grep -q 'xdg-terminal-exec' || fail_check "Hyprland terminal bindings do not use xdg-terminal-exec."
+  if printf "%s\n" "$binds" | grep -q 'description: Terminal'; then
+    ok "Hyprland has a Terminal binding"
+  else
+    fail_check "Hyprland has no active binding described as Terminal."
+  fi
+  if printf "%s\n" "$binds" | grep -q 'xdg-terminal-exec'; then
+    ok "Hyprland terminal binding uses xdg-terminal-exec"
+  else
+    fail_check "Hyprland terminal bindings do not use xdg-terminal-exec."
+  fi
   if printf "%s\n" "$binds" | grep -i 'arg: .*alacritty' >/dev/null 2>&1; then
     fail_check "Hyprland active bindings still hardcode Alacritty."
+  else
+    ok "Hyprland terminal bindings do not hardcode Alacritty"
   fi
 }
 
@@ -180,14 +201,27 @@ main() {
   fi
 
   info "Validating Omarchy terminal integration for WezTerm"
-  need_cmd wezterm && has_wezterm=1 || fail_check "wezterm is not installed or not on PATH."
   if need_cmd wezterm; then
-    wezterm --version >/dev/null 2>&1 || fail_check "wezterm --version failed."
+    has_wezterm=1
+    ok "wezterm binary is on PATH"
+  else
+    fail_check "wezterm is not installed or not on PATH."
+  fi
+  if need_cmd wezterm; then
+    if wezterm --version >/dev/null 2>&1; then
+      ok "wezterm --version works"
+    else
+      fail_check "wezterm --version failed."
+    fi
   fi
 
   validate_xdg_terminal_exec
   validate_hypr_bindings
-  [ "$has_wezterm" = "1" ] && validate_wezterm_window
+  if [ "$GUI_CHECK" = "1" ] && [ "$has_wezterm" = "1" ]; then
+    validate_wezterm_window
+  else
+    info "Skipping live GUI WezTerm window check (use --gui to run it manually)."
+  fi
 
   [ "$failures" = "0" ] || die "Terminal integration validation failed."
   ok "Terminal integration validation passed."

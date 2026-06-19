@@ -48,6 +48,38 @@ user_unit_for() {
   esac
 }
 
+system_unit_exists() {
+  local unit="$1"
+  if systemctl list-unit-files "$unit" 2>/dev/null | grep -q "^${unit}[[:space:]]"; then
+    return 0
+  fi
+  systemctl cat "$unit" >/dev/null 2>&1 && return 0
+  [ -f "/etc/systemd/system/$unit" ] && return 0
+  [ -f "/usr/lib/systemd/system/$unit" ] && return 0
+  [ -f "/lib/systemd/system/$unit" ] && return 0
+  return 1
+}
+
+user_unit_exists() {
+  local unit="$1"
+  if systemctl --user list-unit-files "$unit" 2>/dev/null | grep -q "^${unit}[[:space:]]"; then
+    return 0
+  fi
+  systemctl --user cat "$unit" >/dev/null 2>&1 && return 0
+  [ -f "$HOME/.config/systemd/user/$unit" ] && return 0
+  [ -f "/usr/lib/systemd/user/$unit" ] && return 0
+  [ -f "/lib/systemd/user/$unit" ] && return 0
+  return 1
+}
+
+warn_missing_unit() {
+  local svc="$1" system_unit="$2" user_unit="$3"
+  warn "service unit not found for: $svc"
+  warn "checked system unit: $system_unit"
+  warn "checked user unit:   $user_unit"
+  warn "diagnostics: systemctl list-unit-files '$system_unit'; systemctl cat '$system_unit'"
+}
+
 enable_linux() {
   local svc="$1" system_unit user_unit
   system_unit="$(system_unit_for "$svc")"
@@ -60,14 +92,15 @@ enable_linux() {
   fi
 
   need_cmd systemctl || { warn "systemctl not found; cannot enable $svc -> $system_unit"; return 0; }
-  if systemctl list-unit-files 2>/dev/null | grep -q "^${system_unit}"; then
+  if system_unit_exists "$system_unit"; then
     info "Enabling (system): $svc -> $system_unit"
+    run sudo systemctl daemon-reload || true
     run sudo systemctl enable --now "$system_unit" || warn "could not enable system service: $svc -> $system_unit"
-  elif systemctl --user list-unit-files 2>/dev/null | grep -q "^${user_unit}"; then
+  elif user_unit_exists "$user_unit"; then
     info "Enabling (user): $svc -> $user_unit"
     run systemctl --user enable --now "$user_unit" || warn "could not enable user service: $svc -> $user_unit"
   else
-    warn "service unit not found for: $svc -> $system_unit (is the package installed?)"
+    warn_missing_unit "$svc" "$system_unit" "$user_unit"
   fi
 }
 

@@ -98,6 +98,9 @@ validate_xdg_terminal_exec() {
     printf "%s\n" "$desktop_content" | grep -q '^Exec=.*wezterm' || fail_check "WezTerm desktop entry lacks an Exec=wezterm command: $resolved_path"
     printf "%s\n" "$desktop_content" | grep -q '^X-TerminalArgExec=' || warn "WezTerm desktop entry lacks X-TerminalArgExec; command launch compatibility may be limited."
     printf "%s\n" "$desktop_content" | grep -q '^X-TerminalArgDir=' || warn "WezTerm desktop entry lacks X-TerminalArgDir; cwd launch compatibility may be limited."
+    if printf "%s\n" "$desktop_content" | grep -q '^X-TerminalArgTitle='; then
+      fail_check "WezTerm desktop entry advertises unsupported --title terminal argument: $resolved_path"
+    fi
   fi
 }
 
@@ -115,7 +118,7 @@ validate_hypr_bindings() {
 }
 
 validate_wezterm_window() {
-  local after launch_output marker address
+  local after launch_output launch_log launch_pid marker address
   if ! need_cmd hyprctl; then
     warn "hyprctl not found; skipping WezTerm window visibility validation."
     return 0
@@ -127,12 +130,10 @@ validate_wezterm_window() {
   need_cmd jq || { warn "jq not found; skipping WezTerm window visibility validation."; return 0; }
 
   marker="dotfiles-wezterm-validation-$$"
-  set +e
-  launch_output="$(timeout 10s wezterm start --always-new-process --class "$marker" --title "$marker" -- bash -lc 'sleep 20' 2>&1)"
-  set -e
-  if [ -n "$launch_output" ]; then
-    dim "$launch_output"
-  fi
+  launch_log="${TMPDIR:-/tmp}/dotfiles-wezterm-validation.$$.log"
+  : >"$launch_log"
+  wezterm start --always-new-process --class "$marker" -- bash -lc 'sleep 20' >"$launch_log" 2>&1 &
+  launch_pid=$!
 
   address=""
   for _ in 1 2 3 4 5 6 7 8 9 10; do
@@ -146,16 +147,26 @@ validate_wezterm_window() {
       | .address
     ' | head -n 1)"
     [ -n "$address" ] && [ "$address" != "null" ] && break
+    if ! kill -0 "$launch_pid" >/dev/null 2>&1; then
+      break
+    fi
     sleep 1
   done
 
   if [ -z "$address" ] || [ "$address" = "null" ]; then
+    launch_output="$(sed -n '1,120p' "$launch_log" 2>/dev/null || true)"
+    [ -n "$launch_output" ] && dim "$launch_output"
     fail_check "wezterm start --always-new-process did not create a Hyprland-visible WezTerm client."
     info "Diagnostics to run: wezterm --version; xdg-terminal-exec --print-id; xdg-terminal-exec --print-path; hyprctl clients"
+    kill "$launch_pid" >/dev/null 2>&1 || true
+    wait "$launch_pid" >/dev/null 2>&1 || true
+    rm -f "$launch_log"
     return 0
   fi
 
   hyprctl dispatch closewindow "address:$address" >/dev/null 2>&1 || true
+  wait "$launch_pid" >/dev/null 2>&1 || true
+  rm -f "$launch_log"
 }
 
 main() {

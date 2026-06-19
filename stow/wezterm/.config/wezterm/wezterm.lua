@@ -74,6 +74,9 @@ config.keys = {
 if wezterm.target_triple:find("apple") then
   config.default_prog = { "/bin/zsh", "-l" }
 else
+  -- Native Wayland is unstable with the current Arch/Omarchy WezTerm build.
+  -- Use XWayland so the terminal opens reliably on Hyprland.
+  config.enable_wayland = false
   config.default_prog = { "zsh", "-l" }
 end
 

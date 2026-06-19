@@ -77,7 +77,6 @@ StartupNotify=true
 StartupWMClass=org.wezfurlong.wezterm
 X-TerminalArgExec=-e
 X-TerminalArgAppId=--class=
-X-TerminalArgTitle=--title=
 X-TerminalArgDir=--cwd=
 EOF
 

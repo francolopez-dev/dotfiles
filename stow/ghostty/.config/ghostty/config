@@ -1,20 +1,26 @@
 # Ghostty — personal terminal config tracked by dotfiles.
 # Applies to all Omarchy installations via stow-os.map.
+config-file = ?../dotfiles/ghostty-profile
 
 # --- Theme ---
 theme = Catppuccin Mocha
+minimum-contrast = 1.2
+palette-generate = true
 
 # --- Font ---
 font-family = JetBrains Mono
 font-family = FiraCode Nerd Font
 font-size = 13
-font-thicken = true
+font-thicken = false
+font-feature = -calt
 
 # --- Window ---
 window-padding-x = 18
 window-padding-y = 14
 background-opacity = 0.92
-background-blur-radius = 20
+background-blur = true
+background-opacity-cells = true
+unfocused-split-opacity = 0.9
 
 # --- Behavior ---
 scrollback-limit = 10000
@@ -22,12 +28,21 @@ confirm-close-surface = false
 shell-integration = detect
 shell-integration-features = cursor,sudo,title
 bold-is-bright = true
+mouse-hide-while-typing = true
+cursor-click-to-move = true
+selection-clear-on-copy = true
 
 # --- Cursor ---
 cursor-style = bar
-cursor-style-blink = true
+cursor-style-blink = false
+cursor-color = cell-foreground
+cursor-text = cell-background
+adjust-cursor-thickness = 35%
 
 # --- Keybinds (Super = Win/macOS Command on Omarchy/Hyprland) ---
 keybind = super+c=copy_to_clipboard
 keybind = super+v=paste_from_clipboard
 keybind = super+a=select_all
+keybind = super+t=new_tab
+keybind = ctrl+tab=next_tab
+keybind = ctrl+shift+tab=previous_tab

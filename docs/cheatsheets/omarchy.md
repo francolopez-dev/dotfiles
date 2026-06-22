@@ -14,8 +14,10 @@
 | `Super+Shift+4` | Region screenshot | All Omarchy profiles | `stow/hypr/.config/hypr/conf.d/99-omarchy-keymap.conf` |
 | `Super+Space` | Walker app launcher | All Omarchy profiles | `stow/hypr/.config/hypr/conf.d/99-omarchy-keymap.conf` |
 | `Super+Alt+Space` | Omarchy menu | Omarchy default | `~/.local/share/omarchy/default/hypr/bindings/utilities.conf` |
+| `Ctrl+Shift+B` | Toggle Waybar | All Omarchy profiles | `stow/hypr/.config/hypr/conf.d/99-omarchy-keymap.conf` |
 | `Ctrl+1..9` | Switch workspace | All Omarchy profiles | `stow/hypr/.config/hypr/conf.d/99-omarchy-keymap.conf` |
 | `Ctrl+Shift+1..9` | Move focused window to workspace and follow | All Omarchy profiles | `stow/hypr/.config/hypr/conf.d/99-omarchy-keymap.conf` |
+| `Super+1..9` | Disabled for workspace switching | All Omarchy profiles | `stow/hypr/.config/hypr/conf.d/99-omarchy-keymap.conf` |
 | `Super+Return` | Terminal (Ghostty via xdg-terminal-exec) | All Omarchy profiles | `stow/hypr/.config/hypr/conf.d/99-omarchy-keymap.conf` |
 | `Alt+Return` | Terminal (Ghostty via xdg-terminal-exec) | All Omarchy profiles | `stow/hypr/.config/hypr/conf.d/99-omarchy-keymap.conf` |
 | `Alt+Shift+Return` | Alacritty (direct fallback) | All Omarchy profiles | `stow/hypr/.config/hypr/conf.d/99-omarchy-keymap.conf` |
@@ -49,6 +51,11 @@
 Ghostty is the default Omarchy terminal. It is installed from the official Arch
 repo (`ghostty` in `packages/desktop/pacman.txt`) and configured at
 `stow/ghostty/.config/ghostty/config`.
+
+Ghostty uses `Super+T` for new tabs, `Ctrl+Tab` for next tab, and
+`Ctrl+Shift+Tab` for previous tab. The `laptop-work-omarchy` profile generates a
+local Ghostty include that sets `font-size = 12`; other Omarchy profiles keep the
+shared `font-size = 13`.
 
 The default terminal is resolved at runtime via `xdg-terminal-exec`. Bootstrap
 writes `~/.config/xdg-terminals.list` and a local desktop entry for Ghostty

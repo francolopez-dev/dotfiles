@@ -152,3 +152,60 @@ hyprctl binds
 ```
 
 Normal bootstrap should not launch a GUI terminal window during validation.
+
+## WezTerm Crashes On Mouse Selection (XWayland)
+
+Symptom:
+
+```text
+process_queued_xcb: sendEvent propagate: true
+```
+
+WezTerm closes immediately when selecting text with the mouse.
+
+Cause: WezTerm stable (≤20240203) crashes under XWayland when propagating X11
+`SelectionNotify` events during mouse text selection. This affects the Arch repo
+stable package. The fix is native Wayland (`enable_wayland = true` in
+`wezterm.lua`) and upgrading to `wezterm-git` from AUR.
+
+**If you are still on the stable `wezterm` pacman package**, migrate manually:
+
+```bash
+sudo pacman -Rns wezterm
+yay -S wezterm-git
+```
+
+Then confirm:
+
+```bash
+wezterm --version
+# should print a build newer than 20240203
+```
+
+Diagnostic commands:
+
+```bash
+# Check version (repo build = 20240203, AUR build = recent date)
+wezterm --version
+
+# Check whether WezTerm is running Wayland or XWayland
+hyprctl clients | grep -i -A20 wez
+
+# Capture debug output for a fresh instance
+WEZTERM_LOG=debug wezterm start --always-new-process 2>&1 | tee ~/wezterm-debug.log
+
+# Check journal for crashes
+journalctl --user -n 100 --no-pager | grep -i wezterm
+
+# Check for core dumps
+coredumpctl list | grep -i wezterm
+coredumpctl info wezterm
+```
+
+Manual test after fix:
+
+1. Open WezTerm.
+2. Select text with the mouse — it must not crash.
+3. Middle-click to paste the primary selection.
+4. `Ctrl+Shift+C` / `Ctrl+Shift+V` for clipboard copy/paste.
+5. Repeat inside Neovim and tmux if those are in regular use.

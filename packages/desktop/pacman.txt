@@ -2,7 +2,6 @@
 # (Omarchy ships most of the Hyprland desktop; add extras here)
 networkmanager
 tailscale
-wezterm
 alacritty
 ghostty
 vivaldi

@@ -1,3 +1,2 @@
 # desktop AUR apps — Omarchy
-# wezterm-git: stable repo (20240203) crashes on mouse selection via XCB sendEvent
-wezterm-git
+# (none — prefer official Arch repo packages where available)

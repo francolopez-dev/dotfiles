@@ -1,6 +1,29 @@
-# Omarchy terminal keymap.
-# Super maps to Ghostty's `super` modifier on Linux.
+# Ghostty — Omarchy terminal config
+# Catppuccin Mocha palette, JetBrains Mono, calm and readable.
 
+# --- Theme ---
+theme = catppuccin-mocha
+
+# --- Font ---
+font-family = JetBrains Mono
+font-family = FiraCode Nerd Font
+font-size = 14
+
+# --- Window ---
+window-padding-x = 16
+window-padding-y = 12
+
+# --- Behavior ---
+scrollback-limit = 10000
+audio-bell = false
+confirm-close-surface = false
+shell-integration = detect
+
+# --- Cursor ---
+cursor-style = block
+cursor-style-blink = false
+
+# --- Keybinds (Super = Win/macOS Command on Omarchy/Hyprland) ---
 keybind = super+c=copy_to_clipboard
 keybind = super+v=paste_from_clipboard
 keybind = super+a=select_all

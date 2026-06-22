@@ -133,9 +133,9 @@ sudo tailscale up
 
 Do not restore `/var/lib/tailscale` from another machine.
 
-## WezTerm Or Terminal Launcher Fails
+## Terminal Or Terminal Launcher Fails
 
-Run the non-GUI terminal diagnostic:
+Ghostty is the default Omarchy terminal. Run the non-GUI terminal diagnostic:
 
 ```bash
 dotfiles doctor terminal
@@ -144,68 +144,53 @@ dotfiles doctor terminal
 Manual checks:
 
 ```bash
-wezterm --version
+ghostty --version
 xdg-terminal-exec --print-id
 xdg-terminal-exec --print-path
 xdg-terminal-exec --print-cmd
-hyprctl binds
+hyprctl binds | grep -i terminal
 ```
 
 Normal bootstrap should not launch a GUI terminal window during validation.
 
-## WezTerm Crashes On Mouse Selection (XWayland)
+## Ghostty — xdg-terminal-exec Does Not Resolve To Ghostty
 
-Symptom:
+Symptom: `xdg-terminal-exec --print-id` returns something other than
+`com.mitchellh.ghostty.desktop`, or `Super+Return` launches the wrong terminal.
 
-```text
-process_queued_xcb: sendEvent propagate: true
+Cause: `~/.config/xdg-terminals.list` is missing, stale, or written by Omarchy
+before bootstrap could update it.
+
+Fix: re-run the configure step manually:
+
+```bash
+scripts/configure-omarchy-terminal.sh --profile "$(dotfiles profile show)" --os omarchy --pkgmgr pacman
+xdg-terminal-exec --print-id   # should print com.mitchellh.ghostty.desktop
 ```
 
-WezTerm closes immediately when selecting text with the mouse.
+Or just re-run bootstrap (safe on an existing machine):
 
-Cause: WezTerm stable (≤20240203) crashes under XWayland when propagating X11
-`SelectionNotify` events during mouse text selection. This affects the Arch repo
-stable package. The fix is native Wayland (`enable_wayland = true` in
-`wezterm.lua`) and upgrading to `wezterm-git` from AUR.
+```bash
+dotfiles update
+```
 
-**If you are still on the stable `wezterm` pacman package**, migrate manually:
+## Migrating Away From WezTerm On Omarchy
+
+WezTerm is no longer the Omarchy default terminal. Ghostty replaced it.
+WezTerm (the stow package and any installed binary) is no longer applied on
+Omarchy. It remains available for macOS profiles only.
+
+If a machine still has `wezterm` installed from a previous bootstrap:
 
 ```bash
 sudo pacman -Rns wezterm
-yay -S wezterm-git
+dotfiles update
 ```
 
-Then confirm:
+The old AUR `wezterm-git` path has also been removed. Do not add `wezterm-git`
+to AUR package lists for Omarchy profiles.
 
-```bash
-wezterm --version
-# should print a build newer than 20240203
-```
-
-Diagnostic commands:
-
-```bash
-# Check version (repo build = 20240203, AUR build = recent date)
-wezterm --version
-
-# Check whether WezTerm is running Wayland or XWayland
-hyprctl clients | grep -i -A20 wez
-
-# Capture debug output for a fresh instance
-WEZTERM_LOG=debug wezterm start --always-new-process 2>&1 | tee ~/wezterm-debug.log
-
-# Check journal for crashes
-journalctl --user -n 100 --no-pager | grep -i wezterm
-
-# Check for core dumps
-coredumpctl list | grep -i wezterm
-coredumpctl info wezterm
-```
-
-Manual test after fix:
-
-1. Open WezTerm.
-2. Select text with the mouse — it must not crash.
-3. Middle-click to paste the primary selection.
-4. `Ctrl+Shift+C` / `Ctrl+Shift+V` for clipboard copy/paste.
-5. Repeat inside Neovim and tmux if those are in regular use.
+> **Why**: WezTerm stable (≤20240203) on Arch crashes on mouse text selection
+> via `process_queued_xcb: sendEvent propagate: true` (XWayland XCB bug).
+> Rather than maintain a fragile AUR build, the default terminal was moved to
+> Ghostty, which is in the official Arch repos and has stable Wayland support.

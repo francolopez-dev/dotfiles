@@ -68,7 +68,7 @@ command_for_package() {
     tailscale) printf "tailscale\n" ;;
     tmux) printf "tmux\n" ;;
     wget) printf "wget\n" ;;
-    wezterm) printf "wezterm\n" ;;
+    ghostty) printf "ghostty\n" ;;
     zsh) printf "zsh\n" ;;
     *) return 1 ;;
   esac

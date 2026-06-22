@@ -128,4 +128,4 @@ Phase 1 is bootstrap safety and profile correctness.
 
 Phase 2 is recovery design and, after separate approval, recovery implementation.
 
-Phase 3 is sync and workstation polish, including Omarchy postinstall automation such as Tailscale, NetworkManager, Atuin, Syncthing, Firefox, and WezTerm installation.
+Phase 3 is sync and workstation polish, including Omarchy postinstall automation such as Tailscale, NetworkManager, Atuin, Syncthing, Firefox, and Ghostty terminal setup.

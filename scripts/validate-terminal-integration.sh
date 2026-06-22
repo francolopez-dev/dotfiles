@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-# Validate Omarchy terminal launch paths for WezTerm.
+# Validate Omarchy terminal launch paths for Ghostty.
 #
 # Usage:
 #   validate-terminal-integration.sh --profile NAME --os OS --pkgmgr MGR [--gui]
@@ -62,13 +62,13 @@ first_xdg_terminal() {
 }
 
 validate_xdg_terminal_exec() {
-  local preferred resolved_id resolved_path resolved_cmd desktop_content
+  local preferred resolved_id resolved_path resolved_cmd
   preferred="$(first_xdg_terminal)"
 
   [ -n "$preferred" ] || fail_check "~/.config/xdg-terminals.list is missing or empty."
   case "$preferred" in
-    *wezterm*.desktop|*WezTerm*.desktop) ok "xdg terminal preference prioritizes WezTerm: $preferred" ;;
-    *) fail_check "xdg-terminal preference does not prioritize WezTerm: ${preferred:-<none>}" ;;
+    *ghostty*.desktop|*Ghostty*.desktop) ok "xdg terminal preference prioritizes Ghostty: $preferred" ;;
+    *) fail_check "xdg-terminal preference does not prioritize Ghostty: ${preferred:-<none>}" ;;
   esac
 
   if ! need_cmd xdg-terminal-exec; then
@@ -81,8 +81,8 @@ validate_xdg_terminal_exec() {
   resolved_cmd="$(xdg-terminal-exec --print-cmd 2>/dev/null || true)"
 
   case "$resolved_id" in
-    *wezterm*.desktop|*WezTerm*.desktop) ok "xdg-terminal-exec resolves to WezTerm: $resolved_id" ;;
-    *) fail_check "xdg-terminal-exec resolves to '$resolved_id', expected WezTerm." ;;
+    *ghostty*.desktop|*Ghostty*.desktop) ok "xdg-terminal-exec resolves to Ghostty: $resolved_id" ;;
+    *) fail_check "xdg-terminal-exec resolves to '$resolved_id', expected Ghostty." ;;
   esac
   if [ -n "$resolved_path" ] && [ -f "$resolved_path" ]; then
     ok "xdg-terminal-exec desktop entry exists: $resolved_path"
@@ -90,29 +90,9 @@ validate_xdg_terminal_exec() {
     fail_check "xdg-terminal-exec resolved path is missing: ${resolved_path:-<none>}"
   fi
   case "$resolved_cmd" in
-    *wezterm*) ok "xdg-terminal-exec command launches WezTerm" ;;
-    *) fail_check "xdg-terminal-exec command does not launch WezTerm: ${resolved_cmd:-<none>}" ;;
+    *ghostty*) ok "xdg-terminal-exec command launches Ghostty" ;;
+    *) fail_check "xdg-terminal-exec command does not launch Ghostty: ${resolved_cmd:-<none>}" ;;
   esac
-
-  if [ -n "$resolved_path" ] && [ -f "$resolved_path" ]; then
-    case "$resolved_id" in
-      *wezterm*.desktop|*WezTerm*.desktop) ;;
-      *) return 0 ;;
-    esac
-    desktop_content="$(xdg-terminal-exec --print-content 2>/dev/null || true)"
-    if printf "%s\n" "$desktop_content" | grep -q '^Exec=.*wezterm'; then
-      ok "WezTerm desktop entry has Exec=wezterm"
-    else
-      fail_check "WezTerm desktop entry lacks an Exec=wezterm command: $resolved_path"
-    fi
-    printf "%s\n" "$desktop_content" | grep -q '^X-TerminalArgExec=' || warn "WezTerm desktop entry lacks X-TerminalArgExec; command launch compatibility may be limited."
-    printf "%s\n" "$desktop_content" | grep -q '^X-TerminalArgDir=' || warn "WezTerm desktop entry lacks X-TerminalArgDir; cwd launch compatibility may be limited."
-    if printf "%s\n" "$desktop_content" | grep -q '^X-TerminalArgTitle='; then
-      fail_check "WezTerm desktop entry advertises unsupported --title terminal argument: $resolved_path"
-    else
-      ok "WezTerm desktop entry avoids unsupported title argument"
-    fi
-  fi
 }
 
 validate_hypr_bindings() {
@@ -131,96 +111,40 @@ validate_hypr_bindings() {
   else
     fail_check "Hyprland terminal bindings do not use xdg-terminal-exec."
   fi
-  if printf "%s\n" "$binds" | grep -i 'arg: .*alacritty' >/dev/null 2>&1; then
-    fail_check "Hyprland active bindings still hardcode Alacritty."
+  if printf "%s\n" "$binds" | grep -i 'arg: .*wezterm' >/dev/null 2>&1; then
+    fail_check "Hyprland active bindings still reference WezTerm."
   else
-    ok "Hyprland terminal bindings do not hardcode Alacritty"
+    ok "Hyprland terminal bindings do not hardcode WezTerm"
   fi
-}
-
-validate_wezterm_window() {
-  local after launch_output launch_log launch_pid marker address
-  if ! need_cmd hyprctl; then
-    warn "hyprctl not found; skipping WezTerm window visibility validation."
-    return 0
-  fi
-  if [ -z "${HYPRLAND_INSTANCE_SIGNATURE:-}" ] && ! hyprctl monitors >/dev/null 2>&1; then
-    warn "not in a live Hyprland session; skipping WezTerm window visibility validation."
-    return 0
-  fi
-  need_cmd jq || { warn "jq not found; skipping WezTerm window visibility validation."; return 0; }
-
-  marker="dotfiles-wezterm-validation-$$"
-  launch_log="${TMPDIR:-/tmp}/dotfiles-wezterm-validation.$$.log"
-  : >"$launch_log"
-  wezterm start --always-new-process --class "$marker" -- bash -lc 'sleep 20' >"$launch_log" 2>&1 &
-  launch_pid=$!
-
-  address=""
-  for _ in 1 2 3 4 5 6 7 8 9 10; do
-    after="$(hyprctl clients -j 2>/dev/null || printf '[]')"
-    address="$(printf "%s\n" "$after" | jq -r --arg marker "$marker" '
-      .[]
-      | select((.class // "" | test("wezterm|WezTerm|" + $marker))
-          or (.initialClass // "" | test("wezterm|WezTerm|" + $marker))
-          or (.title // "" | test($marker))
-          or (.initialTitle // "" | test($marker)))
-      | .address
-    ' | head -n 1)"
-    [ -n "$address" ] && [ "$address" != "null" ] && break
-    if ! kill -0 "$launch_pid" >/dev/null 2>&1; then
-      break
-    fi
-    sleep 1
-  done
-
-  if [ -z "$address" ] || [ "$address" = "null" ]; then
-    launch_output="$(sed -n '1,120p' "$launch_log" 2>/dev/null || true)"
-    [ -n "$launch_output" ] && dim "$launch_output"
-    fail_check "wezterm start --always-new-process did not create a Hyprland-visible WezTerm client."
-    info "Diagnostics to run: wezterm --version; xdg-terminal-exec --print-id; xdg-terminal-exec --print-path; hyprctl clients"
-    kill "$launch_pid" >/dev/null 2>&1 || true
-    wait "$launch_pid" >/dev/null 2>&1 || true
-    rm -f "$launch_log"
-    return 0
-  fi
-
-  hyprctl dispatch closewindow "address:$address" >/dev/null 2>&1 || true
-  wait "$launch_pid" >/dev/null 2>&1 || true
-  rm -f "$launch_log"
 }
 
 main() {
-  local has_wezterm=0
   [ "$OS" = "omarchy" ] || return 0
-  declares_package wezterm || return 0
+  declares_package ghostty || return 0
 
   if [ "$DRY_RUN" = "1" ]; then
     info "Skipping terminal integration validation in dry-run mode."
     return 0
   fi
 
-  info "Validating Omarchy terminal integration for WezTerm"
-  if need_cmd wezterm; then
-    has_wezterm=1
-    ok "wezterm binary is on PATH"
-  else
-    fail_check "wezterm is not installed or not on PATH."
-  fi
-  if need_cmd wezterm; then
-    if wezterm --version >/dev/null 2>&1; then
-      ok "wezterm --version works"
+  info "Validating Omarchy terminal integration for Ghostty"
+  if need_cmd ghostty; then
+    ok "ghostty binary is on PATH"
+    if ghostty --version >/dev/null 2>&1; then
+      ok "ghostty --version works"
     else
-      fail_check "wezterm --version failed."
+      fail_check "ghostty --version failed."
     fi
+  else
+    fail_check "ghostty is not installed or not on PATH."
   fi
 
   validate_xdg_terminal_exec
   validate_hypr_bindings
-  if [ "$GUI_CHECK" = "1" ] && [ "$has_wezterm" = "1" ]; then
-    validate_wezterm_window
-  else
-    info "Skipping live GUI WezTerm window check (use --gui to run it manually)."
+
+  if [ "$GUI_CHECK" = "1" ]; then
+    info "GUI check requested: open a terminal with Super+Return and confirm Ghostty launches."
+    info "Diagnostics: ghostty --version; xdg-terminal-exec --print-id; hyprctl clients | grep -i ghostty"
   fi
 
   [ "$failures" = "0" ] || die "Terminal integration validation failed."

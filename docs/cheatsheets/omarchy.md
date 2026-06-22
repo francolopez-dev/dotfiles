@@ -4,19 +4,19 @@
 
 | Shortcut | Action | Scope | Config file |
 |---|---|---|---|
-| `Super+C` | Copy | Terminal/app-specific | `stow/wezterm`, `stow/ghostty`, `stow/alacritty` |
-| `Super+V` | Paste | Terminal/app-specific | `stow/wezterm`, `stow/ghostty`, `stow/alacritty` |
+| `Super+C` | Copy | Terminal/app-specific | `stow/ghostty`, `stow/alacritty` |
+| `Super+V` | Paste | Terminal/app-specific | `stow/ghostty`, `stow/alacritty` |
 | `Super+X` | Not globally mapped | Terminal safety | This document |
-| `Super+A` | Select all / copy-mode select all | WezTerm and Ghostty | `stow/wezterm`, `stow/ghostty` |
+| `Super+A` | Select all | Ghostty only | `stow/ghostty` |
 | `Super+Z` | Not globally mapped | Terminal safety | This document |
 | `Super+Shift+Z` | Not globally mapped | Terminal safety | This document |
 | `Super+Q` | Close focused window/app | All Omarchy profiles | `stow/hypr/.config/hypr/conf.d/99-omarchy-keymap.conf` |
 | `Super+Shift+4` | Region screenshot | All Omarchy profiles | `stow/hypr/.config/hypr/conf.d/99-omarchy-keymap.conf` |
 | `Ctrl+1..9` | Switch workspace | All Omarchy profiles | `stow/hypr/.config/hypr/conf.d/99-omarchy-keymap.conf` |
 | `Ctrl+Shift+1..9` | Move focused window to workspace and follow | All Omarchy profiles | `stow/hypr/.config/hypr/conf.d/99-omarchy-keymap.conf` |
-| `Super+Return` | Terminal | All Omarchy profiles | `stow/hypr/.config/hypr/conf.d/99-omarchy-keymap.conf` |
-| `Alt+Return` | Terminal | All Omarchy profiles | `stow/hypr/.config/hypr/conf.d/99-omarchy-keymap.conf` |
-| `Alt+Shift+Return` | Alacritty | All Omarchy profiles | `stow/hypr/.config/hypr/conf.d/99-omarchy-keymap.conf` |
+| `Super+Return` | Terminal (Ghostty via xdg-terminal-exec) | All Omarchy profiles | `stow/hypr/.config/hypr/conf.d/99-omarchy-keymap.conf` |
+| `Alt+Return` | Terminal (Ghostty via xdg-terminal-exec) | All Omarchy profiles | `stow/hypr/.config/hypr/conf.d/99-omarchy-keymap.conf` |
+| `Alt+Shift+Return` | Alacritty (direct fallback) | All Omarchy profiles | `stow/hypr/.config/hypr/conf.d/99-omarchy-keymap.conf` |
 | `Alt+B` | Vivaldi | All Omarchy profiles | `stow/hypr/.config/hypr/conf.d/99-omarchy-keymap.conf` |
 | `Alt+Shift+B` | Firefox | All Omarchy profiles | `stow/hypr/.config/hypr/conf.d/99-omarchy-keymap.conf` |
 | `Alt+G` | ChatGPT desktop app | All Omarchy profiles | `stow/hypr/.config/hypr/conf.d/99-omarchy-keymap.conf` |
@@ -35,14 +35,46 @@
 | `omarchy restart waybar` | Reload Waybar fallback |
 | `dotfiles update` | Update dotfiles platform |
 | `dotfiles doctor` | Run dotfiles diagnostics |
+| `xdg-terminal-exec --print-id` | Show active default terminal |
+| `xdg-terminal-exec --print-cmd` | Show active terminal launch command |
+
+## Terminal
+
+Ghostty is the default Omarchy terminal. It is installed from the official Arch
+repo (`ghostty` in `packages/desktop/pacman.txt`) and configured at
+`stow/ghostty/.config/ghostty/config`.
+
+The default terminal is resolved at runtime via `xdg-terminal-exec`. Bootstrap
+writes `~/.config/xdg-terminals.list` and a local desktop entry for Ghostty
+through `scripts/configure-omarchy-terminal.sh`.
+
+To verify terminal integration:
+
+```bash
+xdg-terminal-exec --print-id      # expected: com.mitchellh.ghostty.desktop
+xdg-terminal-exec --print-cmd     # expected: ghostty ...
+ghostty --version
+```
+
+Alacritty is available as a direct fallback via `Alt+Shift+Return`.
+
+WezTerm is not stowed or installed on Omarchy. It remains available for macOS
+profiles only.
 
 ## Screenshot Behavior
 
-`Super+Shift+4` runs `omarchy-capture-screenshot region`. It opens a mouse-drag region selector, captures the selected area, saves through Omarchy's screenshot convention, copies the image to the clipboard, and shows a notification. Cancelling the selection saves nothing.
+`Super+Shift+4` runs `omarchy-capture-screenshot region`. It opens a mouse-drag
+region selector, captures the selected area, saves through Omarchy's screenshot
+convention, copies the image to the clipboard, and shows a notification.
+Cancelling the selection saves nothing.
 
 ## Terminal Limitations
 
-Super copy and paste are handled inside WezTerm, Ghostty, and Alacritty. Super select-all is configured where the terminal exposes a safe action; Alacritty does not currently expose a direct select-all action in its keybinding API. The dotfiles do not globally translate Super shortcuts to Ctrl shortcuts because that would break terminal programs:
+Super copy and paste are handled inside Ghostty and Alacritty at the app level.
+Super+A (select all) is mapped in Ghostty; Alacritty does not expose a direct
+select-all action in its current keybinding API. The dotfiles do not globally
+translate Super shortcuts to Ctrl shortcuts because that would break terminal
+programs:
 
 | Shortcut | Why it is not globally translated |
 |---|---|
@@ -53,6 +85,11 @@ Super copy and paste are handled inside WezTerm, Ghostty, and Alacritty. Super s
 
 ## Browser Options
 
-Firefox and Vivaldi continue to support Linux-native `Ctrl+C`, `Ctrl+V`, `Ctrl+X`, `Ctrl+A`, `Ctrl+Z`, and `Ctrl+Shift+Z` by default.
+Firefox and Vivaldi continue to support Linux-native `Ctrl+C`, `Ctrl+V`,
+`Ctrl+X`, `Ctrl+A`, `Ctrl+Z`, and `Ctrl+Shift+Z` by default.
 
-If browser-only Super shortcuts are required, use a browser extension or a carefully scoped `xremap` service that targets browser windows only and excludes terminal classes such as WezTerm, Alacritty, Ghostty, `omarchy-quake-terminal`, and `omarchy-quick-notes`. This repo documents that option but does not enable an input-remapping daemon by default.
+If browser-only Super shortcuts are required, use a browser extension or a
+carefully scoped `xremap` service that targets browser windows only and excludes
+terminal classes such as `com.mitchellh.ghostty`, `Alacritty`,
+`omarchy-quake-terminal`, and `omarchy-quick-notes`. This repo documents that
+option but does not enable an input-remapping daemon by default.

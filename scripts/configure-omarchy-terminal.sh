@@ -1,13 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
-# Configure Omarchy's xdg-terminal-exec integration for declared terminals.
+# Configure Omarchy's xdg-terminal-exec integration for Ghostty.
 #
 # Usage:
 #   configure-omarchy-terminal.sh --profile NAME --os OS --pkgmgr MGR
 #
-# This intentionally updates ~/.config/xdg-terminals.list directly instead of
-# stowing it: Omarchy creates that file as live user state, so stow would often
-# conflict and silently leave the old terminal preference in place.
+# Writes a local desktop entry override for Ghostty with the X-Terminal*
+# fields required by xdg-terminal-exec, and sets it as the preferred terminal
+# in ~/.config/xdg-terminals.list. This intentionally writes live user state
+# rather than stowing it: Omarchy creates that file on first boot, so stow
+# would often conflict and leave the old preference in place.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
 # shellcheck source=scripts/lib.sh
@@ -52,9 +54,9 @@ declares_package() {
   return 1
 }
 
-write_wezterm_desktop_entry() {
+write_ghostty_desktop_entry() {
   local desktop_dir="$HOME/.local/share/applications"
-  local desktop_file="$desktop_dir/org.wezfurlong.wezterm.desktop"
+  local desktop_file="$desktop_dir/com.mitchellh.ghostty.desktop"
 
   if [ "$DRY_RUN" = "1" ]; then
     info "[dry-run] would write $desktop_file"
@@ -65,19 +67,18 @@ write_wezterm_desktop_entry() {
   cat >"$desktop_file" <<'EOF'
 [Desktop Entry]
 Type=Application
-Name=WezTerm
+Name=Ghostty
 GenericName=Terminal
-Comment=GPU-accelerated terminal emulator and multiplexer
-TryExec=wezterm
-Exec=wezterm start --cwd .
-Icon=org.wezfurlong.wezterm
+Comment=Fast, native, feature-rich terminal emulator
+TryExec=ghostty
+Exec=ghostty
+Icon=com.mitchellh.ghostty
 Terminal=false
 Categories=System;TerminalEmulator;
 StartupNotify=true
-StartupWMClass=org.wezfurlong.wezterm
+StartupWMClass=com.mitchellh.ghostty
 X-TerminalArgExec=-e
-X-TerminalArgAppId=--class=
-X-TerminalArgDir=--cwd=
+X-TerminalArgDir=--working-directory=
 EOF
 
   if need_cmd update-desktop-database; then
@@ -90,7 +91,7 @@ write_xdg_terminal_preference() {
   local config_file="$config_dir/xdg-terminals.list"
 
   if [ "$DRY_RUN" = "1" ]; then
-    info "[dry-run] would prefer org.wezfurlong.wezterm.desktop in $config_file"
+    info "[dry-run] would prefer com.mitchellh.ghostty.desktop in $config_file"
     return 0
   fi
 
@@ -98,17 +99,17 @@ write_xdg_terminal_preference() {
   cat >"$config_file" <<'EOF'
 # Terminal emulator preference order for xdg-terminal-exec
 # The first found and valid terminal will be used
-org.wezfurlong.wezterm.desktop
+com.mitchellh.ghostty.desktop
 Alacritty.desktop
 EOF
 }
 
 main() {
   [ "$OS" = "omarchy" ] || return 0
-  declares_package wezterm || return 0
+  declares_package ghostty || return 0
 
-  info "Configuring Omarchy terminal integration for WezTerm"
-  write_wezterm_desktop_entry
+  info "Configuring Omarchy terminal integration for Ghostty"
+  write_ghostty_desktop_entry
   write_xdg_terminal_preference
   ok "Omarchy terminal integration configured."
 }

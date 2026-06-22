@@ -121,13 +121,29 @@ hyprctl reload
 hyprctl configerrors
 ```
 
-## Terminal Keymap
+## Terminal
 
-WezTerm, Ghostty, and Alacritty are stowed on Omarchy profiles. Their configs map
-Super copy/paste inside the terminal instead of globally translating Super to
-Ctrl. WezTerm and Ghostty also map Super select-all/copy-mode behavior; Alacritty
-does not expose a direct select-all action in its current keybinding API. This
-avoids breaking shell, Tmux, Neovim, and job-control behavior.
+Ghostty is the default Omarchy terminal. Alacritty is available as a fast
+fallback (`Alt+Shift+Return`). WezTerm is macOS-only and is not stowed on
+Omarchy.
+
+The terminal stack:
+
+| Terminal | Role | Installed by |
+|---|---|---|
+| Ghostty | Default (`Super+Return`, `Alt+Return`) | `packages/desktop/pacman.txt` |
+| Alacritty | Fallback (`Alt+Shift+Return`) | `packages/desktop/pacman.txt` |
+
+`xdg-terminal-exec` is configured to prefer Ghostty by `configure-omarchy-terminal.sh`,
+which runs during bootstrap. The Hyprland `Super+Return` / `Alt+Return` bindings
+use `xdg-terminal-exec`, so switching the preferred terminal only requires
+re-running that script and reloading Hyprland.
+
+### Terminal Keymap
+
+Ghostty and Alacritty map Super copy/paste inside the terminal rather than
+globally translating Super to Ctrl. Ghostty also maps Super+A (select all).
+This avoids breaking shell, Tmux, Neovim, and job-control behavior.
 
 `Super+X`, `Super+Z`, and `Super+Shift+Z` are intentionally not mapped in
 terminals. Use app-native editing shortcuts inside GUI apps and terminal-native

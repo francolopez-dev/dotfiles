@@ -35,7 +35,7 @@ Example:
 
 ```sh
 PACKAGE_GROUPS=(common desktop personal)
-STOW_PACKAGES=(nvim btop wezterm recovery-pack)
+STOW_PACKAGES=(nvim btop ghostty alacritty recovery-pack)
 SERVICES=(tailscale)
 SYNC=(tailscale atuin)
 ```

@@ -4,7 +4,7 @@
   "position": "top",
   "height": 28,
   "spacing": 0,
-  "modules-left": ["custom/power", "custom/notes", "hyprland/workspaces"],
+  "modules-left": ["custom/power", "custom/notes", "hyprland/workspaces", "hyprland/window"],
   "modules-center": ["custom/island"],
   "modules-right": ["tray", "cpu", "memory", "custom/gpu", "custom/vpn", "custom/ethernet", "custom/wifi", "bluetooth", "pulseaudio", "battery", "custom/date", "clock"],
 
@@ -21,6 +21,15 @@
     "interval": 1,
     "tooltip": true,
     "on-click": "omarchy-notes toggle"
+  },
+
+  "hyprland/window": {
+    "max-length": 36,
+    "separate-outputs": true,
+    "rewrite": {
+      "(.*) — (.+)": "$2",
+      "(.*) - (.+)": "$2"
+    }
   },
 
   "hyprland/workspaces": {

@@ -133,6 +133,22 @@ window#waybar {
   opacity: 1;
 }
 
+#window {
+  color: alpha(@text-soft, 0.82);
+  background: alpha(@surface, 0.52);
+  border-radius: 999px;
+  padding: 0 12px;
+  margin: 4px 2px 4px 4px;
+  font-size: 11px;
+}
+
+#window:empty {
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+
 #custom-island {
   background: alpha(@surface, 0.68);
   border: 1px solid alpha(@purple, 0.22);

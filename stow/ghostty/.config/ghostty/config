@@ -1,5 +1,5 @@
-# Ghostty — Omarchy terminal config
-# Catppuccin Mocha palette, JetBrains Mono, calm and readable.
+# Ghostty — personal terminal config tracked by dotfiles.
+# Applies to all Omarchy installations via stow-os.map.
 
 # --- Theme ---
 theme = Catppuccin Mocha
@@ -7,20 +7,26 @@ theme = Catppuccin Mocha
 # --- Font ---
 font-family = JetBrains Mono
 font-family = FiraCode Nerd Font
-font-size = 14
+font-size = 13
+font-thicken = true
 
 # --- Window ---
-window-padding-x = 16
-window-padding-y = 12
+window-padding-x = 18
+window-padding-y = 14
+background-opacity = 0.92
+background-blur-radius = 20
 
 # --- Behavior ---
 scrollback-limit = 10000
 confirm-close-surface = false
 shell-integration = detect
+shell-integration-features = cursor,sudo,title
+bold-is-bright = true
 
 # --- Cursor ---
-cursor-style = block
-cursor-style-blink = false
+cursor-style = bar
+cursor-style-blink = true
+cursor-blink-interval = 600
 
 # --- Keybinds (Super = Win/macOS Command on Omarchy/Hyprland) ---
 keybind = super+c=copy_to_clipboard

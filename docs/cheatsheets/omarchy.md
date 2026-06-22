@@ -8,8 +8,11 @@
 | `Super+V` | Paste | Terminal/app-specific | `stow/ghostty`, `stow/alacritty` |
 | `Super+X` | Not globally mapped | Terminal safety | This document |
 | `Super+A` | Select all | Ghostty only | `stow/ghostty` |
+| `Super+T` | New tab | Ghostty only | `stow/ghostty` |
 | `Super+Z` | Not globally mapped | Terminal safety | This document |
-| `Super+Shift+Z` | Not globally mapped | Terminal safety | This document |
+| `Ctrl+Tab` | Next tab | Ghostty only | `stow/ghostty` |
+| `Ctrl+Shift+Tab` | Previous tab | Ghostty only | `stow/ghostty` |
+| `Super+Shift+Z` | Toggle focused window floating/tiling | All Omarchy profiles | `stow/hypr/.config/hypr/conf.d/99-omarchy-keymap.conf` |
 | `Super+Q` | Close focused window/app | All Omarchy profiles | `stow/hypr/.config/hypr/conf.d/99-omarchy-keymap.conf` |
 | `Super+Shift+4` | Region screenshot | All Omarchy profiles | `stow/hypr/.config/hypr/conf.d/99-omarchy-keymap.conf` |
 | `Super+Space` | Walker app launcher | All Omarchy profiles | `stow/hypr/.config/hypr/conf.d/99-omarchy-keymap.conf` |
@@ -116,6 +119,9 @@ programs:
 | `Super+V -> Ctrl+V` | Would trigger shell literal-next behavior |
 | `Super+A -> Ctrl+A` | Would jump to line start in shells/readline |
 | `Super+Z -> Ctrl+Z` | Would suspend foreground jobs |
+
+`Super+Shift+Z` is reserved globally for Hyprland floating/tiling toggle rather
+than terminal text editing.
 
 ## Browser Options
 

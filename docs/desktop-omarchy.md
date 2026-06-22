@@ -82,6 +82,7 @@ Keymap highlights:
 | Shortcut | Action |
 |---|---|
 | `Super+Q` | Close focused window/app |
+| `Super+Shift+Z` | Toggle focused window floating/tiling |
 | `Super+Shift+4` | Region screenshot through `omarchy-capture-screenshot region` |
 | `Super+Space` | Walker app launcher |
 | `Ctrl+1..9` | Switch to workspace 1 through 9 |
@@ -149,12 +150,13 @@ re-running that script and reloading Hyprland.
 ### Terminal Keymap
 
 Ghostty and Alacritty map Super copy/paste inside the terminal rather than
-globally translating Super to Ctrl. Ghostty also maps Super+A (select all).
+globally translating Super to Ctrl. Ghostty also maps Super+A (select all),
+Super+T (new tab), Ctrl+Tab (next tab), and Ctrl+Shift+Tab (previous tab).
 This avoids breaking shell, Tmux, Neovim, and job-control behavior.
 
-`Super+X`, `Super+Z`, and `Super+Shift+Z` are intentionally not mapped in
-terminals. Use app-native editing shortcuts inside GUI apps and terminal-native
-shortcuts inside terminal programs.
+`Super+X` and `Super+Z` are intentionally not mapped in terminals. Use
+app-native editing shortcuts inside GUI apps and terminal-native shortcuts
+inside terminal programs.
 
 The terminal productivity stack also includes Atuin for shell history, Zoxide for
 directory jumping, and Yazi for terminal file management. Zoxide initializes from

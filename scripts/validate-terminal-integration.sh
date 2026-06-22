@@ -135,6 +135,14 @@ main() {
     else
       fail_check "ghostty --version failed."
     fi
+    local config_errors
+    config_errors="$(ghostty +validate-config 2>&1 || true)"
+    if [ -z "$config_errors" ]; then
+      ok "ghostty config validates cleanly"
+    else
+      fail_check "ghostty config has errors — run 'ghostty +validate-config' to see them:"
+      err "$config_errors"
+    fi
   else
     fail_check "ghostty is not installed or not on PATH."
   fi

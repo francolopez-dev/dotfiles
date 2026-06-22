@@ -142,7 +142,7 @@ hide_notes() {
 launch_window() {
   local file="${1:-$INBOX_FILE}"
   rm -f "$NVIM_SOCKET"
-  uwsm-app -- wezterm start --always-new-process --class "$CLASS" --cwd "$NOTES_DIR" nvim --listen "$NVIM_SOCKET" "$file" >/dev/null 2>&1 &
+  uwsm-app -- ghostty --class="$CLASS" --working-directory="$NOTES_DIR" -e nvim --listen "$NVIM_SOCKET" "$file" >/dev/null 2>&1 &
   printf '%s\n' "$!" >"$STATE_DIR/notes-launch.pid"
 }
 

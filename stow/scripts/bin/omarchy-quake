@@ -161,7 +161,7 @@ hide_quake() {
 }
 
 launch_window() {
-  uwsm-app -- wezterm start --always-new-process --class "$CLASS" --cwd "$HOME" zsh -lc "tmux new-session -A -s $TMUX_SESSION" >/dev/null 2>&1 &
+  uwsm-app -- ghostty --class="$CLASS" --working-directory="$HOME" -e zsh -lc "tmux new-session -A -s $TMUX_SESSION" >/dev/null 2>&1 &
   printf '%s\n' "$!" >"$STATE_DIR/quake-launch.pid"
 }
 

@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-CLASS="omarchy-quick-notes"
+CLASS="omarchy-todo-drawer"
 STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles"
-STATE_FILE="$STATE_DIR/notes.state"
+STATE_FILE="$STATE_DIR/todo.state"
 MANUAL_OPEN_FILE="$STATE_DIR/quick-surfaces-manual-open"
-NVIM_SOCKET="$STATE_DIR/notes-nvim.sock"
+NVIM_SOCKET="$STATE_DIR/todo-nvim.sock"
 NOTES_DIR="$HOME/Documents/Notes"
-INBOX_FILE="$NOTES_DIR/inbox.md"
+TODO_FILE="$NOTES_DIR/todo.txt"
 HIDDEN_WORKSPACE="99"
 
 PROFILE_ENV="${XDG_CONFIG_HOME:-$HOME/.config}/dotfiles/profile.env"
@@ -15,32 +15,26 @@ PROFILE_ENV="${XDG_CONFIG_HOME:-$HOME/.config}/dotfiles/profile.env"
 [ -f "$PROFILE_ENV" ] && . "$PROFILE_ENV"
 
 MONITOR_MODE="${DOTFILES_QUICK_SURFACE_MONITOR_MODE:-focused}"
-NOTES_WIDTH_PERCENT="${DOTFILES_QUICK_SURFACE_NOTES_WIDTH_PERCENT:-28}"
+TODO_WIDTH_PERCENT="${DOTFILES_QUICK_SURFACE_NOTES_WIDTH_PERCENT:-28}"
 TOP_OFFSET="${DOTFILES_QUICK_SURFACE_TOP_OFFSET:-28}"
 BOTTOM_OFFSET="${DOTFILES_QUICK_SURFACE_BOTTOM_OFFSET:-28}"
 
 ensure_notes() {
   mkdir -p "$NOTES_DIR/inbox" "$NOTES_DIR/archive" "$NOTES_DIR/projects" "$NOTES_DIR/daily" "$STATE_DIR"
-  [ -f "$INBOX_FILE" ] || : >"$INBOX_FILE"
-  [ -f "$NOTES_DIR/todo.txt" ] || : >"$NOTES_DIR/todo.txt"
+  [ -f "$NOTES_DIR/inbox.md" ] || : >"$NOTES_DIR/inbox.md"
+  [ -f "$TODO_FILE" ] || : >"$TODO_FILE"
 }
 
-note_address() {
+todo_address() {
   hyprctl clients -j | jq -r --arg class "$CLASS" 'map(select(.class == $class))[0].address // empty'
 }
 
 monitor_json() {
   local mode="$MONITOR_MODE"
   case "$mode" in
-    named:*)
-      hyprctl monitors -j | jq -c --arg name "${mode#named:}" 'map(select(.name == $name))[0] // map(select(.focused))[0] // .[0]'
-      ;;
-    largest)
-      hyprctl monitors -j | jq -c 'max_by((.width / (if .scale == 0 then 1 else .scale end)) * (.height / (if .scale == 0 then 1 else .scale end))) // map(select(.focused))[0] // .[0]'
-      ;;
-    primary|focused|*)
-      hyprctl monitors -j | jq -c 'map(select(.focused))[0] // .[0]'
-      ;;
+    named:*) hyprctl monitors -j | jq -c --arg name "${mode#named:}" 'map(select(.name == $name))[0] // map(select(.focused))[0] // .[0]' ;;
+    largest) hyprctl monitors -j | jq -c 'max_by((.width / (if .scale == 0 then 1 else .scale end)) * (.height / (if .scale == 0 then 1 else .scale end))) // map(select(.focused))[0] // .[0]' ;;
+    primary|focused|*) hyprctl monitors -j | jq -c 'map(select(.focused))[0] // .[0]' ;;
   esac
 }
 
@@ -50,25 +44,8 @@ geometry() {
     [.x, (.y + $top), ((.width / scale) | floor), (((.height / scale) | floor) - $top - $bottom)] | @tsv'
 }
 
-window_geometry() {
-  local address="$1"
-  local monitor_id
-  monitor_id="$(hyprctl clients -j | jq -r --arg address "$address" 'map(select(.address == $address))[0].monitor // empty')"
-  if [ -n "$monitor_id" ]; then
-    hyprctl monitors -j | jq -r --argjson id "$monitor_id" --argjson top "$TOP_OFFSET" --argjson bottom "$BOTTOM_OFFSET" '
-      map(select(.id == $id))[0] |
-      def scale: if .scale == 0 then 1 else .scale end;
-      [.x, (.y + $top), ((.width / scale) | floor), (((.height / scale) | floor) - $top - $bottom)] | @tsv'
-  else
-    geometry
-  fi
-}
-
 percent_value() {
-  case "$1" in
-    ''|*[!0-9]*) printf '%s\n' "$2" ;;
-    *) printf '%s\n' "$1" ;;
-  esac
+  case "$1" in ''|*[!0-9]*) printf '%s\n' "$2" ;; *) printf '%s\n' "$1" ;; esac
 }
 
 clamp() {
@@ -82,14 +59,14 @@ active_workspace_id() {
   hyprctl activeworkspace -j | jq -r '.id'
 }
 
-note_workspace_id() {
+todo_workspace_id() {
   local address="$1"
   hyprctl clients -j | jq -r --arg address "$address" 'map(select(.address == $address))[0].workspace.id // empty'
 }
 
 is_on_active_workspace() {
   local address="$1"
-  [ "$(note_workspace_id "$address")" = "$(active_workspace_id)" ]
+  [ "$(todo_workspace_id "$address")" = "$(active_workspace_id)" ]
 }
 
 move_to_active_workspace() {
@@ -103,9 +80,9 @@ mark_manual_open() {
 }
 
 show_window() {
-  local address="$1" mon_x mon_y mon_w mon_h percent width height min_width max_width
+  local address="$1" mon_x mon_y mon_w mon_h percent width height min_width max_width x
   read -r mon_x mon_y mon_w mon_h < <(geometry)
-  percent="$(percent_value "$NOTES_WIDTH_PERCENT" 28)"
+  percent="$(percent_value "$TODO_WIDTH_PERCENT" 28)"
   percent="$(clamp "$percent" 15 45)"
   width=$((mon_w * percent / 100))
   min_width=320
@@ -115,17 +92,17 @@ show_window() {
   width="$(clamp "$width" "$min_width" "$max_width")"
   height="$mon_h"
   [ "$height" -lt 240 ] && height=240
+  x=$((mon_x + mon_w - width))
 
   mark_manual_open
   move_to_active_workspace "$address"
   sleep 0.05
   hyprctl dispatch setfloating "address:$address" >/dev/null
   hyprctl dispatch resizewindowpixel "exact $width $height,address:$address" >/dev/null
-  hyprctl dispatch movewindowpixel "exact $mon_x $mon_y,address:$address" >/dev/null
+  hyprctl dispatch movewindowpixel "exact $x $mon_y,address:$address" >/dev/null
   hyprctl dispatch resizewindowpixel "exact $width $height,address:$address" >/dev/null
   hyprctl dispatch focuswindow "address:$address" >/dev/null
   printf 'open\n' >"$STATE_FILE"
-  omarchy-quake layout >/dev/null 2>&1 || true
 }
 
 hide_window() {
@@ -134,76 +111,57 @@ hide_window() {
   printf 'closed\n' >"$STATE_FILE"
 }
 
-hide_notes() {
+hide_todo() {
   local address
-  address="$(note_address)"
+  address="$(todo_address)"
   [ -n "$address" ] && hide_window "$address"
 }
 
 launch_window() {
-  local file="${1:-$INBOX_FILE}"
   rm -f "$NVIM_SOCKET"
-  uwsm-app -- ghostty --class="$CLASS" --working-directory="$NOTES_DIR" -e nvim --listen "$NVIM_SOCKET" "$file" >/dev/null 2>&1 &
-  printf '%s\n' "$!" >"$STATE_DIR/notes-launch.pid"
+  uwsm-app -- ghostty --class="$CLASS" --working-directory="$NOTES_DIR" -e nvim --listen "$NVIM_SOCKET" "$TODO_FILE" >/dev/null 2>&1 &
+  printf '%s\n' "$!" >"$STATE_DIR/todo-launch.pid"
 }
 
 launch_fallback_window() {
-  local file="${1:-$INBOX_FILE}"
   rm -f "$NVIM_SOCKET"
-  uwsm-app -- alacritty --class "$CLASS" --working-directory "$NOTES_DIR" --command nvim --listen "$NVIM_SOCKET" "$file" >/dev/null 2>&1 &
-  printf '%s\n' "$!" >"$STATE_DIR/notes-launch.pid"
+  uwsm-app -- alacritty --class "$CLASS" --working-directory "$NOTES_DIR" --command nvim --listen "$NVIM_SOCKET" "$TODO_FILE" >/dev/null 2>&1 &
+  printf '%s\n' "$!" >"$STATE_DIR/todo-launch.pid"
 }
 
 wait_for_window() {
   local address=""
   for _ in {1..40}; do
-    address="$(note_address)"
-    if [ -n "$address" ]; then
-      printf '%s\n' "$address"
-      return 0
-    fi
+    address="$(todo_address)"
+    [ -n "$address" ] && { printf '%s\n' "$address"; return 0; }
     sleep 0.05
   done
   return 1
 }
 
-open_file_in_nvim() {
-  local file="$1"
-  if [ -S "$NVIM_SOCKET" ] && nvim --server "$NVIM_SOCKET" --remote "$file" >/dev/null 2>&1; then
-    return 0
-  fi
-  return 1
-}
-
-open_notes() {
-  local file="${1:-$INBOX_FILE}" address launch_pid
+open_todo() {
+  local address launch_pid
   ensure_notes
-  address="$(note_address)"
+  address="$(todo_address)"
+  [ -n "$address" ] && { show_window "$address"; return 0; }
 
-  if [ -n "$address" ]; then
-    open_file_in_nvim "$file" || true
-    show_window "$address"
-    return 0
-  fi
-
-  launch_window "$file"
+  launch_window
   if ! address="$(wait_for_window)"; then
-    launch_pid="$(cat "$STATE_DIR/notes-launch.pid" 2>/dev/null || true)"
+    launch_pid="$(cat "$STATE_DIR/todo-launch.pid" 2>/dev/null || true)"
     [ -n "$launch_pid" ] && kill "$launch_pid" 2>/dev/null || true
-    launch_fallback_window "$file"
+    launch_fallback_window
     address="$(wait_for_window)"
   fi
   show_window "$address"
 }
 
-toggle_notes() {
+toggle_todo() {
   local address state
   ensure_notes
-  address="$(note_address)"
+  address="$(todo_address)"
   state="$(cat "$STATE_FILE" 2>/dev/null || printf 'closed')"
-
   if [ -z "$address" ]; then
-    open_notes "$INBOX_FILE"
+    open_todo
   elif [ "$state" = "open" ] && is_on_active_workspace "$address"; then
     hide_window "$address"
   else
@@ -213,21 +171,21 @@ toggle_notes() {
 
 status() {
   local address state
-  address="$(note_address)"
+  address="$(todo_address)"
   state="$(cat "$STATE_FILE" 2>/dev/null || printf 'closed')"
   if [ -n "$address" ] && [ "$state" = "open" ] && is_on_active_workspace "$address"; then
-    jq -cn '{text: "󰎞", tooltip: "Notes drawer open", class: "open"}'
+    jq -cn '{text: "☑", tooltip: "Todo drawer open", class: "open"}'
   elif [ -n "$address" ]; then
-    jq -cn '{text: "󰎞", tooltip: "Notes drawer hidden", class: "hidden"}'
+    jq -cn '{text: "☑", tooltip: "Todo drawer hidden", class: "hidden"}'
   else
-    jq -cn '{text: "󰎞", tooltip: "Notes drawer closed", class: "closed"}'
+    jq -cn '{text: "☑", tooltip: "Todo drawer closed", class: "closed"}'
   fi
 }
 
 case "${1:-toggle}" in
-  toggle) toggle_notes ;;
-  open) open_notes "${2:-$INBOX_FILE}" ;;
-  hide) hide_notes ;;
+  toggle) toggle_todo ;;
+  open) open_todo ;;
+  hide) hide_todo ;;
   status) status ;;
-  *) printf 'usage: omarchy-notes [toggle|open [file]|hide|status]\n' >&2; exit 2 ;;
+  *) printf 'usage: omarchy-todo [toggle|open|hide|status]\n' >&2; exit 2 ;;
 esac

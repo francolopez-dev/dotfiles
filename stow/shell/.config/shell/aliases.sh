@@ -8,6 +8,7 @@ alias ff='fastfetch 2>/dev/null || true'
 
 # system apps
 alias v='nvim'
+alias y='yazi'
 
 #in case i use EZA
 if command -v eza >/dev/null 2>&1; then

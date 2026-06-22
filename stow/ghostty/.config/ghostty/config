@@ -26,7 +26,6 @@ bold-is-bright = true
 # --- Cursor ---
 cursor-style = bar
 cursor-style-blink = true
-cursor-blink-interval = 600
 
 # --- Keybinds (Super = Win/macOS Command on Omarchy/Hyprland) ---
 keybind = super+c=copy_to_clipboard

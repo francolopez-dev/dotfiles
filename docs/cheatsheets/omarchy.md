@@ -12,6 +12,8 @@
 | `Super+Shift+Z` | Not globally mapped | Terminal safety | This document |
 | `Super+Q` | Close focused window/app | All Omarchy profiles | `stow/hypr/.config/hypr/conf.d/99-omarchy-keymap.conf` |
 | `Super+Shift+4` | Region screenshot | All Omarchy profiles | `stow/hypr/.config/hypr/conf.d/99-omarchy-keymap.conf` |
+| `Super+Space` | Walker app launcher | All Omarchy profiles | `stow/hypr/.config/hypr/conf.d/99-omarchy-keymap.conf` |
+| `Super+Alt+Space` | Omarchy menu | Omarchy default | `~/.local/share/omarchy/default/hypr/bindings/utilities.conf` |
 | `Ctrl+1..9` | Switch workspace | All Omarchy profiles | `stow/hypr/.config/hypr/conf.d/99-omarchy-keymap.conf` |
 | `Ctrl+Shift+1..9` | Move focused window to workspace and follow | All Omarchy profiles | `stow/hypr/.config/hypr/conf.d/99-omarchy-keymap.conf` |
 | `Super+Return` | Terminal (Ghostty via xdg-terminal-exec) | All Omarchy profiles | `stow/hypr/.config/hypr/conf.d/99-omarchy-keymap.conf` |
@@ -23,6 +25,7 @@
 | `Alt+E` | Thunderbird | All Omarchy profiles | `stow/hypr/.config/hypr/conf.d/99-omarchy-keymap.conf` |
 | `Ctrl+\`` | Quake terminal | All Omarchy profiles | `stow/hypr/.config/hypr/conf.d/99-omarchy-keymap.conf` |
 | `Ctrl+Shift+\`` | Quick notes | All Omarchy profiles | `stow/hypr/.config/hypr/conf.d/99-omarchy-keymap.conf` |
+| `Ctrl+Alt+\`` | Todo drawer | All Omarchy profiles | `stow/hypr/.config/hypr/conf.d/99-omarchy-keymap.conf` |
 | `Super+Shift+N` | Quick note capture | All Omarchy profiles | `stow/hypr/.config/hypr/conf.d/99-omarchy-keymap.conf` |
 
 ## Commands
@@ -37,6 +40,9 @@
 | `dotfiles doctor` | Run dotfiles diagnostics |
 | `xdg-terminal-exec --print-id` | Show active default terminal |
 | `xdg-terminal-exec --print-cmd` | Show active terminal launch command |
+| `z dotfiles` | Jump to a frequent directory with Zoxide |
+| `y` | Open Yazi |
+| `atuin status` | Check Atuin login/sync state |
 
 ## Terminal
 
@@ -68,6 +74,27 @@ region selector, captures the selected area, saves through Omarchy's screenshot
 convention, copies the image to the clipboard, and shows a notification.
 Cancelling the selection saves nothing.
 
+## Notes Workflow
+
+| Search / Shortcut | Action |
+|---|---|
+| `Ctrl+Shift+\`` | Toggle `~/Documents/Notes/inbox.md` |
+| `Ctrl+Alt+\`` | Toggle `~/Documents/Notes/todo.txt` |
+| Walker: `Open Notes Inbox` | Open inbox drawer |
+| Walker: `Open Todo` | Open todo drawer |
+| Walker: `Open Daily Note` | Create/open today's daily markdown note |
+| Walker: `Open Notes Projects` | Open projects notes in Yazi |
+
+Notes live in plain files only:
+
+```text
+~/Documents/Notes/inbox.md
+~/Documents/Notes/todo.txt
+~/Documents/Notes/daily/
+~/Documents/Notes/projects/
+~/Documents/Notes/archive/
+```
+
 ## Terminal Limitations
 
 Super copy and paste are handled inside Ghostty and Alacritty at the app level.
@@ -85,7 +112,7 @@ programs:
 
 ## Browser Options
 
-Firefox and Vivaldi continue to support Linux-native `Ctrl+C`, `Ctrl+V`,
+Firefox and Vivaldi are installed across Omarchy profiles. Both continue to support Linux-native `Ctrl+C`, `Ctrl+V`,
 `Ctrl+X`, `Ctrl+A`, `Ctrl+Z`, and `Ctrl+Shift+Z` by default.
 
 If browser-only Super shortcuts are required, use a browser extension or a

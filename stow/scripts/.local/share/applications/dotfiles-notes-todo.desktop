@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Open Todo
+Comment=Open ~/Documents/Notes/todo.txt in the todo drawer
+Exec=omarchy-todo open
+Terminal=false
+Categories=Utility;TextEditor;
+Keywords=todo;tasks;notes;walker;

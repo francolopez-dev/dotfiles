@@ -7,6 +7,9 @@ Omarchy profile:
 omarchy: hypr waybar rofi wallpapers themes
 ```
 
+Omarchy desktop packages are declared in `packages/desktop/pacman.txt`. The base
+browser set is Firefox and Vivaldi on every Omarchy profile.
+
 ## Waybar
 
 Waybar is managed in:
@@ -80,6 +83,7 @@ Keymap highlights:
 |---|---|
 | `Super+Q` | Close focused window/app |
 | `Super+Shift+4` | Region screenshot through `omarchy-capture-screenshot region` |
+| `Super+Space` | Walker app launcher |
 | `Ctrl+1..9` | Switch to workspace 1 through 9 |
 | `Ctrl+Shift+1..9` | Move focused window to workspace 1 through 9 and follow it |
 | `Alt+B` | Launch Vivaldi |
@@ -87,6 +91,9 @@ Keymap highlights:
 | `Alt+G` | Launch ChatGPT desktop app |
 | `Alt+E` | Launch Thunderbird |
 | `Alt+Shift+Return` | Launch Alacritty |
+| `Ctrl+`` | Quake terminal |
+| `Ctrl+Shift+`` | Quick notes drawer |
+| `Ctrl+Alt+`` | Todo drawer |
 
 Keep machine-specific monitor layouts commented unless they are safe across all
 Omarchy profiles.
@@ -148,6 +155,52 @@ This avoids breaking shell, Tmux, Neovim, and job-control behavior.
 `Super+X`, `Super+Z`, and `Super+Shift+Z` are intentionally not mapped in
 terminals. Use app-native editing shortcuts inside GUI apps and terminal-native
 shortcuts inside terminal programs.
+
+The terminal productivity stack also includes Atuin for shell history, Zoxide for
+directory jumping, and Yazi for terminal file management. Zoxide initializes from
+`~/.zshrc`; Yazi is available as `y`.
+
+### Quake Terminal
+
+`Ctrl+`` toggles a Ghostty-backed quake terminal. It attaches to a persistent
+Tmux session named `quake`, so hiding the drawer does not lose shell state.
+
+## Notes Workflow
+
+Notes are filesystem-only markdown/text files under:
+
+```text
+~/Documents/Notes/
+inbox.md
+todo.txt
+daily/
+projects/
+archive/
+```
+
+The quick notes script creates this structure automatically when opened.
+
+| Shortcut / Action | Behavior |
+|---|---|
+| `Ctrl+Shift+`` | Toggle `inbox.md` in the quick notes drawer |
+| `Ctrl+Alt+`` | Toggle `todo.txt` in the todo drawer |
+| `Super+Shift+N` | Capture a new markdown note under `~/Documents/Notes/inbox/` |
+| Walker: `Open Notes Inbox` | Open `inbox.md` in the quick notes drawer |
+| Walker: `Open Todo` | Open `todo.txt` in the todo drawer |
+| Walker: `Open Daily Note` | Create/open `daily/YYYY-MM-DD.md` |
+| Walker: `Open Notes Projects` | Open `projects/` in Yazi inside Ghostty |
+
+The notes and todo drawers use separate Ghostty classes and Neovim sockets, so
+they can be visible at the same time.
+
+## Walker
+
+Walker remains the primary launcher. `Super+Space` explicitly launches Walker via
+`omarchy-launch-walker`; Omarchy's menu remains available on `Super+Alt+Space`.
+
+Notes actions are low-maintenance `.desktop` entries stowed into
+`~/.local/share/applications/`. Walker finds them through its normal desktop
+application provider, so no custom Walker plugin is required.
 
 ## Rofi
 

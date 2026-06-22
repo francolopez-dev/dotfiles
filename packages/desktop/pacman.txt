@@ -4,6 +4,11 @@ networkmanager
 tailscale
 alacritty
 ghostty
+walker
 vivaldi
+firefox
+zoxide
+yazi
+socat
 restic
 age

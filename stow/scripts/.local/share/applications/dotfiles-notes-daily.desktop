@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Open Daily Note
+Comment=Open today's markdown note
+Exec=omarchy-notes-daily
+Terminal=false
+Categories=Utility;TextEditor;
+Keywords=daily;note;notes;journal;walker;

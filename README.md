@@ -70,7 +70,7 @@ If `dotfiles` is not on PATH yet, open a new terminal or use:
 | `docs/profiles.md` | Profile and stow model |
 | `docs/recovery-pack-usage.md` | Recovery Pack usage |
 | `docs/sync.md` | Tailscale, Atuin, and Syncthing |
-| `docs/desktop-omarchy.md` | Hyprland, Waybar, WezTerm, and Rofi |
+| `docs/desktop-omarchy.md` | Hyprland, Waybar, Ghostty, Walker, notes, and Rofi |
 | `docs/troubleshooting.md` | Common failures and fixes |
 | `docs/machines/lenovo-work-laptop.md` | Machine-specific Lenovo work laptop notes |
 | `docs/SSH-keys-and-config.md` | SSH key and config model |
@@ -100,6 +100,30 @@ cd ~/dotfiles
 ```
 
 Both `dotfiles bootstrap` and `./bootstrap.sh` are designed to be safe to rerun.
+
+## Omarchy Productivity Base
+
+Every Omarchy profile shares the same keyboard-first productivity layer:
+
+| Area | Tools |
+|------|-------|
+| Browsers | Firefox and Vivaldi |
+| Launcher | Walker on `Super+Space` |
+| Terminal | Ghostty default, Alacritty fallback |
+| Shell | Zsh, Atuin, Zoxide |
+| Files | Yazi via `y` |
+| Notes | Plain files under `~/Documents/Notes` |
+
+Notes shortcuts:
+
+| Shortcut | Action |
+|----------|--------|
+| `Ctrl+Shift+`` | Quick notes inbox |
+| `Ctrl+Alt+`` | Todo drawer |
+| `Ctrl+`` | Quake terminal |
+
+Walker exposes desktop actions for notes inbox, todo, daily note, and notes
+projects.
 
 ## Safety Rules
 

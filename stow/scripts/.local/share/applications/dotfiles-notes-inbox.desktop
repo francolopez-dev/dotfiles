@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Open Notes Inbox
+Comment=Open ~/Documents/Notes/inbox.md in the quick notes drawer
+Exec=omarchy-notes-inbox
+Terminal=false
+Categories=Utility;TextEditor;
+Keywords=notes;inbox;markdown;walker;

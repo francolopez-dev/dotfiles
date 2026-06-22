@@ -69,6 +69,11 @@ command_for_package() {
     tmux) printf "tmux\n" ;;
     wget) printf "wget\n" ;;
     ghostty) printf "ghostty\n" ;;
+    walker) printf "walker\n" ;;
+    firefox) printf "firefox\n" ;;
+    zoxide) printf "zoxide\n" ;;
+    yazi) printf "yazi\n" ;;
+    socat) printf "socat\n" ;;
     zsh) printf "zsh\n" ;;
     *) return 1 ;;
   esac

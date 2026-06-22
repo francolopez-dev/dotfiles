@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+NOTES_DIR="$HOME/Documents/Notes"
+DAILY_DIR="$NOTES_DIR/daily"
+TODAY_FILE="$DAILY_DIR/$(date +%F).md"
+
+mkdir -p "$NOTES_DIR/inbox" "$NOTES_DIR/archive" "$NOTES_DIR/projects" "$DAILY_DIR"
+[ -f "$NOTES_DIR/inbox.md" ] || : >"$NOTES_DIR/inbox.md"
+[ -f "$NOTES_DIR/todo.txt" ] || : >"$NOTES_DIR/todo.txt"
+
+if [ ! -f "$TODAY_FILE" ]; then
+  {
+    printf '# %s\n\n' "$(date +%F)"
+    printf '## Notes\n\n'
+    printf '## Tasks\n\n'
+  } >"$TODAY_FILE"
+fi
+
+exec omarchy-notes open "$TODAY_FILE"

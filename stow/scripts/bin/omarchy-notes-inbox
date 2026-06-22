@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+NOTES_DIR="$HOME/Documents/Notes"
+mkdir -p "$NOTES_DIR/inbox" "$NOTES_DIR/archive" "$NOTES_DIR/projects" "$NOTES_DIR/daily"
+[ -f "$NOTES_DIR/inbox.md" ] || : >"$NOTES_DIR/inbox.md"
+[ -f "$NOTES_DIR/todo.txt" ] || : >"$NOTES_DIR/todo.txt"
+
+exec omarchy-notes open "$NOTES_DIR/inbox.md"

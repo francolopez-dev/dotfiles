@@ -429,6 +429,52 @@ _doctor_terminal() {
   exec bash "$SCRIPTS/validate-terminal-integration.sh" --profile "$profile" --os "$os" --pkgmgr "$pkg" "$@"
 }
 
+_doctor_productivity() {
+  local rc=0 notes_dir="$HOME/Documents/Notes" binds=""
+  info "Omarchy productivity readiness:"
+
+  for t in ghostty walker zoxide yazi socat nvim tmux jq; do
+    if need_cmd "$t"; then ok "$t: installed"; else warn "$t: not installed"; rc=1; fi
+  done
+
+  if ! need_cmd atuin; then
+    warn "atuin: not installed"
+    rc=1
+  elif atuin status >/dev/null 2>&1; then
+    ok "atuin: installed and logged in"
+  else
+    dim "atuin: installed but not logged in"
+  fi
+
+  if [ -d "$notes_dir" ]; then ok "notes directory: present ($notes_dir)"; else dim "notes directory: missing; quick notes will create it"; fi
+  if [ -f "$notes_dir/inbox.md" ]; then ok "inbox.md: present"; else dim "inbox.md: missing; quick notes will create it"; fi
+  if [ -f "$notes_dir/todo.txt" ]; then ok "todo.txt: present"; else dim "todo.txt: missing; todo drawer will create it"; fi
+
+  for s in omarchy-notes omarchy-todo omarchy-quake omarchy-notes-inbox omarchy-notes-daily omarchy-notes-projects; do
+    if need_cmd "$s"; then ok "$s: on PATH"; else warn "$s: not on PATH"; rc=1; fi
+  done
+
+  for d in dotfiles-notes-inbox.desktop dotfiles-notes-todo.desktop dotfiles-notes-daily.desktop dotfiles-notes-projects.desktop; do
+    if [ -f "$HOME/.local/share/applications/$d" ]; then ok "walker action: $d"; else warn "walker action missing: $d"; rc=1; fi
+  done
+
+  if need_cmd hyprctl; then
+    binds="$(hyprctl binds 2>/dev/null || true)"
+    if [ -n "$binds" ]; then
+      printf "%s\n" "$binds" | grep -q 'description: Walker' && ok "Hyprland: Super+Space Walker binding active" || warn "Hyprland: Walker binding not active"
+      printf "%s\n" "$binds" | grep -q 'description: Quick notes' && ok "Hyprland: quick notes binding active" || warn "Hyprland: quick notes binding not active"
+      printf "%s\n" "$binds" | grep -q 'description: Todo drawer' && ok "Hyprland: todo drawer binding active" || warn "Hyprland: todo drawer binding not active"
+      printf "%s\n" "$binds" | grep -q 'description: Quake terminal' && ok "Hyprland: quake terminal binding active" || warn "Hyprland: quake terminal binding not active"
+    else
+      warn "Hyprland: hyprctl binds returned no data"
+    fi
+  else
+    dim "Hyprland: hyprctl not installed; skipping binding checks"
+  fi
+
+  return "$rc"
+}
+
 cmd_doctor() {
   local sub="${1:-}"
   case "$sub" in
@@ -463,6 +509,7 @@ cmd_doctor() {
     rc=1
   fi
   info "Warnings"
+  _doctor_productivity || warn "productivity diagnostics reported warnings"
   if [ -x "$SCRIPTS/recovery-pack-health.sh" ]; then
     info "Recovery pack health (best-effort)..."
     bash "$SCRIPTS/recovery-pack-health.sh" 2>/dev/null || warn "recovery-pack-health reported issues"

@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+NOTES_DIR="$HOME/Documents/Notes"
+PROJECTS_DIR="$NOTES_DIR/projects"
+mkdir -p "$NOTES_DIR/inbox" "$NOTES_DIR/archive" "$PROJECTS_DIR" "$NOTES_DIR/daily"
+[ -f "$NOTES_DIR/inbox.md" ] || : >"$NOTES_DIR/inbox.md"
+[ -f "$NOTES_DIR/todo.txt" ] || : >"$NOTES_DIR/todo.txt"
+
+if command -v ghostty >/dev/null 2>&1 && command -v yazi >/dev/null 2>&1; then
+  exec ghostty --working-directory="$PROJECTS_DIR" -e yazi "$PROJECTS_DIR"
+fi
+
+exec omarchy-notes open "$PROJECTS_DIR"

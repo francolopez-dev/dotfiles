@@ -142,7 +142,7 @@ window#waybar {
   font-size: 11px;
 }
 
-#window:empty {
+#window.empty {
   background: transparent;
   padding: 0;
   margin: 0;

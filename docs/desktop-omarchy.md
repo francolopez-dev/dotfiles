@@ -58,10 +58,10 @@ Do not modify or overwrite files inside `~/.dotfiles-backup/`.
 
 ## Hyprland
 
-This repo only owns shared personal includes under:
+This repo owns shared Omarchy includes under:
 
 ```text
-stow/hypr/.config/hypr/conf.d/99-personal.conf
+stow/hypr/.config/hypr/conf.d/99-omarchy-keymap.conf
 ```
 
 The live Omarchy config must include:
@@ -69,6 +69,24 @@ The live Omarchy config must include:
 ```conf
 source = ~/.config/hypr/conf.d/*.conf
 ```
+
+The shared keymap applies to every Omarchy profile, including work profiles. It
+keeps physical Alt and Super keys unchanged while using Super for macOS-style
+window/app muscle memory where Hyprland can do so safely.
+
+Keymap highlights:
+
+| Shortcut | Action |
+|---|---|
+| `Super+Q` | Close focused window/app |
+| `Super+Shift+4` | Region screenshot through `omarchy-capture-screenshot region` |
+| `Ctrl+1..9` | Switch to workspace 1 through 9 |
+| `Ctrl+Shift+1..9` | Move focused window to workspace 1 through 9 and follow it |
+| `Alt+B` | Launch Vivaldi |
+| `Alt+Shift+B` | Launch Firefox |
+| `Alt+G` | Launch ChatGPT desktop app |
+| `Alt+E` | Launch Thunderbird |
+| `Alt+Shift+Return` | Launch Alacritty |
 
 Keep machine-specific monitor layouts commented unless they are safe across all
 Omarchy profiles.
@@ -102,6 +120,18 @@ Validate live Hypr changes with:
 hyprctl reload
 hyprctl configerrors
 ```
+
+## Terminal Keymap
+
+WezTerm, Ghostty, and Alacritty are stowed on Omarchy profiles. Their configs map
+Super copy/paste inside the terminal instead of globally translating Super to
+Ctrl. WezTerm and Ghostty also map Super select-all/copy-mode behavior; Alacritty
+does not expose a direct select-all action in its current keybinding API. This
+avoids breaking shell, Tmux, Neovim, and job-control behavior.
+
+`Super+X`, `Super+Z`, and `Super+Shift+Z` are intentionally not mapped in
+terminals. Use app-native editing shortcuts inside GUI apps and terminal-native
+shortcuts inside terminal programs.
 
 ## Rofi
 

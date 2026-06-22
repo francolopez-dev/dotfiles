@@ -1,0 +1,6 @@
+# Omarchy terminal keymap.
+# Super maps to Ghostty's `super` modifier on Linux.
+
+keybind = super+c=copy_to_clipboard
+keybind = super+v=paste_from_clipboard
+keybind = super+a=select_all

@@ -3,5 +3,8 @@
 networkmanager
 tailscale
 wezterm
+alacritty
+ghostty
+vivaldi
 restic
 age

@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 # Autostart audit and management helpers. Source after lib/common.sh.
+# Color vars are set by common.sh; these defaults satisfy shellcheck when checked standalone.
+: "${_c_reset:=}" "${_c_green:=}" "${_c_yellow:=}" "${_c_red:=}" "${_c_blue:=}" "${_c_dim:=}"
 
 autostart_usage() {
   cat <<'EOF'
@@ -178,7 +180,7 @@ autostart_status() {
   managed_execs="$(autostart_hypr_managed_execs || true)"
   if [[ -n "$managed_execs" ]]; then
     while read -r item; do
-      [[ -n "$item" ]] && printf '  [hypr] %s\n' "$item"
+      [[ -n "$item" ]] && printf '  %s✓%s %s  %s[hypr]%s\n' "$_c_green" "$_c_reset" "$item" "$_c_dim" "$_c_reset"
     done <<<"$managed_execs"
   else
     dim "  (none)"
@@ -192,11 +194,11 @@ autostart_status() {
     if autostart_contains_line "$live_cmd" <<<"$managed_execs" || autostart_ignored "$item"; then
       continue
     fi
-    printf '  [hypr:local] %s\n' "$live_cmd"
-    printf '    file   : %s\n' "$live_file"
-    printf '    adopt  : dotfiles autostart adopt hypr %q\n' "$live_cmd"
-    printf '    ignore : dotfiles autostart ignore %q\n' "$item"
-    printf '    remove : dotfiles autostart remove %q\n' "$live_cmd"
+    printf '\n  %s!%s %s  %s[hypr:local]%s\n' "$_c_yellow" "$_c_reset" "$live_cmd" "$_c_dim" "$_c_reset"
+    printf '    %sfile:%s    %s\n'   "$_c_dim" "$_c_reset" "$live_file"
+    printf '    %sadopt:%s   dotfiles autostart adopt hypr %q\n'  "$_c_dim" "$_c_reset" "$live_cmd"
+    printf '    %signore:%s  dotfiles autostart ignore %q\n' "$_c_dim" "$_c_reset" "$item"
+    printf '    %sremove:%s  dotfiles autostart remove %q\n'  "$_c_dim" "$_c_reset" "$live_cmd"
     needs_decision=1
   done < <(autostart_hypr_live_execs)
 
@@ -234,17 +236,17 @@ autostart_status_xdg_user() {
     exec="$(autostart_desktop_value Exec "$file")"
     hidden="$(autostart_desktop_value Hidden "$file")"
     if [[ "${hidden,,}" == "true" ]]; then
-      printf '  [xdg:disabled] %s\n' "$base"
-      printf '    file   : %s\n' "$file"
-      printf '    state  : Hidden=true local override\n'
-      printf '    ignore : dotfiles autostart ignore %q\n' "$item"
-      printf '    remove : dotfiles autostart remove %q\n' "$item"
+      printf '\n  %s!%s %s  %s[xdg:disabled]%s\n' "$_c_yellow" "$_c_reset" "$base" "$_c_dim" "$_c_reset"
+      printf '    %sstate:%s   Hidden=true local override\n' "$_c_dim" "$_c_reset"
+      printf '    %sfile:%s    %s\n'   "$_c_dim" "$_c_reset" "$file"
+      printf '    %signore:%s  dotfiles autostart ignore %q\n' "$_c_dim" "$_c_reset" "$item"
+      printf '    %sremove:%s  dotfiles autostart remove %q\n'  "$_c_dim" "$_c_reset" "$item"
     else
-      printf '  [xdg:local] %s (%s)\n' "$base" "${name:-$base}"
-      printf '    exec   : %s\n' "${exec:-(none)}"
-      printf '    adopt  : dotfiles autostart adopt xdg %q\n' "$base"
-      printf '    ignore : dotfiles autostart ignore %q\n' "$item"
-      printf '    remove : dotfiles autostart remove %q\n' "$item"
+      printf '\n  %s!%s %s  %s[xdg:local]%s  %s\n' "$_c_yellow" "$_c_reset" "$base" "$_c_dim" "$_c_reset" "${name:-$base}"
+      printf '    %sexec:%s    %s\n'  "$_c_dim" "$_c_reset" "${exec:-(none)}"
+      printf '    %sadopt:%s   dotfiles autostart adopt xdg %q\n' "$_c_dim" "$_c_reset" "$base"
+      printf '    %signore:%s  dotfiles autostart ignore %q\n' "$_c_dim" "$_c_reset" "$item"
+      printf '    %sremove:%s  dotfiles autostart remove %q\n'  "$_c_dim" "$_c_reset" "$item"
     fi
     AUTOSTART_NEEDS_DECISION=1
   done
@@ -269,9 +271,9 @@ autostart_status_defaults() {
     fi
     name="$(autostart_desktop_value Name "$file")"
     exec="$(autostart_desktop_value Exec "$file")"
-    printf '  [xdg-system] %s (%s)\n' "$base" "${name:-$base}"
-    printf '    exec   : %s\n' "${exec:-(none)}"
-    printf '    ignore : dotfiles autostart ignore %q\n' "$item"
+    printf '  %s[xdg-system]%s %s  %s%s%s\n' "$_c_dim" "$_c_reset" "$base" "$_c_dim" "${name:-$base}" "$_c_reset"
+    printf '    %sexec:%s    %s\n'   "$_c_dim" "$_c_reset" "${exec:-(none)}"
+    printf '    %signore:%s  dotfiles autostart ignore %q\n' "$_c_dim" "$_c_reset" "$item"
     found_system=1
   done
   if [[ $show_all -eq 1 ]]; then
@@ -279,7 +281,7 @@ autostart_status_defaults() {
   elif [[ $system_count -eq 0 ]]; then
     dim "  (no system XDG entries visible)"
   else
-    printf '  %s system XDG autostart entries hidden; run: dotfiles autostart status --all\n' "$system_count"
+    printf '  %s%s system XDG entries%s  —  dotfiles autostart status --all\n' "$_c_dim" "$system_count" "$_c_reset"
   fi
 
   systemd_count=0
@@ -293,14 +295,14 @@ autostart_status_defaults() {
       [[ "$fragment" == /usr/lib/systemd/user/* ]] || continue
       systemd_count=$((systemd_count+1))
       if [[ $show_all -eq 1 ]]; then
-        printf '  [systemd:packaged] %s (%s)\n' "$unit" "$state"
-        printf '    file   : %s\n' "$fragment"
-        printf '    ignore : dotfiles autostart ignore %q\n' "$item_systemd"
+        printf '  %s[systemd:packaged]%s %s  %s%s%s\n' "$_c_dim" "$_c_reset" "$unit" "$_c_dim" "$state" "$_c_reset"
+        printf '    %sfile:%s    %s\n'   "$_c_dim" "$_c_reset" "$fragment"
+        printf '    %signore:%s  dotfiles autostart ignore %q\n' "$_c_dim" "$_c_reset" "$item_systemd"
       fi
     done < <(systemctl --user list-unit-files --state=enabled,linked,masked --no-pager --no-legend 2>/dev/null || true)
   fi
   if [[ $show_all -ne 1 && $systemd_count -gt 0 ]]; then
-    printf '  %s packaged user systemd units hidden; run: dotfiles autostart status --all\n' "$systemd_count"
+    printf '  %s%s packaged systemd units%s  —  dotfiles autostart status --all\n' "$_c_dim" "$systemd_count" "$_c_reset"
   fi
   return 0
 }
@@ -320,10 +322,10 @@ autostart_status_systemd() {
     autostart_ignored "$item" && continue
     fragment="$(systemctl --user show "$unit" -p FragmentPath --value --no-pager 2>/dev/null || true)"
     [[ "$fragment" == /usr/lib/systemd/user/* ]] && continue
-    printf '  [systemd:user] %s (%s)\n' "$unit" "$state"
-    [[ -n "$fragment" ]] && printf '    file   : %s\n' "$fragment"
-    printf '    ignore : dotfiles autostart ignore %q\n' "$item"
-    printf '    remove : dotfiles autostart remove %q\n' "$item"
+    printf '\n  %s!%s %s  %s[systemd:user]%s  %s\n' "$_c_yellow" "$_c_reset" "$unit" "$_c_dim" "$_c_reset" "$state"
+    [[ -n "$fragment" ]] && printf '    %sfile:%s    %s\n' "$_c_dim" "$_c_reset" "$fragment"
+    printf '    %signore:%s  dotfiles autostart ignore %q\n' "$_c_dim" "$_c_reset" "$item"
+    printf '    %sremove:%s  dotfiles autostart remove %q\n'  "$_c_dim" "$_c_reset" "$item"
     AUTOSTART_NEEDS_DECISION=1
   done < <(systemctl --user list-unit-files --state=enabled,linked,masked --no-pager --no-legend 2>/dev/null || true)
   return 0
@@ -331,14 +333,14 @@ autostart_status_systemd() {
 
 autostart_status_ignored() {
   local file line found=0 seen=$'\n'
-  info "Ignored local decisions"
+  info "Ignored"
   for file in "$(autostart_ignore_file)" "$HOME/.config/dotfiles/autostart.ignore"; do
     [[ -f "$file" ]] || continue
     while IFS= read -r line || [[ -n "$line" ]]; do
       line="$(autostart_strip "${line%%#*}")"
       [[ -z "$line" ]] && continue
       [[ "$seen" == *$'\n'"$line"$'\n'* ]] && continue
-      printf '  %s\n' "$line"
+      printf '  %s%s%s\n' "$_c_dim" "$line" "$_c_reset"
       seen+="$line"$'\n'
       found=1
     done <"$file"

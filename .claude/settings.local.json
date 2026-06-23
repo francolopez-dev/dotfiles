@@ -44,7 +44,10 @@
       "Bash(grep -E \"^\\\\s+\\(None|Paste|Copy|Scroll|Toggle|Spawn|Create|Quit|Clear|Search|Vi|Reset|Increase|Decrease|Minimize|Select|Move|Open|Cancel|Close|Delete|Right|Left|Up|Down|First|Last|High|Middle|Low|Bracket|Smart|Insert|ToggleVi\\)[a-zA-Z]*$\")",
       "Bash(echo \"exit: $?\")",
       "Bash(python3 *)",
-      "Bash(grep -A1 \"Tab$\\\\|NextTab\\\\|PrevTab\\\\|LastTab\\\\|SelectTab\\\\|CloseTab\\\\|CreateTab\")"
+      "Bash(grep -A1 \"Tab$\\\\|NextTab\\\\|PrevTab\\\\|LastTab\\\\|SelectTab\\\\|CloseTab\\\\|CreateTab\")",
+      "Bash(systemctl --user list-unit-files --state=enabled,linked)",
+      "Bash(systemctl --user status synergy.service)",
+      "Bash(scripts/dotfiles autostart *)"
     ]
   }
 }

@@ -1,0 +1,14 @@
+----------------------------------
+Dotfiles Bootstrap (remote entrypoint)
+Repo:   /home/jfranco/dotfiles/tests/bootstrap-update/.tmp/reset/origin.git
+Target: /home/jfranco/dotfiles/tests/bootstrap-update/.tmp/reset/local
+Update: reset
+----------------------------------
+Repo exists. Updating with mode: reset
+From /home/jfranco/dotfiles/tests/bootstrap-update/.tmp/reset/origin
+ * branch            main       -> FETCH_HEAD
+WARNING: Reset mode discards local commits and working-tree changes.
+Resetting main to origin/main...
+HEAD is now at d7c3cdf base
+Removing dirty.txt
+Skipping root orchestrator handoff because DOTFILES_BOOTSTRAP_SKIP_HANDOFF=1.

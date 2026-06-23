@@ -1,0 +1,33 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(shellcheck *)",
+      "Bash(scripts/validate-profiles.sh *)",
+      "Bash(tests/recovery-pack/run-tests.sh)",
+      "Bash(tests/bootstrap-update/run-tests.sh)",
+      "Bash(tests/stow-cleanup/run-tests.sh)",
+      "Bash(tests/cli/run-tests.sh)",
+      "Bash(./bootstrap.sh --dry-run --profile laptop-personal-omarchy)",
+      "Read(//home/jfranco/.config/alacritty/**)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(pacman -Q shellcheck)",
+      "Bash(bash -n /home/jfranco/dotfiles/stow/scripts/bin/dotfiles)",
+      "Bash(bash *)",
+      "Bash(stow *)",
+      "Bash(hyprctl reload *)",
+      "Bash(hyprctl configerrors *)",
+      "Bash(omarchy restart *)",
+      "Bash(hyprctl getoption *)",
+      "Bash(dotfiles autostart *)",
+      "Bash(systemctl --user list-units --type=service --state=running --plain --no-legend)",
+      "Bash(awk '{print $1}')",
+      "Read(//home/jfranco/.config/autostart/**)",
+      "Read(//etc/xdg/autostart/**)",
+      "Bash(dotfiles status *)",
+      "Bash(git -C /home/jfranco/dotfiles status)",
+      "Bash(git -C /home/jfranco/dotfiles diff)",
+      "Bash(git *)"
+    ]
+  }
+}

@@ -58,7 +58,8 @@
   "custom/date": {
     "exec": "date '+%b%d'",
     "interval": 60,
-    "tooltip": false
+    "tooltip": false,
+    "on-click": "sh -lc 'if command -v gsimplecal >/dev/null 2>&1; then gsimplecal; else notify-send Calendar \"Install gsimplecal with: dotfiles update\"; fi'"
   },
 
   "custom/island": {

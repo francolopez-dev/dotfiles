@@ -1,0 +1,16 @@
+----------------------------------
+Dotfiles Bootstrap (remote entrypoint)
+Repo:   /home/jfranco/dotfiles/tests/bootstrap-update/.tmp/clean-ff/origin.git
+Target: /home/jfranco/dotfiles/tests/bootstrap-update/.tmp/clean-ff/local
+Update: safe
+----------------------------------
+Repo exists. Updating with mode: safe
+From /home/jfranco/dotfiles/tests/bootstrap-update/.tmp/clean-ff/origin
+ * branch            main       -> FETCH_HEAD
+   fb58d6e..c20f6a2  main       -> origin/main
+Fast-forwarding main from origin/main...
+Updating fb58d6e..c20f6a2
+Fast-forward
+ state.txt | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+Skipping root orchestrator handoff because DOTFILES_BOOTSTRAP_SKIP_HANDOFF=1.

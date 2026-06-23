@@ -1,52 +1,50 @@
 # First-time setup
 
-Steps to bring a fresh machine online.
+## 1. Choose the hostname
 
-## 1. Run bootstrap
+Set a human hostname before bootstrapping. The repo does not force a naming
+scheme; it only derives the profile directory from the hostname and OS.
+
+Examples:
 
 ```bash
-curl -fsSL <raw-url>/scripts/bootstrap.sh | bash
+hostname -s
+# nox, fornax, domu-core, ...
 ```
 
-This will:
-1. Clone the repo to `~/dotfiles` (or update it if present).
-2. Check out the working branch.
-3. Apply the stow layers for this machine (`global → os-<os> → profile-<hostname>-<os>`).
-4. Symlink the `dotfiles` CLI to `~/.local/bin/dotfiles` and ensure that dir is on `PATH`.
+## 2. Run bootstrap
 
-Restart your shell (or `source ~/.zshrc`) so `dotfiles` is found.
+```bash
+curl -fsSL <raw-url>/scripts/bootstrap.sh | DOTFILES_BRANCH=clean-layers bash
+```
 
-## 2. Verify
+Bootstrap clones or updates `~/dotfiles`, checks out `clean-layers`, applies the
+ordered Stow layers, and links `scripts/dotfiles` to `~/.local/bin/dotfiles`.
+
+## 3. Verify
 
 ```bash
 dotfiles status
 ```
 
-Check that the hostname, OS, and active layers are what you expect, and review
-any reported package drift.
+Confirm the hostname, OS, and active layers. For this work Lenovo, the active
+profile should be `profile-fornax-omarchy`.
 
-## 3. Create a profile layer (if this machine needs overrides)
+## 4. Manual post-bootstrap steps
 
-If `dotfiles status` shows no `profile-<hostname>-<os>` layer but this machine
-needs machine-specific config (monitors, autostart):
+- Authenticate Tailscale manually: `sudo tailscale up`.
+- Log in to Atuin manually: `atuin login`.
+- Restore private keys only from the encrypted recovery pack.
+- Keep passwords in Vaultwarden, never in Git.
+
+## 5. New Machine Profile
+
+If a machine needs overrides, copy the closest existing profile and rename it:
 
 ```bash
-mkdir -p stow/profile-$(hostname -s)-<os>/hyprland/.config/hypr/conf.d
-# add 20-monitors.conf, 30-autostart.conf, etc.
-dotfiles apply
+cp -a stow/profile-fornax-omarchy stow/profile-$(hostname -s)-omarchy
+cp packages/profile-fornax-omarchy.list packages/profile-$(hostname -s)-omarchy.list
 ```
 
-Copy an existing profile (e.g. `stow/profile-aether-omarchy/`) as a template.
-
-## 4. Install missing packages
-
-`dotfiles status` lists declared-but-missing packages. Install them with the
-native package manager (pacman/yay on Omarchy, apt on Debian/Ubuntu).
-
-## 5. Sync & secrets (manual, never automated)
-
-- Authenticate Tailscale: `sudo tailscale up`
-- Log in to Atuin: `atuin login`
-- Restore SSH/WireGuard keys from the Age recovery pack (see
-  [recovery-pack-usage.md](recovery-pack-usage.md)).
-- Passwords come from Vaultwarden — never from Git.
+Then edit `20-monitors.conf`, `30-autostart.conf`, and package list entries for
+that machine.

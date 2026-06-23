@@ -2,7 +2,14 @@
 # Sourced by both ~/.zshrc and ~/.bashrc.
 # Keep this machine-agnostic — anything machine-specific belongs in env.local.
 
-# Add ~/bin (stowed scripts) to PATH if present
+# Add user script directories to PATH if present.
+if [ -d "$HOME/.local/bin" ]; then
+  case ":$PATH:" in
+    *":$HOME/.local/bin:"*) ;;
+    *) export PATH="$HOME/.local/bin:$PATH" ;;
+  esac
+fi
+
 if [ -d "$HOME/bin" ]; then
   case ":$PATH:" in
     *":$HOME/bin:"*) ;;

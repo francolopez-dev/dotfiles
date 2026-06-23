@@ -16,7 +16,6 @@ pkg_manager() {
   case "$(detect_os)" in
     omarchy) command -v yay >/dev/null && echo "yay -S --needed" || echo "sudo pacman -S --needed" ;;
     debian|ubuntu) echo "sudo apt-get install -y" ;;
-    macos) echo "brew install" ;;
     *) echo "" ;;
   esac
 }

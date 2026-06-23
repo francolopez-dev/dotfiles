@@ -20,7 +20,7 @@ stow_layer() {
     dim "  ($layer: no packages)"
     return 0
   fi
-  stow --dir="$dir" --target="$HOME" "$@" "${pkgs[@]}"
+  stow --no-folding --dir="$dir" --target="$HOME" "$@" "${pkgs[@]}"
 }
 
 # apply_all_layers [extra stow args...]

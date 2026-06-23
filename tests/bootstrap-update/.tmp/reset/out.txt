@@ -1,0 +1,18 @@
+----------------------------------
+Dotfiles Bootstrap (remote entrypoint)
+Repo:   /home/jfranco/dotfiles/tests/bootstrap-update/.tmp/reset/origin.git
+Target: /home/jfranco/dotfiles/tests/bootstrap-update/.tmp/reset/local
+Update: reset
+----------------------------------
+Repo exists. Updating with mode: reset
+From /home/jfranco/dotfiles/tests/bootstrap-update/.tmp/reset/origin
+ * branch            main       -> FETCH_HEAD
+ERROR: Reset mode requires DOTFILES_CONFIRM_RESET=1.
+Update state:
+  branch: main
+  dirty working tree: yes
+  behind origin/main: 0
+  ahead of origin/main: 1
+Refusing to update so local work is not hidden or overwritten.
+Suggested command:
+  curl -fsSL https://raw.githubusercontent.com/jfrancolopez/dotfiles/main/scripts/bootstrap.sh | DOTFILES_UPDATE_MODE=reset DOTFILES_CONFIRM_RESET=1 bash

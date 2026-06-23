@@ -1,0 +1,4 @@
+:: Cleaning stale incompatible stow links for OS 'omarchy'
+:: [dry-run] would remove stale stow link: .config/aerospace/aerospace.toml -> ../../../repo/stow/aerospace/.config/aerospace/aerospace.toml
+:: [dry-run] would remove stale stow link: .config/borders/bordersrc -> ../../../repo/stow/borders/.config/borders/bordersrc
+ok Stale stow cleanup complete.

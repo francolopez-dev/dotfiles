@@ -21,8 +21,12 @@ else
   say "Cloning $REPO_URL -> $DOTFILES_DIR"
   git clone "$REPO_URL" "$DOTFILES_DIR"
 fi
-git -C "$DOTFILES_DIR" checkout "$BRANCH"
-git -C "$DOTFILES_DIR" pull --ff-only origin "$BRANCH" || true
+if git -C "$DOTFILES_DIR" rev-parse --verify "$BRANCH" >/dev/null 2>&1; then
+  git -C "$DOTFILES_DIR" checkout "$BRANCH"
+else
+  git -C "$DOTFILES_DIR" checkout -b "$BRANCH" "origin/$BRANCH"
+fi
+git -C "$DOTFILES_DIR" pull --ff-only origin "$BRANCH"
 
 # 2. apply layers (plain stow, no wizard in phase 1)
 say "Applying stow layers"
@@ -35,8 +39,10 @@ say "Linked dotfiles -> $BIN_DIR/dotfiles"
 
 # 4. ensure ~/.local/bin is on PATH via .zshrc
 ZSHRC="$HOME/.zshrc"
+# shellcheck disable=SC2016
 PATH_LINE='export PATH="$HOME/.local/bin:$PATH"'
-if [[ -f "$ZSHRC" ]] && ! grep -qF "$PATH_LINE" "$ZSHRC"; then
+touch "$ZSHRC"
+if ! grep -qF "$PATH_LINE" "$ZSHRC"; then
   printf '\n# Added by dotfiles bootstrap\n%s\n' "$PATH_LINE" >> "$ZSHRC"
   say "Added ~/.local/bin to PATH in .zshrc (restart shell)"
 fi

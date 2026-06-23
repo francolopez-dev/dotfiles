@@ -1,0 +1,19 @@
+----------------------------------
+Dotfiles Bootstrap (remote entrypoint)
+Repo:   /home/jfranco/dotfiles/tests/bootstrap-update/.tmp/diverged/origin.git
+Target: /home/jfranco/dotfiles/tests/bootstrap-update/.tmp/diverged/local
+Update: safe
+----------------------------------
+Repo exists. Updating with mode: safe
+From /home/jfranco/dotfiles/tests/bootstrap-update/.tmp/diverged/origin
+ * branch            main       -> FETCH_HEAD
+   d7c3cdf..05f3162  main       -> origin/main
+ERROR: Branch has diverged from origin/main.
+Update state:
+  branch: main
+  dirty working tree: no
+  behind origin/main: 1
+  ahead of origin/main: 1
+Refusing to update so local work is not hidden or overwritten.
+Suggested command:
+  curl -fsSL https://raw.githubusercontent.com/jfrancolopez/dotfiles/main/scripts/bootstrap.sh | DOTFILES_UPDATE_MODE=stash-rebase bash

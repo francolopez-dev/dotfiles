@@ -7,7 +7,8 @@ change true everywhere it should apply.
 |---|---|
 | A global shell alias / env var | `stow/global/shell/.config/shell/aliases.sh` (or `env.sh`) |
 | Zsh config / prompt | `stow/global/zsh/.zshrc`, `stow/global/zsh/.p10k.zsh` |
-| Git ignore / config | `stow/global/git/.config/git/` |
+| Git config | `stow/global/git/.gitconfig` |
+| Global Git ignore | `stow/global/git/.gitignore_global` |
 | tmux | `stow/global/tmux/.tmux.conf` |
 | SSH client config | `stow/global/ssh/.ssh/config` |
 | Hyprland keybinds (all Omarchy machines) | `stow/os-omarchy/hyprland/.config/hypr/conf.d/99-omarchy-keymap.conf` |
@@ -15,9 +16,11 @@ change true everywhere it should apply.
 | Waybar | `stow/os-omarchy/waybar/.config/waybar/` |
 | Rofi | `stow/os-omarchy/rofi/.config/rofi/` |
 | Ghostty terminal | `stow/os-omarchy/ghostty/.config/ghostty/config` |
+| Default terminal launcher | `stow/global/xdg-terminal-exec/.config/xdg-terminals.list` |
 | Atuin | `stow/os-omarchy/atuin/.config/atuin/config.toml` |
 | Neovim | `stow/os-omarchy/neovim/.config/nvim/` |
-| **Monitor scale/resolution (one machine)** | `stow/profile-<hostname>-omarchy/hyprland/.config/hypr/conf.d/20-monitors.conf` |
+| Monitor scale/resolution for `nox` | `stow/profile-nox-omarchy/hyprland/.config/hypr/conf.d/20-monitors.conf` |
+| Monitor scale/resolution for `fornax` | `stow/profile-fornax-omarchy/hyprland/.config/hypr/conf.d/20-monitors.conf` |
 | Autostart apps (one machine) | `stow/profile-<hostname>-omarchy/hyprland/.config/hypr/conf.d/30-autostart.conf` |
 | Add a package everywhere | `packages/global.list` |
 | Add a package on all Omarchy machines | `packages/os-omarchy.list` |
@@ -26,8 +29,8 @@ change true everywhere it should apply.
 ## Rules of thumb
 
 - **Monitor config is always machine-specific.** It belongs in the profile
-  layer's `20-monitors.conf`, never in `os-omarchy`. (Putting it in the OS layer
-  was the old "scale not applying" bug.)
-- The OS layer and the profile layer both drop files into `conf.d/`, but with
-  **distinct filenames**, so Stow merges them without conflict.
+  layer's `20-monitors.conf`, never in `os-omarchy`. Putting it in the OS layer
+  was the old scale bug.
+- The OS layer and profile layer both drop files into `conf.d/`, but with
+  distinct filenames, so Stow merges them without conflict.
 - After editing anything, run `dotfiles apply`.

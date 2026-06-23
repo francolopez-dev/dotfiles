@@ -1,0 +1,18 @@
+----------------------------------
+Dotfiles Bootstrap (remote entrypoint)
+Repo:   /home/jfranco/dotfiles/tests/bootstrap-update/.tmp/dirty/origin.git
+Target: /home/jfranco/dotfiles/tests/bootstrap-update/.tmp/dirty/local
+Update: safe
+----------------------------------
+Repo exists. Updating with mode: safe
+From /home/jfranco/dotfiles/tests/bootstrap-update/.tmp/dirty/origin
+ * branch            main       -> FETCH_HEAD
+ERROR: Working tree has local changes.
+Update state:
+  branch: main
+  dirty working tree: yes
+  behind origin/main: 0
+  ahead of origin/main: 0
+Refusing to update so local work is not hidden or overwritten.
+Suggested command:
+  cd /home/jfranco/dotfiles/tests/bootstrap-update/.tmp/dirty/local && git status --short

@@ -11,5 +11,5 @@ source the include directory:
 source = ~/.config/hypr/conf.d/*.conf
 ```
 
-Keep machine-specific monitor and workspace choices commented unless they are
-safe for every Omarchy machine using `profiles/stow-os-base`.
+Keep machine-specific monitor and workspace choices out of this layer. Put them
+in `stow/profile-<hostname>-omarchy/hyprland/.config/hypr/conf.d/`.

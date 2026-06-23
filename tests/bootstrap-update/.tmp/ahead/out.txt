@@ -1,0 +1,18 @@
+----------------------------------
+Dotfiles Bootstrap (remote entrypoint)
+Repo:   /home/jfranco/dotfiles/tests/bootstrap-update/.tmp/ahead/origin.git
+Target: /home/jfranco/dotfiles/tests/bootstrap-update/.tmp/ahead/local
+Update: safe
+----------------------------------
+Repo exists. Updating with mode: safe
+From /home/jfranco/dotfiles/tests/bootstrap-update/.tmp/ahead/origin
+ * branch            main       -> FETCH_HEAD
+ERROR: Branch has unpushed local commits.
+Update state:
+  branch: main
+  dirty working tree: no
+  behind origin/main: 0
+  ahead of origin/main: 1
+Refusing to update so local work is not hidden or overwritten.
+Suggested command:
+  curl -fsSL https://raw.githubusercontent.com/jfrancolopez/dotfiles/main/scripts/bootstrap.sh | DOTFILES_UPDATE_MODE=stash-rebase bash

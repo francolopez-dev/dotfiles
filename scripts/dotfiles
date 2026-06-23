@@ -9,11 +9,11 @@
 set -euo pipefail
 
 _self="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || echo "${BASH_SOURCE[0]}")")" && pwd)"
-# shellcheck source=lib/common.sh
+# shellcheck disable=SC1091
 . "$_self/lib/common.sh"
-# shellcheck source=lib/stow.sh
+# shellcheck disable=SC1091
 . "$_self/lib/stow.sh"
-# shellcheck source=lib/packages.sh
+# shellcheck disable=SC1091
 . "$_self/lib/packages.sh"
 
 usage() {
@@ -167,16 +167,9 @@ _pkg_installed() {
   case "$(detect_os)" in
     omarchy) pacman -Qq "$1" >/dev/null 2>&1 ;;
     debian|ubuntu) dpkg -s "$1" >/dev/null 2>&1 ;;
-    macos)
-      # Check install dirs directly: avoids brew's cask loader, which errors on
-      # custom/untrusted taps. Cask tokens may carry a tap prefix (a/b/token).
-      [[ -d "$(_brew_cellar)/$1" || -d "$(_brew_caskroom)/${1##*/}" ]] ;;
     *) return 0 ;;
   esac
 }
-
-_brew_cellar()   { : "${_BREW_CELLAR:=$(brew --cellar 2>/dev/null)}"; printf '%s' "$_BREW_CELLAR"; }
-_brew_caskroom() { : "${_BREW_CASKROOM:=$(brew --caskroom 2>/dev/null)}"; printf '%s' "$_BREW_CASKROOM"; }
 
 main() {
   local cmd="${1:-status}"; shift || true

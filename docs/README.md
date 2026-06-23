@@ -1,49 +1,43 @@
 # dotfiles
 
-A layered, [GNU Stow](https://www.gnu.org/software/stow/)-based personal platform
-for rebuilding and maintaining machines. Git is the source of truth for system
-intent. Secrets never live in Git (Vaultwarden owns passwords; the Age recovery
-pack owns key material).
+A small, layered, GNU Stow based personal platform for rebuilding and
+maintaining machines. Git is the source of truth for system intent. Secrets do
+not live here: Vaultwarden owns passwords and the encrypted recovery pack owns
+key material.
 
 ## Philosophy
 
-- **Machines are disposable.** A fresh machine is one `bootstrap.sh` away.
-- **Every config is a real file you can edit.** No generated files, no templating.
-- **The directory name tells you what a thing is.** Read the tree, understand the system.
-- **Bash + Stow only.** No Ansible, no Nix, no frameworks.
+- Machines are disposable.
+- Every managed config is a real file under `stow/`.
+- Directory names explain scope: global, OS, then hostname profile.
+- Bash and Stow only. No Ansible, Nix, templates, or generated config files.
 
 ## Layers
 
-Configs are applied in strict order. Later layers add to (never overwrite) earlier ones:
+Configs apply in strict order:
 
-```
-global              # universal: git, zsh, bash, tmux, ssh, shell aliases
-  └─ os-<os>        # per-OS desktop/server: omarchy, debian, ubuntu
-       └─ profile-<hostname>-<os>   # machine-specific: monitors, autostart, …
+```text
+stow/global
+stow/os-<os>
+stow/profile-<hostname>-<os>
 ```
 
-The profile layer is derived from the machine's **hostname** and detected **OS**.
-If `stow/profile-<hostname>-<os>/` exists, that machine has overrides; if not,
-only `global` + `os-<os>` apply (headless / simple cases).
+The supported OS IDs are `omarchy`, `debian`, and `ubuntu`. The profile name is
+derived from `hostname -s`, so this work Lenovo named `fornax` on Omarchy uses
+`stow/profile-fornax-omarchy/`. If that directory does not exist, only global and
+OS layers apply.
 
-## Repository structure
+## Current Profiles
 
-```
-stow/        ALL managed configs, one stow package per app, grouped by layer
-packages/    plain-text package lists, one per layer (*.list)
-scripts/     bootstrap.sh, the dotfiles CLI, and lib/ helpers
-docs/        this documentation
-```
+- `profile-nox-omarchy`: personal Lenovo T490.
+- `profile-fornax-omarchy`: work Lenovo.
 
 ## Quickstart
 
 ```bash
-# First machine setup (clones, stows, links the CLI onto PATH):
-curl -fsSL <raw-url>/scripts/bootstrap.sh | bash
-
-# Day to day:
-dotfiles status     # machine identity, active layers, package drift
-dotfiles apply      # re-stow all layers for this machine
+curl -fsSL <raw-url>/scripts/bootstrap.sh | DOTFILES_BRANCH=clean-layers bash
+dotfiles status
+dotfiles apply
 ```
 
 See [first-time-setup.md](first-time-setup.md) and [where-to-edit.md](where-to-edit.md).

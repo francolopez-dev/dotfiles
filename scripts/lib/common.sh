@@ -29,10 +29,10 @@ detect_hostname() { hostname -s 2>/dev/null || uname -n | cut -d. -f1; }
 
 # Echoes one of: omarchy | debian | ubuntu | unknown
 detect_os() {
-  if [[ "$(uname -s)" == "Darwin" ]]; then echo "macos"; return; fi
   if [[ -f /etc/os-release ]]; then
     . /etc/os-release
-    case "${ID,,}:${ID_LIKE,,}" in
+    local id="${ID-}" id_like="${ID_LIKE-}"
+    case "${id,,}:${id_like,,}" in
       arch:*|*:*arch*) echo "omarchy" ;;
       ubuntu:*)        echo "ubuntu"  ;;
       debian:*|*:*debian*) echo "debian" ;;

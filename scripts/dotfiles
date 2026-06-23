@@ -45,6 +45,7 @@ cmd_apply() {
 # --- update --------------------------------------------------------------
 cmd_update() {
   local dry=0
+  local stow_failed=0
   [[ "${1:-}" == "--dry-run" ]] && dry=1
 
   info "Update plan for $(detect_hostname) ($(detect_os)):"
@@ -69,9 +70,15 @@ cmd_update() {
   # 2. re-stow (stow is non-destructive: conflicts are reported, not overwritten)
   info "Re-stowing layers"
   if [[ $dry -eq 1 ]]; then
-    apply_all_layers --no --verbose
+    if ! apply_all_layers --no --verbose; then
+      stow_failed=1
+      warn "stow reported conflicts; package check will still run"
+    fi
   else
-    apply_all_layers --restow
+    if ! apply_all_layers --restow; then
+      stow_failed=1
+      warn "stow reported conflicts; package check will still run"
+    fi
   fi
 
   # 3. packages
@@ -97,6 +104,10 @@ cmd_update() {
         $mgr "${missing[@]}"
       fi
     fi
+  fi
+  if [[ $stow_failed -eq 1 ]]; then
+    warn "update completed with stow conflicts"
+    return 1
   fi
   [[ $dry -eq 0 ]] && ok "update complete"
 }

@@ -41,3 +41,26 @@ dotfiles apply
 ```
 
 See [first-time-setup.md](first-time-setup.md) and [where-to-edit.md](where-to-edit.md).
+
+## Cheatsheet
+
+```text
+Setup
+  curl -fsSL <raw-url>/scripts/bootstrap.sh | bash         first-time install
+  DOTFILES_BRANCH=<branch> bash                            pick a branch
+
+Daily
+  dotfiles status         dashboard: host, layers, drift, sync, recovery
+  dotfiles update         pull + re-stow + install missing packages
+  dotfiles apply          re-stow layers after editing configs
+
+Dry-run flags
+  dotfiles update --dry-run   preview without changing anything
+  dotfiles apply  --dry-run   preview stow without touching files
+
+Validation
+  shellcheck -x scripts/dotfiles scripts/bootstrap.sh scripts/lib/*.sh
+
+Layer order
+  stow/global  →  stow/os-<os>  →  stow/profile-<hostname>-<os>
+```

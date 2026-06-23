@@ -24,6 +24,7 @@ change true everywhere it should apply.
 | Monitor scale/resolution for `nox` | `stow/profile-nox-omarchy/hyprland/.config/hypr/conf.d/20-monitors.conf` |
 | Monitor scale/resolution for `fornax` | `stow/profile-fornax-omarchy/hyprland/.config/hypr/conf.d/20-monitors.conf` |
 | Autostart apps (one machine) | `stow/profile-<hostname>-omarchy/hyprland/.config/hypr/conf.d/30-autostart.conf` |
+| Autostart audit ignore list | `stow/profile-<hostname>-omarchy/dotfiles/.config/dotfiles/autostart.ignore` |
 | Add a package everywhere | `packages/global.list` |
 | Add a package on all Omarchy machines | `packages/os-omarchy.list` |
 | Add a package on one machine | `packages/profile-<hostname>-<os>.list` |
@@ -36,3 +37,4 @@ change true everywhere it should apply.
 - The OS layer and profile layer both drop files into `conf.d/`, but with
   distinct filenames, so Stow merges them without conflict.
 - After editing anything, run `dotfiles apply`.
+- To audit login apps and local startup drift, run `dotfiles autostart status`.

@@ -2,10 +2,11 @@
 # dotfiles — small interface for the layered, stow-based dotfiles repo.
 #
 # Deliberately tiny: it manages the repo <-> system relationship and nothing
-# that a normal command already does well. Three commands:
+# that a normal command already does well. Main commands:
 #   status   one aggregated dashboard (machine, repo, layers, drift, sync, recovery)
 #   update   pull, re-stow, install missing packages (the daily maintenance verb)
 #   apply    re-stow layers only (after editing configs locally)
+#   autostart audit and manage login/startup items
 set -euo pipefail
 
 _self="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || echo "${BASH_SOURCE[0]}")")" && pwd)"
@@ -15,6 +16,8 @@ _self="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || echo "$
 . "$_self/lib/stow.sh"
 # shellcheck disable=SC1091
 . "$_self/lib/packages.sh"
+# shellcheck disable=SC1091
+. "$_self/lib/autostart.sh"
 
 usage() {
   cat <<'EOF'
@@ -27,6 +30,8 @@ Usage:
   dotfiles update --dry-run  Show what update would do, change nothing.
   dotfiles apply             Re-stow layers only (after editing configs).
   dotfiles apply --dry-run   Show what stow would do, change nothing.
+  dotfiles autostart status  Audit login/startup items.
+  dotfiles autostart help    Show autostart subcommands.
 
 Layers apply in order: global -> os-<os> -> profile-<hostname>-<os>
 Edit configs under stow/<layer>/<package>/ then run `dotfiles apply`.
@@ -188,6 +193,7 @@ main() {
     status) cmd_status "$@" ;;
     update) cmd_update "$@" ;;
     apply)  cmd_apply "$@" ;;
+    autostart) cmd_autostart "$@" ;;
     help|-h|--help) usage ;;
     *) err "unknown command: $cmd"; usage; exit 1 ;;
   esac

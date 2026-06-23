@@ -27,7 +27,24 @@
       "Bash(dotfiles status *)",
       "Bash(git -C /home/jfranco/dotfiles status)",
       "Bash(git -C /home/jfranco/dotfiles diff)",
-      "Bash(git *)"
+      "Bash(git *)",
+      "Read(//home/jfranco/.local/share/omarchy/config/hypr/**)",
+      "Read(//home/jfranco/.local/share/omarchy/default/hypr/**)",
+      "Bash(ghostty --version)",
+      "Bash(ghostty --help)",
+      "Bash(hyprctl clients *)",
+      "Bash(chmod +x *)",
+      "Bash(scripts/dotfiles apply *)",
+      "Bash(alacritty msg *)",
+      "Bash(alacritty --print-events)",
+      "Bash(journalctl --user -u alacritty)",
+      "Bash(alacritty *)",
+      "Bash(col -b)",
+      "Bash(MANWIDTH=200 man 5 alacritty)",
+      "Bash(grep -E \"^\\\\s+\\(None|Paste|Copy|Scroll|Toggle|Spawn|Create|Quit|Clear|Search|Vi|Reset|Increase|Decrease|Minimize|Select|Move|Open|Cancel|Close|Delete|Right|Left|Up|Down|First|Last|High|Middle|Low|Bracket|Smart|Insert|ToggleVi\\)[a-zA-Z]*$\")",
+      "Bash(echo \"exit: $?\")",
+      "Bash(python3 *)",
+      "Bash(grep -A1 \"Tab$\\\\|NextTab\\\\|PrevTab\\\\|LastTab\\\\|SelectTab\\\\|CloseTab\\\\|CreateTab\")"
     ]
   }
 }

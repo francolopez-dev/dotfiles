@@ -1,2 +1,0 @@
-# desktop apps — Debian/Ubuntu (apt)
-# (only installed when a desktop session is targeted)

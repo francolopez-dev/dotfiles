@@ -1,0 +1,4 @@
+# Debian/Ubuntu server packages — installed via apt on top of global.list.
+# Note: on Debian/Ubuntu `bat` installs as `batcat`; `eza` needs Debian 13+/Ubuntu 24.04+.
+ca-certificates
+tailscale

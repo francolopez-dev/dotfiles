@@ -1,0 +1,16 @@
+# Omarchy (Arch) packages — installed via pacman/yay on top of global.list.
+ca-certificates
+shellcheck
+atuin
+networkmanager
+tailscale
+alacritty
+ghostty
+walker
+vivaldi
+firefox
+zoxide
+yazi
+socat
+restic
+age

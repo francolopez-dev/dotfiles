@@ -1,4 +1,0 @@
-# desktop GUI apps — macOS (brew casks)
-wezterm
-aerospace
-borders

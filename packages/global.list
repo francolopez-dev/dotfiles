@@ -1,0 +1,18 @@
+# Global packages — installed on every machine, every OS.
+# Names that are common across pacman / apt / brew. One package per line.
+git
+stow
+tmux
+fzf
+ripgrep
+jq
+bat
+eza
+fastfetch
+btop
+htop
+neovim
+zsh
+curl
+wget
+nano

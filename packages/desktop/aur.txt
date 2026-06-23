@@ -1,2 +1,0 @@
-# desktop AUR apps — Omarchy
-# (none — prefer official Arch repo packages where available)

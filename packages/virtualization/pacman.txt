@@ -1,4 +1,0 @@
-# virtualization — Arch (pacman)
-# qemu-full
-# libvirt
-# virt-manager

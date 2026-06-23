@@ -1,0 +1,3 @@
+# Placeholder so the os-debian stow layer exists in Git.
+# Add server-only dotfiles here as stow packages, e.g.:
+#   stow/os-debian/tailscale/.config/...

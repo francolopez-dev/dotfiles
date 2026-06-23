@@ -1,0 +1,192 @@
+#!/usr/bin/env bash
+# dotfiles — small interface for the layered, stow-based dotfiles repo.
+#
+# Deliberately tiny: it manages the repo <-> system relationship and nothing
+# that a normal command already does well. Three commands:
+#   status   one aggregated dashboard (machine, repo, layers, drift, sync, recovery)
+#   update   pull, re-stow, install missing packages (the daily maintenance verb)
+#   apply    re-stow layers only (after editing configs locally)
+set -euo pipefail
+
+_self="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || echo "${BASH_SOURCE[0]}")")" && pwd)"
+# shellcheck source=lib/common.sh
+. "$_self/lib/common.sh"
+# shellcheck source=lib/stow.sh
+. "$_self/lib/stow.sh"
+# shellcheck source=lib/packages.sh
+. "$_self/lib/packages.sh"
+
+usage() {
+  cat <<'EOF'
+dotfiles — layered stow-based dotfiles manager
+
+Usage:
+  dotfiles status            One dashboard: machine, repo, layers, package drift,
+                             sync tools, recovery pack.
+  dotfiles update            Pull, re-stow all layers, install missing packages.
+  dotfiles update --dry-run  Show what update would do, change nothing.
+  dotfiles apply             Re-stow layers only (after editing configs).
+  dotfiles apply --dry-run   Show what stow would do, change nothing.
+
+Layers apply in order: global -> os-<os> -> profile-<hostname>-<os>
+Edit configs under stow/<layer>/<package>/ then run `dotfiles apply`.
+EOF
+}
+
+# --- apply ---------------------------------------------------------------
+cmd_apply() {
+  local extra=()
+  [[ "${1:-}" == "--dry-run" ]] && extra=(--no --verbose)
+  info "machine: $(detect_hostname) ($(detect_os))"
+  apply_all_layers "${extra[@]}"
+  [[ ${#extra[@]} -eq 0 ]] && ok "layers applied"
+}
+
+# --- update --------------------------------------------------------------
+cmd_update() {
+  local dry=0
+  [[ "${1:-}" == "--dry-run" ]] && dry=1
+
+  info "Update plan for $(detect_hostname) ($(detect_os)):"
+  printf '  1. git pull --ff-only\n  2. re-stow layers (conflicts reported, never overwritten)\n  3. install missing packages\n'
+  if [[ $dry -eq 1 ]]; then
+    dim "(dry-run: nothing will change)"
+  elif ! confirm "Proceed?"; then
+    warn "aborted"; return 0
+  fi
+
+  # 1. pull
+  info "Pulling repo"
+  if [[ $dry -eq 1 ]]; then
+    git -C "$DOTFILES_DIR" fetch --dry-run 2>&1 | sed 's/^/  /' || true
+  else
+    if ! git -C "$DOTFILES_DIR" pull --ff-only; then
+      warn "fast-forward failed — resolve manually (stash/rebase) then re-run"
+      return 1
+    fi
+  fi
+
+  # 2. re-stow (stow is non-destructive: conflicts are reported, not overwritten)
+  info "Re-stowing layers"
+  if [[ $dry -eq 1 ]]; then
+    apply_all_layers --no --verbose
+  else
+    apply_all_layers --restow
+  fi
+
+  # 3. packages
+  info "Checking packages"
+  local mgr; mgr="$(pkg_manager)"
+  if [[ -z "$mgr" ]]; then
+    warn "no known package manager for this OS, skipping"
+  else
+    local missing=()
+    local p
+    while read -r p; do
+      [[ -z "$p" ]] && continue
+      _pkg_installed "$p" || missing+=("$p")
+    done < <(desired_packages)
+    if [[ ${#missing[@]} -eq 0 ]]; then
+      ok "all declared packages installed"
+    else
+      printf '  missing: %s\n' "${missing[*]}"
+      if [[ $dry -eq 1 ]]; then
+        dim "  would run: $mgr ${missing[*]}"
+      elif confirm "Install ${#missing[@]} missing package(s)?"; then
+        # shellcheck disable=SC2086
+        $mgr "${missing[@]}"
+      fi
+    fi
+  fi
+  [[ $dry -eq 0 ]] && ok "update complete"
+}
+
+# --- status (aggregated) -------------------------------------------------
+cmd_status() {
+  local os host
+  os="$(detect_os)"; host="$(detect_hostname)"
+
+  info "Machine"
+  printf '  hostname : %s\n  os       : %s\n' "$host" "$os"
+
+  info "Active layers"
+  resolve_layers "$os" "$host" | sed 's/^/  /'
+
+  if [[ -d "$DOTFILES_DIR/.git" ]]; then
+    info "Repo"
+    local branchline dirty
+    branchline="$(git -C "$DOTFILES_DIR" status -sb | sed -n '1p')"
+    dirty="$(git -C "$DOTFILES_DIR" status --porcelain | grep -c '' || true)"
+    printf '  %s\n  dirty    : %s file(s)\n' "$branchline" "$dirty"
+  fi
+
+  info "Package drift"
+  local mgr; mgr="$(pkg_manager)"
+  if [[ -z "$mgr" ]]; then
+    dim "  (no known package manager)"
+  else
+    local missing_count=0 p
+    while read -r p; do
+      [[ -z "$p" ]] && continue
+      if ! _pkg_installed "$p"; then printf '  missing  : %s\n' "$p"; missing_count=$((missing_count+1)); fi
+    done < <(desired_packages)
+    [[ $missing_count -eq 0 ]] && ok "all declared packages installed"
+  fi
+
+  info "Sync tools"
+  _status_line "tailscale" 'tailscale status >/dev/null 2>&1' "up" "not connected"
+  _status_line "atuin"     'atuin status >/dev/null 2>&1'     "logged in" "not logged in"
+  _status_line "syncthing" 'pgrep -x syncthing >/dev/null'    "running" "stopped"
+
+  info "Recovery pack"
+  local pack="${RECOVERY_PACK_PATH:-$HOME/recovery/recovery-pack.age}"
+  if [[ -f "$pack" ]]; then
+    local age_days
+    age_days=$(( ( $(date +%s) - $(_mtime "$pack") ) / 86400 ))
+    ok "present (${age_days}d old): $pack"
+  else
+    warn "no recovery pack at $pack"
+  fi
+}
+
+# _status_line <label> <test-cmd> <ok-text> <bad-text>
+_status_line() {
+  local label="$1" test="$2" good="$3" bad="$4"
+  if ! command -v "$label" >/dev/null 2>&1; then
+    dim "  $label: not installed"
+  elif eval "$test"; then
+    printf '  %s: %s\n' "$label" "$good"
+  else
+    printf '  %s: %s\n' "$label" "$bad"
+  fi
+}
+
+_mtime() { stat -f %m "$1" 2>/dev/null || stat -c %Y "$1"; }
+
+_pkg_installed() {
+  case "$(detect_os)" in
+    omarchy) pacman -Qq "$1" >/dev/null 2>&1 ;;
+    debian|ubuntu) dpkg -s "$1" >/dev/null 2>&1 ;;
+    macos)
+      # Check install dirs directly: avoids brew's cask loader, which errors on
+      # custom/untrusted taps. Cask tokens may carry a tap prefix (a/b/token).
+      [[ -d "$(_brew_cellar)/$1" || -d "$(_brew_caskroom)/${1##*/}" ]] ;;
+    *) return 0 ;;
+  esac
+}
+
+_brew_cellar()   { : "${_BREW_CELLAR:=$(brew --cellar 2>/dev/null)}"; printf '%s' "$_BREW_CELLAR"; }
+_brew_caskroom() { : "${_BREW_CASKROOM:=$(brew --caskroom 2>/dev/null)}"; printf '%s' "$_BREW_CASKROOM"; }
+
+main() {
+  local cmd="${1:-status}"; shift || true
+  case "$cmd" in
+    status) cmd_status "$@" ;;
+    update) cmd_update "$@" ;;
+    apply)  cmd_apply "$@" ;;
+    help|-h|--help) usage ;;
+    *) err "unknown command: $cmd"; usage; exit 1 ;;
+  esac
+}
+
+main "$@"

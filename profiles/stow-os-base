@@ -1,7 +1,0 @@
-# Per-OS base stow packages — applied for every profile on a given OS,
-# regardless of profile. These are the OS keyboard-shortcut / desktop /
-# window-manager dotfiles. Format: `<os>: pkg pkg pkg` (one OS per line).
-# `#` comments and blank lines are ignored. The per-package gate in
-# stow-os.map still applies on top of this.
-omarchy: hypr waybar rofi wallpapers themes
-macos: aerospace borders

@@ -4,7 +4,7 @@
 autostart_usage() {
   cat <<'EOF'
 Usage:
-  dotfiles autostart status
+  dotfiles autostart status [--all]
   dotfiles autostart add <command...>
   dotfiles autostart remove [--yes] <command-or-item>
   dotfiles autostart adopt <hypr|xdg> <item>
@@ -15,11 +15,13 @@ Usage:
 Examples:
   dotfiles autostart add uwsm-app -- slack
   dotfiles autostart remove 'uwsm-app -- slack'
+  dotfiles autostart remove synergy.service
   dotfiles autostart adopt xdg walker.desktop
   dotfiles autostart ignore systemd:synergy.service
 
-Items are shown by `dotfiles autostart status`. Managed writes go to the
-current machine profile under stow/ and are applied with GNU stow.
+Items and copy-paste actions are shown by `dotfiles autostart status`. Managed
+writes go to the current machine profile under stow/ and are applied with GNU
+stow.
 EOF
 }
 
@@ -157,35 +159,55 @@ autostart_contains_line() {
 }
 
 autostart_status() {
-  local managed_file managed_execs live_file live_cmd item found_local
+  local show_all=0 managed_file managed_execs live_file live_cmd item needs_decision
+  if [[ "${1:-}" == "--all" ]]; then
+    show_all=1
+  elif [[ -n "${1:-}" ]]; then
+    err "unknown status option: $1"
+    autostart_usage
+    return 1
+  fi
+
   managed_file="$(autostart_managed_file)"
 
-  info "Managed Hyprland autostart"
+  info "Autostart audit"
+  printf '  machine: %s (%s)\n' "$(detect_hostname)" "$(detect_os)"
+  printf '  managed: %s\n' "$managed_file"
+
+  info "Tracked in dotfiles"
   managed_execs="$(autostart_hypr_managed_execs || true)"
   if [[ -n "$managed_execs" ]]; then
     while read -r item; do
-      [[ -n "$item" ]] && printf '  hypr:%s\n' "$item"
+      [[ -n "$item" ]] && printf '  [hypr] %s\n' "$item"
     done <<<"$managed_execs"
   else
     dim "  (none)"
   fi
-  dim "  add/remove target: $managed_file"
 
-  info "Local Hyprland drift"
-  found_local=0
+  info "Needs decision"
+  needs_decision=0
   while IFS=$'\t' read -r live_file live_cmd; do
     [[ -n "$live_cmd" ]] || continue
     item="hypr:$live_cmd"
     if autostart_contains_line "$live_cmd" <<<"$managed_execs" || autostart_ignored "$item"; then
       continue
     fi
-    printf '  %s\n    file: %s\n    action: adopt hypr %q | ignore %q | remove %q\n' "$item" "$live_file" "$live_cmd" "$item" "$live_cmd"
-    found_local=1
+    printf '  [hypr:local] %s\n' "$live_cmd"
+    printf '    file   : %s\n' "$live_file"
+    printf '    adopt  : dotfiles autostart adopt hypr %q\n' "$live_cmd"
+    printf '    ignore : dotfiles autostart ignore %q\n' "$item"
+    printf '    remove : dotfiles autostart remove %q\n' "$live_cmd"
+    needs_decision=1
   done < <(autostart_hypr_live_execs)
-  [[ $found_local -eq 0 ]] && ok "no unmanaged Hyprland exec-once entries"
 
-  autostart_status_xdg
-  autostart_status_systemd
+  autostart_status_xdg_user needs_decision
+  needs_decision="$AUTOSTART_NEEDS_DECISION"
+  autostart_status_systemd needs_decision
+  needs_decision="$AUTOSTART_NEEDS_DECISION"
+  [[ $needs_decision -eq 0 ]] && ok "nothing local needs a decision"
+
+  autostart_status_ignored
+  autostart_status_defaults "$show_all"
   return 0
 }
 
@@ -199,11 +221,10 @@ autostart_desktop_value() {
   done <"$file"
 }
 
-autostart_status_xdg() {
-  local file base name exec hidden item found_user found_system
+autostart_status_xdg_user() {
+  local needs_decision_ref="$1" file base name exec hidden item
+  AUTOSTART_NEEDS_DECISION="${!needs_decision_ref}"
 
-  info "XDG autostart"
-  found_user=0
   for file in "$HOME/.config/autostart"/*.desktop; do
     [[ -f "$file" ]] || continue
     base="$(basename "$file")"
@@ -213,48 +234,116 @@ autostart_status_xdg() {
     exec="$(autostart_desktop_value Exec "$file")"
     hidden="$(autostart_desktop_value Hidden "$file")"
     if [[ "${hidden,,}" == "true" ]]; then
-      printf '  %s Hidden=true\n    action: ignore %q | remove %q\n' "$item" "$item" "$item"
+      printf '  [xdg:disabled] %s\n' "$base"
+      printf '    file   : %s\n' "$file"
+      printf '    state  : Hidden=true local override\n'
+      printf '    ignore : dotfiles autostart ignore %q\n' "$item"
+      printf '    remove : dotfiles autostart remove %q\n' "$item"
     else
-      printf '  %s %s\n    exec: %s\n    action: adopt xdg %q | ignore %q | remove %q\n' "$item" "${name:-$base}" "${exec:-(none)}" "$base" "$item" "$item"
+      printf '  [xdg:local] %s (%s)\n' "$base" "${name:-$base}"
+      printf '    exec   : %s\n' "${exec:-(none)}"
+      printf '    adopt  : dotfiles autostart adopt xdg %q\n' "$base"
+      printf '    ignore : dotfiles autostart ignore %q\n' "$item"
+      printf '    remove : dotfiles autostart remove %q\n' "$item"
     fi
-    found_user=1
+    AUTOSTART_NEEDS_DECISION=1
   done
-  [[ $found_user -eq 0 ]] && ok "no user XDG autostart drift"
+  return 0
+}
 
+autostart_status_defaults() {
+  local show_all="$1" file base name exec item found_system system_count unit state fragment item_systemd systemd_count
+
+  info "System defaults (read-only)"
   found_system=0
+  system_count=0
   for file in /etc/xdg/autostart/*.desktop; do
     [[ -f "$file" ]] || continue
     base="$(basename "$file")"
     item="xdg-system:$base"
     autostart_ignored "$item" && continue
+    system_count=$((system_count+1))
+    if [[ $show_all -ne 1 ]]; then
+      found_system=1
+      continue
+    fi
     name="$(autostart_desktop_value Name "$file")"
     exec="$(autostart_desktop_value Exec "$file")"
-    printf '  %s %s -> %s\n' "$item" "${name:-$base}" "${exec:-(none)}"
+    printf '  [xdg-system] %s (%s)\n' "$base" "${name:-$base}"
+    printf '    exec   : %s\n' "${exec:-(none)}"
+    printf '    ignore : dotfiles autostart ignore %q\n' "$item"
     found_system=1
   done
-  [[ $found_system -eq 0 ]] && dim "  (no system XDG entries visible)"
+  if [[ $show_all -eq 1 ]]; then
+    [[ $found_system -eq 0 ]] && dim "  (no system XDG entries visible)"
+  elif [[ $system_count -eq 0 ]]; then
+    dim "  (no system XDG entries visible)"
+  else
+    printf '  %s system XDG autostart entries hidden; run: dotfiles autostart status --all\n' "$system_count"
+  fi
+
+  systemd_count=0
+  if command -v systemctl >/dev/null 2>&1; then
+    while read -r unit state _; do
+      [[ -n "${unit:-}" ]] || continue
+      [[ "$unit" == *.* ]] || continue
+      item_systemd="systemd:$unit"
+      autostart_ignored "$item_systemd" && continue
+      fragment="$(systemctl --user show "$unit" -p FragmentPath --value --no-pager 2>/dev/null || true)"
+      [[ "$fragment" == /usr/lib/systemd/user/* ]] || continue
+      systemd_count=$((systemd_count+1))
+      if [[ $show_all -eq 1 ]]; then
+        printf '  [systemd:packaged] %s (%s)\n' "$unit" "$state"
+        printf '    file   : %s\n' "$fragment"
+        printf '    ignore : dotfiles autostart ignore %q\n' "$item_systemd"
+      fi
+    done < <(systemctl --user list-unit-files --state=enabled,linked,masked --no-pager --no-legend 2>/dev/null || true)
+  fi
+  if [[ $show_all -ne 1 && $systemd_count -gt 0 ]]; then
+    printf '  %s packaged user systemd units hidden; run: dotfiles autostart status --all\n' "$systemd_count"
+  fi
   return 0
 }
 
 autostart_status_systemd() {
-  local line unit state item found
-  info "User systemd startup"
+  local needs_decision_ref="$1" unit state item fragment
+  AUTOSTART_NEEDS_DECISION="${!needs_decision_ref}"
   if ! command -v systemctl >/dev/null 2>&1; then
-    dim "  (systemctl not installed)"
     return 0
   fi
 
-  found=0
   while read -r unit state _; do
     [[ -n "${unit:-}" ]] || continue
     [[ "$unit" == "UNIT" ]] && continue
     [[ "$unit" == *.* ]] || continue
     item="systemd:$unit"
     autostart_ignored "$item" && continue
-    printf '  %s %s\n    action: ignore %q\n' "$item" "$state" "$item"
-    found=1
+    fragment="$(systemctl --user show "$unit" -p FragmentPath --value --no-pager 2>/dev/null || true)"
+    [[ "$fragment" == /usr/lib/systemd/user/* ]] && continue
+    printf '  [systemd:user] %s (%s)\n' "$unit" "$state"
+    [[ -n "$fragment" ]] && printf '    file   : %s\n' "$fragment"
+    printf '    ignore : dotfiles autostart ignore %q\n' "$item"
+    printf '    remove : dotfiles autostart remove %q\n' "$item"
+    AUTOSTART_NEEDS_DECISION=1
   done < <(systemctl --user list-unit-files --state=enabled,linked,masked --no-pager --no-legend 2>/dev/null || true)
-  [[ $found -eq 0 ]] && ok "no enabled/linked/masked user units reported"
+  return 0
+}
+
+autostart_status_ignored() {
+  local file line found=0 seen=$'\n'
+  info "Ignored local decisions"
+  for file in "$(autostart_ignore_file)" "$HOME/.config/dotfiles/autostart.ignore"; do
+    [[ -f "$file" ]] || continue
+    while IFS= read -r line || [[ -n "$line" ]]; do
+      line="$(autostart_strip "${line%%#*}")"
+      [[ -z "$line" ]] && continue
+      [[ "$seen" == *$'\n'"$line"$'\n'* ]] && continue
+      printf '  %s\n' "$line"
+      seen+="$line"$'\n'
+      found=1
+    done <"$file"
+  done
+  [[ $found -eq 0 ]] && dim "  (none)"
   return 0
 }
 
@@ -282,6 +371,14 @@ autostart_remove() {
   [[ $# -gt 0 ]] || { err "missing command-or-item"; autostart_usage; return 1; }
   target="$*"
 
+  if [[ "$target" != *:* ]]; then
+    if [[ "$target" == *.desktop && -f "$HOME/.config/autostart/$target" ]]; then
+      target="xdg:$target"
+    elif [[ "$target" == *.service || "$target" == *.timer || "$target" == *.socket ]]; then
+      target="systemd:$target"
+    fi
+  fi
+
   case "$target" in
     xdg:*)
       item_file="$HOME/.config/autostart/${target#xdg:}"
@@ -293,8 +390,16 @@ autostart_remove() {
       return 0
       ;;
     systemd:*)
-      err "systemd mutation is not implemented yet; use systemctl --user disable manually or ignore the item"
-      return 1
+      local unit="${target#systemd:}"
+      if ! command -v systemctl >/dev/null 2>&1; then
+        err "systemctl not installed"
+        return 1
+      fi
+      if [[ $yes -eq 1 ]] || confirm "Disable and stop user unit $unit?"; then
+        systemctl --user disable --now "$unit"
+        ok "disabled user unit: $unit"
+      fi
+      return 0
       ;;
   esac
 

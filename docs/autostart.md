@@ -7,15 +7,22 @@ belong in Git, should stay local, or should be removed.
 
 ```bash
 dotfiles autostart status
+dotfiles autostart status --all
 ```
 
 The status view reports:
 
 - Managed Hyprland `exec-once` entries from the active stow layers.
-- Local Hyprland `exec-once` entries not declared in dotfiles.
-- User XDG autostart desktop files in `~/.config/autostart/`.
-- System XDG autostart desktop files in `/etc/xdg/autostart/`.
-- Enabled, linked, or masked user systemd units.
+- Items that need a keep/adopt/remove decision.
+- Ignored local decisions.
+- Read-only system defaults.
+
+By default, read-only system XDG defaults are summarized. Use `--all` to list
+them with their `Exec=` commands.
+
+Items that need a decision include local Hyprland `exec-once` entries, user XDG
+desktop files in `~/.config/autostart/`, and enabled, linked, or masked user
+systemd units.
 
 Each item is printed with an item id such as `hypr:uwsm-app -- slack`,
 `xdg:walker.desktop`, `xdg-system:org.fcitx.Fcitx5.desktop`, or
@@ -87,6 +94,12 @@ Remove a user XDG autostart file:
 dotfiles autostart remove xdg:walker.desktop
 ```
 
-System XDG entries under `/etc/xdg/autostart` are read-only. User systemd
-mutation is intentionally not implemented yet; use status to audit them and
-`ignore` for units that should remain local.
+Disable and stop a user systemd unit:
+
+```bash
+dotfiles autostart remove synergy.service
+# same as:
+dotfiles autostart remove systemd:synergy.service
+```
+
+System XDG entries under `/etc/xdg/autostart` are read-only.

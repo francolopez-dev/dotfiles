@@ -1,0 +1,3 @@
+# Autostart audit ignore list.
+# Use item IDs from `dotfiles autostart status`, one per line.
+systemd:synergy.service

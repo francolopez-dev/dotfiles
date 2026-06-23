@@ -15,10 +15,10 @@ hostname -s
 ## 2. Run bootstrap
 
 ```bash
-curl -fsSL <raw-url>/scripts/bootstrap.sh | DOTFILES_BRANCH=clean-layers bash
+curl -fsSL <raw-url>/scripts/bootstrap.sh | bash
 ```
 
-Bootstrap clones or updates `~/dotfiles`, checks out `clean-layers`, applies the
+Bootstrap clones or updates `~/dotfiles`, checks out `main` by default, applies the
 ordered Stow layers, and links `scripts/dotfiles` to `~/.local/bin/dotfiles`.
 
 ## 3. Verify

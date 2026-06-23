@@ -4,6 +4,11 @@ shellcheck
 atuin
 networkmanager
 tailscale
+playerctl
+pamixer
+power-profiles-daemon
+wtype
+iw
 ghostty
 alacritty
 walker

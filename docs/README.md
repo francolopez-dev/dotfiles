@@ -35,7 +35,7 @@ OS layers apply.
 ## Quickstart
 
 ```bash
-curl -fsSL <raw-url>/scripts/bootstrap.sh | DOTFILES_BRANCH=clean-layers bash
+curl -fsSL <raw-url>/scripts/bootstrap.sh | bash
 dotfiles status
 dotfiles apply
 ```

@@ -8,7 +8,7 @@ set -euo pipefail
 
 REPO_URL="${DOTFILES_REPO_URL:-https://github.com/jfrancolopez/dotfiles.git}"
 export DOTFILES_DIR="${DOTFILES_DIR:-$HOME/dotfiles}"
-BRANCH="${DOTFILES_BRANCH:-clean-layers}"
+BRANCH="${DOTFILES_BRANCH:-main}"
 BIN_DIR="$HOME/.local/bin"
 
 say() { printf '\033[34m==>\033[0m %s\n' "$*"; }

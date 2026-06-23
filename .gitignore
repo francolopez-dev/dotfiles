@@ -21,6 +21,10 @@ logs/
 *.log
 .cache/
 
+# Test scratch worktrees
+/tests/**/.tmp/
+/tests/**/.tmp/**
+
 # OS cruft
 .DS_Store
 Thumbs.db

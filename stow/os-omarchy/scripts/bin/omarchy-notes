@@ -143,13 +143,7 @@ hide_notes() {
 launch_window() {
   local file="${1:-$INBOX_FILE}"
   rm -f "$NVIM_SOCKET"
-  uwsm-app -- ghostty --class="$CLASS" --working-directory="$NOTES_DIR" -e nvim --listen "$NVIM_SOCKET" "$file" >/dev/null 2>&1 &
-  printf '%s\n' "$!" >"$STATE_DIR/notes-launch.pid"
-}
-
-launch_fallback_window() {
-  local file="${1:-$INBOX_FILE}"
-  rm -f "$NVIM_SOCKET"
+  # ghostty --class does not set the Wayland app-id; alacritty --class does
   uwsm-app -- alacritty --class "$CLASS" --working-directory "$NOTES_DIR" --command nvim --listen "$NVIM_SOCKET" "$file" >/dev/null 2>&1 &
   printf '%s\n' "$!" >"$STATE_DIR/notes-launch.pid"
 }
@@ -176,7 +170,7 @@ open_file_in_nvim() {
 }
 
 open_notes() {
-  local file="${1:-$INBOX_FILE}" address launch_pid
+  local file="${1:-$INBOX_FILE}" address
   ensure_notes
   address="$(note_address)"
 
@@ -187,12 +181,7 @@ open_notes() {
   fi
 
   launch_window "$file"
-  if ! address="$(wait_for_window)"; then
-    launch_pid="$(cat "$STATE_DIR/notes-launch.pid" 2>/dev/null || true)"
-    [ -n "$launch_pid" ] && kill "$launch_pid" 2>/dev/null || true
-    launch_fallback_window "$file"
-    address="$(wait_for_window)"
-  fi
+  address="$(wait_for_window)"
   show_window "$address"
 }
 

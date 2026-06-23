@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Hide quake/notes when they're focused; otherwise pass ESC to the active app.
+class=$(hyprctl activewindow -j | jq -r '.class')
+case "$class" in
+  omarchy-quake-terminal) omarchy-quake hide ;;
+  omarchy-quick-notes)    omarchy-notes hide ;;
+  omarchy-todo-drawer)    omarchy-todo hide ;;
+  *)                      wtype -k escape ;;
+esac

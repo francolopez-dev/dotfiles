@@ -44,6 +44,8 @@ keybind = super+c=copy_to_clipboard
 keybind = super+v=paste_from_clipboard
 keybind = super+a=select_all
 keybind = super+t=new_tab
+keybind = super+w=close_surface
+keybind = super+q=quit
 keybind = ctrl+tab=next_tab
 keybind = ctrl+shift+tab=previous_tab
 

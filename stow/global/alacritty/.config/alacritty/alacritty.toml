@@ -54,6 +54,8 @@ save_to_clipboard = true
 bindings = [
   { key = "C", mods = "Super", action = "Copy" },
   { key = "V", mods = "Super", action = "Paste" },
-  { key = "A", mods = "Super", action = "SelectAll" },
-  { key = "T", mods = "Super", action = "CreateNewWindow" },
+  { key = "T", mods = "Super", action = "CreateNewTab" },
+  { key = "Q", mods = "Super", action = "Quit" },
+  { key = "Tab", mods = "Super", action = "SelectNextTab" },
+  { key = "Tab", mods = "Super|Shift", action = "SelectPreviousTab" },
 ]

@@ -161,11 +161,7 @@ hide_quake() {
 }
 
 launch_window() {
-  uwsm-app -- ghostty --class="$CLASS" --working-directory="$HOME" -e zsh -lc "tmux new-session -A -s $TMUX_SESSION" >/dev/null 2>&1 &
-  printf '%s\n' "$!" >"$STATE_DIR/quake-launch.pid"
-}
-
-launch_fallback_window() {
+  # ghostty --class does not set the Wayland app-id; alacritty --class does
   uwsm-app -- alacritty --class "$CLASS" --working-directory "$HOME" --command zsh -lc "tmux new-session -A -s $TMUX_SESSION" >/dev/null 2>&1 &
   printf '%s\n' "$!" >"$STATE_DIR/quake-launch.pid"
 }
@@ -184,18 +180,13 @@ wait_for_window() {
 }
 
 toggle_quake() {
-  local address state launch_pid
+  local address state
   address="$(quake_address)"
   state="$(cat "$STATE_FILE" 2>/dev/null || printf 'closed')"
 
   if [ -z "$address" ]; then
     launch_window
-    if ! address="$(wait_for_window)"; then
-      launch_pid="$(cat "$STATE_DIR/quake-launch.pid" 2>/dev/null || true)"
-      [ -n "$launch_pid" ] && kill "$launch_pid" 2>/dev/null || true
-      launch_fallback_window
-      address="$(wait_for_window)"
-    fi
+    address="$(wait_for_window)"
     show_window "$address"
   elif [ "$state" = "open" ] && is_on_active_workspace "$address"; then
     hide_window "$address"

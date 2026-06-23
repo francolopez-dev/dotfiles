@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# Close all windows belonging to the focused app (macOS Cmd+Q behavior).
+class=$(hyprctl activewindow -j | jq -r '.class')
+[ -z "$class" ] || [ "$class" = "null" ] && exit 0
+hyprctl clients -j | jq -r --arg class "$class" '.[] | select(.class == $class) | .address' | while read -r addr; do
+  hyprctl dispatch closewindow "address:$addr"
+done

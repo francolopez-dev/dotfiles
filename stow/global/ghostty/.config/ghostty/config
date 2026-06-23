@@ -1,5 +1,5 @@
 # Ghostty - global terminal config tracked by dotfiles.
-# Shared across every machine. Put only font-size overrides in profiles.
+# Shared across every machine. Put machine-specific font overrides in profiles.
 
 # --- Theme ---
 theme = Catppuccin Mocha
@@ -14,6 +14,7 @@ font-thicken = false
 font-feature = -calt
 
 # --- Window ---
+gtk-wide-tabs = false
 window-padding-x = 18
 window-padding-y = 14
 background-opacity = 0.92
@@ -46,5 +47,5 @@ keybind = super+t=new_tab
 keybind = ctrl+tab=next_tab
 keybind = ctrl+shift+tab=previous_tab
 
-# Optional profile layer override. Profiles should only put font-size here.
-config-file = ?~/.config/ghostty/profile-font-size
+# Optional profile layer override. This wins over global font settings.
+config-file = ?~/.config/ghostty/profile-overrides

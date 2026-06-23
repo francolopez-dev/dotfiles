@@ -17,7 +17,7 @@ change true everywhere it should apply.
 | Rofi | `stow/os-omarchy/rofi/.config/rofi/` |
 | Ghostty terminal style/shortcuts | `stow/global/ghostty/.config/ghostty/config` |
 | Alacritty terminal style/shortcuts | `stow/global/alacritty/.config/alacritty/alacritty.toml` |
-| Terminal font size for one machine | `stow/profile-<hostname>-<os>/{ghostty,alacritty}/.config/<terminal>/profile-font-size*` |
+| Terminal font overrides for one machine | `stow/profile-<hostname>-<os>/{ghostty,alacritty}/.config/<terminal>/profile-overrides*` |
 | Default terminal launcher | `stow/global/xdg-terminal-exec/.config/xdg-terminals.list` |
 | Atuin | `stow/os-omarchy/atuin/.config/atuin/config.toml` |
 | Neovim | `stow/os-omarchy/neovim/.config/nvim/` |

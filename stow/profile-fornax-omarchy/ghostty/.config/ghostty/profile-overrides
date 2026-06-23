@@ -1,0 +1,3 @@
+# Profile Ghostty overrides for fornax.
+# This file wins over the shared config on this machine.
+font-size = 11

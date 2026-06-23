@@ -195,7 +195,7 @@ autostart_status() {
       continue
     fi
     printf '\n  %s!%s %s  %s[hypr:local]%s\n' "$_c_yellow" "$_c_reset" "$live_cmd" "$_c_dim" "$_c_reset"
-    printf '    %sfile:%s    %s\n'   "$_c_dim" "$_c_reset" "$live_file"
+    printf '    %sfile:%s    %s\n'   "$_c_dim" "$_c_reset" "${live_file/#"$HOME"/\~}"
     printf '    %sadopt:%s   dotfiles autostart adopt hypr %q\n'  "$_c_dim" "$_c_reset" "$live_cmd"
     printf '    %signore:%s  dotfiles autostart ignore %q\n' "$_c_dim" "$_c_reset" "$item"
     printf '    %sremove:%s  dotfiles autostart remove %q\n'  "$_c_dim" "$_c_reset" "$live_cmd"
@@ -238,7 +238,7 @@ autostart_status_xdg_user() {
     if [[ "${hidden,,}" == "true" ]]; then
       printf '\n  %s!%s %s  %s[xdg:disabled]%s\n' "$_c_yellow" "$_c_reset" "$base" "$_c_dim" "$_c_reset"
       printf '    %sstate:%s   Hidden=true local override\n' "$_c_dim" "$_c_reset"
-      printf '    %sfile:%s    %s\n'   "$_c_dim" "$_c_reset" "$file"
+      printf '    %sfile:%s    %s\n'   "$_c_dim" "$_c_reset" "${file/#"$HOME"/\~}"
       printf '    %signore:%s  dotfiles autostart ignore %q\n' "$_c_dim" "$_c_reset" "$item"
       printf '    %sremove:%s  dotfiles autostart remove %q\n'  "$_c_dim" "$_c_reset" "$item"
     else
@@ -254,37 +254,22 @@ autostart_status_xdg_user() {
 }
 
 autostart_status_defaults() {
-  local show_all="$1" file base name exec item found_system system_count unit state fragment item_systemd systemd_count
+  local show_all="$1" file base name exec item found_system=0 system_count=0 unit state fragment item_systemd systemd_count=0
 
   info "System defaults (read-only)"
-  found_system=0
-  system_count=0
+
   for file in /etc/xdg/autostart/*.desktop; do
     [[ -f "$file" ]] || continue
     base="$(basename "$file")"
     item="xdg-system:$base"
     autostart_ignored "$item" && continue
     system_count=$((system_count+1))
-    if [[ $show_all -ne 1 ]]; then
-      found_system=1
-      continue
-    fi
-    name="$(autostart_desktop_value Name "$file")"
-    exec="$(autostart_desktop_value Exec "$file")"
-    printf '  %s[xdg-system]%s %s  %s%s%s\n' "$_c_dim" "$_c_reset" "$base" "$_c_dim" "${name:-$base}" "$_c_reset"
-    printf '    %sexec:%s    %s\n'   "$_c_dim" "$_c_reset" "${exec:-(none)}"
-    printf '    %signore:%s  dotfiles autostart ignore %q\n' "$_c_dim" "$_c_reset" "$item"
     found_system=1
+    [[ $show_all -ne 1 ]] && continue
+    name="$(autostart_desktop_value Name "$file")"
+    printf '  %s%-50s%s  %s\n' "$_c_dim" "$base" "$_c_reset" "${name:-$base}"
   done
-  if [[ $show_all -eq 1 ]]; then
-    [[ $found_system -eq 0 ]] && dim "  (no system XDG entries visible)"
-  elif [[ $system_count -eq 0 ]]; then
-    dim "  (no system XDG entries visible)"
-  else
-    printf '  %s%s system XDG entries%s  —  dotfiles autostart status --all\n' "$_c_dim" "$system_count" "$_c_reset"
-  fi
 
-  systemd_count=0
   if command -v systemctl >/dev/null 2>&1; then
     while read -r unit state _; do
       [[ -n "${unit:-}" ]] || continue
@@ -295,14 +280,26 @@ autostart_status_defaults() {
       [[ "$fragment" == /usr/lib/systemd/user/* ]] || continue
       systemd_count=$((systemd_count+1))
       if [[ $show_all -eq 1 ]]; then
-        printf '  %s[systemd:packaged]%s %s  %s%s%s\n' "$_c_dim" "$_c_reset" "$unit" "$_c_dim" "$state" "$_c_reset"
-        printf '    %sfile:%s    %s\n'   "$_c_dim" "$_c_reset" "$fragment"
-        printf '    %signore:%s  dotfiles autostart ignore %q\n' "$_c_dim" "$_c_reset" "$item_systemd"
+        printf '  %s%-50s%s  %s\n' "$_c_dim" "$unit" "$_c_reset" "$state"
       fi
     done < <(systemctl --user list-unit-files --state=enabled,linked,masked --no-pager --no-legend 2>/dev/null || true)
   fi
-  if [[ $show_all -ne 1 && $systemd_count -gt 0 ]]; then
-    printf '  %s%s packaged systemd units%s  —  dotfiles autostart status --all\n' "$_c_dim" "$systemd_count" "$_c_reset"
+
+  local total=$((system_count + systemd_count))
+  if [[ $show_all -eq 1 ]]; then
+    if [[ $total -eq 0 ]]; then
+      dim "  (none)"
+    else
+      printf '\n'
+      dim "  To suppress any entry: dotfiles autostart ignore xdg-system:<name>"
+      dim "                                                    systemd:<unit>"
+    fi
+  else
+    if [[ $total -eq 0 ]]; then
+      [[ $found_system -eq 0 ]] && dim "  (none visible)"
+    else
+      printf '  %s%s entries hidden%s  —  dotfiles autostart status --all\n' "$_c_dim" "$total" "$_c_reset"
+    fi
   fi
   return 0
 }
@@ -323,7 +320,7 @@ autostart_status_systemd() {
     fragment="$(systemctl --user show "$unit" -p FragmentPath --value --no-pager 2>/dev/null || true)"
     [[ "$fragment" == /usr/lib/systemd/user/* ]] && continue
     printf '\n  %s!%s %s  %s[systemd:user]%s  %s\n' "$_c_yellow" "$_c_reset" "$unit" "$_c_dim" "$_c_reset" "$state"
-    [[ -n "$fragment" ]] && printf '    %sfile:%s    %s\n' "$_c_dim" "$_c_reset" "$fragment"
+    [[ -n "$fragment" ]] && printf '    %sfile:%s    %s\n' "$_c_dim" "$_c_reset" "${fragment/#"$HOME"/\~}"
     printf '    %signore:%s  dotfiles autostart ignore %q\n' "$_c_dim" "$_c_reset" "$item"
     printf '    %sremove:%s  dotfiles autostart remove %q\n'  "$_c_dim" "$_c_reset" "$item"
     AUTOSTART_NEEDS_DECISION=1

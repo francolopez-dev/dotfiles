@@ -317,6 +317,8 @@ autostart_status_systemd() {
     [[ "$unit" == *.* ]] || continue
     item="systemd:$unit"
     autostart_ignored "$item" && continue
+    # Masked units are already intentionally suppressed; surface them in Ignored, not here.
+    [[ "$state" == "masked" ]] && continue
     fragment="$(systemctl --user show "$unit" -p FragmentPath --value --no-pager 2>/dev/null || true)"
     [[ "$fragment" == /usr/lib/systemd/user/* ]] && continue
     printf '\n  %s!%s %s  %s[systemd:user]%s  %s\n' "$_c_yellow" "$_c_reset" "$unit" "$_c_dim" "$_c_reset" "$state"
@@ -342,6 +344,21 @@ autostart_status_ignored() {
       found=1
     done <"$file"
   done
+  # Show masked user systemd units (intentionally suppressed, not in ignore file).
+  if command -v systemctl >/dev/null 2>&1; then
+    while read -r unit state _; do
+      [[ -n "${unit:-}" && "$state" == "masked" ]] || continue
+      [[ "$unit" == *.* ]] || continue
+      local mfrag
+      mfrag="$(systemctl --user show "$unit" -p FragmentPath --value --no-pager 2>/dev/null || true)"
+      [[ "$mfrag" == /usr/lib/systemd/user/* ]] && continue
+      local mitem="systemd:$unit"
+      autostart_ignored "$mitem" && continue
+      printf '  %s%s%s  %s(masked)%s\n' "$_c_dim" "$mitem" "$_c_reset" "$_c_dim" "$_c_reset"
+      seen+="$mitem"$'\n'
+      found=1
+    done < <(systemctl --user list-unit-files --state=masked --no-pager --no-legend 2>/dev/null || true)
+  fi
   [[ $found -eq 0 ]] && dim "  (none)"
   return 0
 }
@@ -394,9 +411,23 @@ autostart_remove() {
         err "systemctl not installed"
         return 1
       fi
-      if [[ $yes -eq 1 ]] || confirm "Disable and stop user unit $unit?"; then
-        systemctl --user disable --now "$unit"
-        ok "disabled user unit: $unit"
+      local fragment
+      fragment="$(systemctl --user show "$unit" -p FragmentPath --value --no-pager 2>/dev/null || true)"
+      # Units outside ~/.config/systemd/user/ are globally enabled; disable alone won't survive
+      # a reboot because the system-scope enable wins. Mask instead.
+      local needs_mask=0
+      [[ -n "$fragment" && "$fragment" != "$HOME/.config/systemd/user/"* ]] && needs_mask=1
+      local action="Disable and stop"
+      [[ $needs_mask -eq 1 ]] && action="Mask and stop"
+      if [[ $yes -eq 1 ]] || confirm "$action user unit $unit?"; then
+        if [[ $needs_mask -eq 1 ]]; then
+          systemctl --user disable --now "$unit" 2>/dev/null || true
+          systemctl --user mask "$unit"
+          ok "masked user unit: $unit"
+        else
+          systemctl --user disable --now "$unit"
+          ok "disabled user unit: $unit"
+        fi
       fi
       return 0
       ;;

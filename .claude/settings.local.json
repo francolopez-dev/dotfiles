@@ -47,7 +47,11 @@
       "Bash(grep -A1 \"Tab$\\\\|NextTab\\\\|PrevTab\\\\|LastTab\\\\|SelectTab\\\\|CloseTab\\\\|CreateTab\")",
       "Bash(systemctl --user list-unit-files --state=enabled,linked)",
       "Bash(systemctl --user status synergy.service)",
-      "Bash(scripts/dotfiles autostart *)"
+      "Bash(scripts/dotfiles autostart *)",
+      "Bash(systemctl --user mask synergy.service)",
+      "Bash(systemctl --user stop synergy.service)",
+      "Bash(systemctl --user is-active synergy.service)",
+      "Bash(systemctl --user is-enabled synergy.service)"
     ]
   }
 }

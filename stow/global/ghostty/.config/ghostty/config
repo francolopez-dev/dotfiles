@@ -1,6 +1,5 @@
-# Ghostty — personal terminal config tracked by dotfiles.
-# Applies to all Omarchy installations via stow-os.map.
-config-file = ?../dotfiles/ghostty-profile
+# Ghostty - global terminal config tracked by dotfiles.
+# Shared across every machine. Put only font-size overrides in profiles.
 
 # --- Theme ---
 theme = Catppuccin Mocha
@@ -46,3 +45,6 @@ keybind = super+a=select_all
 keybind = super+t=new_tab
 keybind = ctrl+tab=next_tab
 keybind = ctrl+shift+tab=previous_tab
+
+# Optional profile layer override. Profiles should only put font-size here.
+config-file = ?~/.config/ghostty/profile-font-size

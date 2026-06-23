@@ -15,7 +15,9 @@ change true everywhere it should apply.
 | Hyprland look/feel (all Omarchy machines) | `stow/os-omarchy/hyprland/.config/hypr/conf.d/99-personal.conf` |
 | Waybar | `stow/os-omarchy/waybar/.config/waybar/` |
 | Rofi | `stow/os-omarchy/rofi/.config/rofi/` |
-| Ghostty terminal | `stow/os-omarchy/ghostty/.config/ghostty/config` |
+| Ghostty terminal style/shortcuts | `stow/global/ghostty/.config/ghostty/config` |
+| Alacritty terminal style/shortcuts | `stow/global/alacritty/.config/alacritty/alacritty.toml` |
+| Terminal font size for one machine | `stow/profile-<hostname>-<os>/{ghostty,alacritty}/.config/<terminal>/profile-font-size*` |
 | Default terminal launcher | `stow/global/xdg-terminal-exec/.config/xdg-terminals.list` |
 | Atuin | `stow/os-omarchy/atuin/.config/atuin/config.toml` |
 | Neovim | `stow/os-omarchy/neovim/.config/nvim/` |

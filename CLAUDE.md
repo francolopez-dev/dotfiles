@@ -37,9 +37,10 @@ If the profile directory does not exist, only `global` and `os-<os>` apply.
 
 ## Stow Layout
 
-- `stow/global/`: universal shell, git, ssh, tmux, zsh, bash config.
-- `stow/os-omarchy/`: shared Omarchy desktop config such as Hyprland, Ghostty,
-  Waybar, Rofi, Atuin, Neovim, Yazi, Satty, themes, and scripts.
+- `stow/global/`: universal shell, git, ssh, tmux, zsh, bash, Ghostty, and
+  Alacritty config.
+- `stow/os-omarchy/`: shared Omarchy desktop config such as Hyprland, Waybar,
+  Rofi, Atuin, Neovim, Yazi, Satty, themes, and scripts.
 - `stow/os-debian/`: Debian/Ubuntu server essentials.
 - `stow/profile-<hostname>-<os>/`: machine-specific overrides such as monitors,
   autostart, idle, and lock config.
@@ -85,7 +86,8 @@ dotfiles apply
 
 - Global Git config: `stow/global/git/.gitconfig`.
 - Global Git ignore: `stow/global/git/.gitignore_global`.
-- Ghostty: `stow/os-omarchy/ghostty/.config/ghostty/config`.
+- Ghostty: `stow/global/ghostty/.config/ghostty/config`.
+- Alacritty: `stow/global/alacritty/.config/alacritty/alacritty.toml`.
 - Atuin: `stow/os-omarchy/atuin/.config/atuin/config.toml`.
 - Omarchy monitor scale: profile `20-monitors.conf`, never the OS layer.
 

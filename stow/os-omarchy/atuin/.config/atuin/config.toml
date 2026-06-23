@@ -20,6 +20,9 @@ inline_height = 20
 # Show preview of full command.
 show_preview = true
 
+# Execute selected commands immediately on Enter.
+enter_accept = true
+
 # Key binding mode: use default Ctrl-R binding.
 # Supported: emacs, vim-normal, vim-insert, auto
 keymap_mode = "auto"

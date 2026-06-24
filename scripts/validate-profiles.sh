@@ -59,6 +59,16 @@ fi
 check_hypridle_timeouts profile-nox-omarchy 240,600,660,1800
 check_hypridle_timeouts profile-fornax-omarchy 180,600,900,3600
 
+for profile in profile-nox-omarchy profile-fornax-omarchy; do
+  plymouth_script="$repo_dir/stow/$profile/plymouth/.config/dotfiles/plymouth/omarchy.script"
+  if [[ -f "$plymouth_script" ]]; then
+    printf 'ok profile plymouth unlock: %s\n' "$profile"
+  else
+    printf 'missing profile plymouth unlock: %s\n' "$profile" >&2
+    failed=1
+  fi
+done
+
 stale_profile="laptop-personal"
 if grep -Rqs \
   --exclude-dir=.git \

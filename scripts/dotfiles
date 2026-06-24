@@ -53,10 +53,10 @@ cmd_apply() {
 
 apply_omarchy_system_overrides() {
   [[ "$(detect_os)" == "omarchy" ]] || return 0
-  [[ -x "$HOME/bin/dotfiles-apply-sddm-theme" ]] || return 0
-  info "Applying Omarchy system overrides"
-  if ! "$HOME/bin/dotfiles-apply-sddm-theme"; then
-    warn "could not apply SDDM theme override; stowed config remains available"
+  [[ -x "$HOME/bin/dotfiles-apply-plymouth-theme" ]] || return 0
+  info "Applying Omarchy boot unlock override"
+  if ! "$HOME/bin/dotfiles-apply-plymouth-theme"; then
+    warn "could not apply Plymouth boot unlock override; stowed config remains available"
   fi
 }
 

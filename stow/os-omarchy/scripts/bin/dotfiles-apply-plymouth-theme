@@ -1,0 +1,101 @@
+#!/usr/bin/env bash
+# Apply the Git-managed Omarchy Plymouth boot unlock theme.
+#
+# Plymouth owns the screen shown before the desktop session starts, including
+# full-disk unlock prompts. This keeps Omarchy's Plymouth mechanism and only
+# overlays the script managed in this repo.
+set -euo pipefail
+
+custom_script="$HOME/.config/dotfiles/plymouth/omarchy.script"
+omarchy_theme="${OMARCHY_PATH:-$HOME/.local/share/omarchy}/default/plymouth"
+target_theme="/usr/share/plymouth/themes/omarchy"
+staging_dir="$(mktemp -d)"
+trap 'rm -rf "$staging_dir"' EXIT
+
+if [[ ! -f "$custom_script" ]]; then
+  printf 'dotfiles Plymouth script not found: %s\n' "$custom_script" >&2
+  exit 1
+fi
+
+user_label="$(sed -n 's/^global\.user_label = "\(.*\)";$/\1/p' "$custom_script" | tail -n 1)"
+hostname_label="$(sed -n 's/^global\.hostname_label = "\(.*\)";$/\1/p' "$custom_script" | tail -n 1)"
+prompt_label="$(sed -n 's/^global\.prompt_label = "\(.*\)";$/\1/p' "$custom_script" | tail -n 1)"
+show_hostname="$(sed -n 's/^global\.show_hostname = \([01]\);$/\1/p' "$custom_script" | tail -n 1)"
+time_label="$(date +"%-I:%M %p")"
+date_label="$(date +"%A, %B %-d")"
+
+user_label="${user_label:-$USER}"
+hostname_label="${hostname_label:-$(hostname -s 2>/dev/null || printf unknown)}"
+prompt_label="${prompt_label:-Unlock disk}"
+show_hostname="${show_hostname:-0}"
+
+font_file="$(fc-match -f '%{file}\n' 'Liberation Sans' 2>/dev/null | head -n 1)"
+if [[ -z "$font_file" || ! -f "$font_file" ]]; then
+  font_file="$(fc-match -f '%{file}\n' 'Sans Serif' 2>/dev/null | head -n 1)"
+fi
+
+if [[ -z "$font_file" || ! -f "$font_file" ]]; then
+  printf 'No usable font found for Plymouth text asset generation\n' >&2
+  exit 1
+fi
+
+magick -size 620x380 xc:none \
+  -fill '#1f2128cc' -stroke '#464a58' -strokewidth 2 \
+  -draw 'roundrectangle 1,1 618,378 30,30' \
+  "$staging_dir/unlock-card.png"
+
+magick -background none -font "$font_file" -fill '#f5f5f7' -pointsize 30 \
+  -gravity center -size 520x70 caption:"$user_label" \
+  "$staging_dir/user-label.png"
+
+magick -background none -font "$font_file" -fill '#f5f5f7' -pointsize 48 \
+  -gravity center -size 520x76 caption:"$time_label" \
+  "$staging_dir/time-label.png"
+
+magick -background none -font "$font_file" -fill '#c7c8cc' -pointsize 22 \
+  -gravity center -size 520x44 caption:"$date_label" \
+  "$staging_dir/date-label.png"
+
+magick -background none -font "$font_file" -fill '#858895' -pointsize 18 \
+  -gravity center -size 520x36 caption:"$hostname_label" \
+  "$staging_dir/hostname-label.png"
+
+magick -background none -font "$font_file" -fill '#c7c8cc' -pointsize 22 \
+  -gravity center -size 520x44 caption:"$prompt_label" \
+  "$staging_dir/prompt-label.png"
+
+if [[ -f "$target_theme/omarchy.script" ]] \
+  && cmp -s "$custom_script" "$target_theme/omarchy.script" \
+  && cmp -s "$staging_dir/unlock-card.png" "$target_theme/unlock-card.png" \
+  && cmp -s "$staging_dir/user-label.png" "$target_theme/user-label.png" \
+  && cmp -s "$staging_dir/time-label.png" "$target_theme/time-label.png" \
+  && cmp -s "$staging_dir/date-label.png" "$target_theme/date-label.png" \
+  && cmp -s "$staging_dir/hostname-label.png" "$target_theme/hostname-label.png" \
+  && cmp -s "$staging_dir/prompt-label.png" "$target_theme/prompt-label.png"; then
+  printf 'Plymouth theme already current: %s\n' "$target_theme/omarchy.script"
+  exit 0
+fi
+
+if [[ ! -d "$omarchy_theme" ]]; then
+  printf 'Omarchy Plymouth source not found: %s\n' "$omarchy_theme" >&2
+  exit 1
+fi
+
+sudo mkdir -p "$target_theme"
+sudo cp -R "$omarchy_theme"/. "$target_theme"/
+sudo install -Dm644 "$custom_script" "$target_theme/omarchy.script"
+sudo install -Dm644 "$staging_dir/unlock-card.png" "$target_theme/unlock-card.png"
+sudo install -Dm644 "$staging_dir/user-label.png" "$target_theme/user-label.png"
+sudo install -Dm644 "$staging_dir/time-label.png" "$target_theme/time-label.png"
+sudo install -Dm644 "$staging_dir/date-label.png" "$target_theme/date-label.png"
+sudo install -Dm644 "$staging_dir/hostname-label.png" "$target_theme/hostname-label.png"
+sudo install -Dm644 "$staging_dir/prompt-label.png" "$target_theme/prompt-label.png"
+sudo plymouth-set-default-theme omarchy
+
+if command -v limine-mkinitcpio >/dev/null 2>&1; then
+  sudo limine-mkinitcpio
+else
+  sudo mkinitcpio -P
+fi
+
+printf 'Applied Git-managed Omarchy Plymouth theme: %s\n' "$target_theme"

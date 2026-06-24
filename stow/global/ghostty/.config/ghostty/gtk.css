@@ -1,0 +1,39 @@
+/* Keep Ghostty's GTK tab strip compact and quiet. */
+windowhandle,
+taboverview,
+tabbar,
+tabbar tab,
+tabbar tab box,
+tabbar tab label,
+tabbar tab button {
+  min-height: 0;
+}
+
+tabbar {
+  padding: 0;
+}
+
+tabbar tab {
+  padding: 0 5px;
+  margin: 0 1px;
+  border-radius: 4px;
+}
+
+tabbar tab label {
+  font-size: 0.72em;
+  opacity: 0.74;
+}
+
+tabbar tab:checked label {
+  opacity: 0.92;
+}
+
+tabbar button {
+  padding: 0 2px;
+  margin: 0;
+  opacity: 0.55;
+}
+
+tabbar button:hover {
+  opacity: 0.85;
+}

@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+window_json=$(hyprctl activewindow -j)
+class=$(jq -r '.class // empty' <<<"$window_json")
+address=$(jq -r '.address // empty' <<<"$window_json")
+
+if [ -z "$class" ] || [ -z "$address" ]; then
+  exit 0
+fi
+
+case "$class" in
+  com.mitchellh.ghostty)
+    hyprctl dispatch sendshortcut "SUPER,W,address:$address"
+    ;;
+  Alacritty)
+    hyprctl dispatch closewindow "address:$address"
+    ;;
+  *)
+    hyprctl dispatch killactive
+    ;;
+esac

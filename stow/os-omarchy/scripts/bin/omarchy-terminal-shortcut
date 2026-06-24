@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+action=${1:-}
+window_json=$(hyprctl activewindow -j)
+class=$(jq -r '.class // empty' <<<"$window_json")
+address=$(jq -r '.address // empty' <<<"$window_json")
+
+if [ -z "$action" ] || [ -z "$address" ]; then
+  exit 0
+fi
+
+send_to_active() {
+  hyprctl dispatch sendshortcut "$1"
+}
+
+send_to_window() {
+  hyprctl dispatch sendshortcut "$1,address:$address"
+}
+
+case "$action:$class" in
+  select-all:com.mitchellh.ghostty|select-all:Alacritty)
+    send_to_window "SUPER,A"
+    ;;
+  copy:com.mitchellh.ghostty|copy:Alacritty)
+    send_to_window "SUPER,C"
+    ;;
+  paste:com.mitchellh.ghostty|paste:Alacritty)
+    send_to_window "SUPER,V"
+    ;;
+  select-all:*)
+    send_to_active "CTRL,A,activewindow"
+    ;;
+  copy:*)
+    send_to_active "CTRL,Insert,activewindow"
+    ;;
+  paste:*)
+    send_to_active "SHIFT,Insert,activewindow"
+    ;;
+esac

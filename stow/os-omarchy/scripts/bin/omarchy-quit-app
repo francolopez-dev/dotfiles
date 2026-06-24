@@ -1,7 +1,24 @@
 #!/usr/bin/env bash
+set -euo pipefail
+
 # Close all windows belonging to the focused app (macOS Cmd+Q behavior).
-class=$(hyprctl activewindow -j | jq -r '.class')
-[ -z "$class" ] || [ "$class" = "null" ] && exit 0
-hyprctl clients -j | jq -r --arg class "$class" '.[] | select(.class == $class) | .address' | while read -r addr; do
-  hyprctl dispatch closewindow "address:$addr"
-done
+# Ghostty owns its own tab/session confirmation, so delegate to it instead of
+# Hyprland closewindow, which bypasses Ghostty's prompts.
+window_json=$(hyprctl activewindow -j)
+class=$(jq -r '.class // empty' <<<"$window_json")
+address=$(jq -r '.address // empty' <<<"$window_json")
+
+if [ -z "$class" ] || [ -z "$address" ]; then
+  exit 0
+fi
+
+case "$class" in
+  com.mitchellh.ghostty)
+    hyprctl dispatch sendshortcut "SUPER,Q,address:$address"
+    ;;
+  *)
+    hyprctl clients -j | jq -r --arg class "$class" '.[] | select(.class == $class) | .address' | while read -r addr; do
+      hyprctl dispatch closewindow "address:$addr"
+    done
+    ;;
+esac

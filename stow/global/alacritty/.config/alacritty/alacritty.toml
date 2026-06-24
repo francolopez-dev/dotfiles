@@ -14,35 +14,44 @@ decorations = "Full"
 dynamic_title = true
 
 [font]
-normal = { family = "JetBrains Mono", style = "Regular" }
-bold = { family = "JetBrains Mono", style = "Bold" }
-italic = { family = "JetBrains Mono", style = "Italic" }
-bold_italic = { family = "JetBrains Mono", style = "Bold Italic" }
-size = 13
+normal = { family = "JetBrainsMono Nerd Font", style = "Regular" }
+bold = { family = "JetBrainsMono Nerd Font", style = "Bold" }
+italic = { family = "JetBrainsMono Nerd Font", style = "Italic" }
+bold_italic = { family = "JetBrainsMono Nerd Font", style = "Bold Italic" }
+offset = { x = 0, y = 0 }
+glyph_offset = { x = 0, y = 0 }
 
 [colors.primary]
-background = "#1e1e2e"
-foreground = "#cdd6f4"
+background = "#100d1f"
+foreground = "#e9ddff"
+
+[colors.cursor]
+text = "#100d1f"
+cursor = "#d985ff"
+
+[colors.selection]
+text = "#f4ecff"
+background = "#3a245e"
 
 [colors.normal]
-black = "#45475a"
-red = "#f38ba8"
-green = "#a6e3a1"
-yellow = "#f9e2af"
-blue = "#89b4fa"
-magenta = "#f5c2e7"
-cyan = "#94e2d5"
-white = "#bac2de"
+black = "#201830"
+red = "#ff5c8a"
+green = "#7ef7b6"
+yellow = "#ffd166"
+blue = "#8aa8ff"
+magenta = "#c77dff"
+cyan = "#56f0e5"
+white = "#d8ccf2"
 
 [colors.bright]
-black = "#585b70"
-red = "#f38ba8"
-green = "#a6e3a1"
-yellow = "#f9e2af"
-blue = "#89b4fa"
-magenta = "#f5c2e7"
-cyan = "#94e2d5"
-white = "#a6adc8"
+black = "#4b3c64"
+red = "#ff7aa8"
+green = "#9dffd0"
+yellow = "#ffe08a"
+blue = "#a7bcff"
+magenta = "#d89cff"
+cyan = "#7ff7ef"
+white = "#f4ecff"
 
 [cursor]
 style = { shape = "Beam", blinking = "Never" }
@@ -54,8 +63,6 @@ save_to_clipboard = true
 bindings = [
   { key = "C", mods = "Super", action = "Copy" },
   { key = "V", mods = "Super", action = "Paste" },
-  { key = "T", mods = "Super", action = "CreateNewTab" },
   { key = "Q", mods = "Super", action = "Quit" },
-  { key = "Tab", mods = "Super", action = "SelectNextTab" },
-  { key = "Tab", mods = "Super|Shift", action = "SelectPreviousTab" },
+  { key = "T", mods = "Super", command = { program = "alacritty", args = ["msg", "create-window"] } },
 ]

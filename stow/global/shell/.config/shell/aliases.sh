@@ -54,6 +54,16 @@ _dotfiles_box_table() {
       widths[column] = visible_length(value) > widths[column] ? visible_length(value) : widths[column]
     }
 
+    function is_relative_time_unit(value) {
+      value = plain_text(value)
+      return value ~ /^(second|seconds|minute|minutes|hour|hours|day|days|week|weeks|month|months|year|years)$/
+    }
+
+    function is_git_status(value) {
+      value = plain_text(value)
+      return value ~ /^[-!?ACDIMNRTU]+$/
+    }
+
     function file_type(permissions, name, plain_permissions, plain_name, base) {
       plain_permissions = plain_text(permissions)
       plain_name = plain_text(name)
@@ -93,6 +103,7 @@ _dotfiles_box_table() {
         if ($0 ~ /Date Created/) date_heading = "Created"
         if ($0 ~ /Date Accessed/) date_heading = "Accessed"
         if ($0 ~ /Date Changed/) date_heading = "Changed"
+        has_git = plain_text($0) ~ /(^|[[:space:]])Git([[:space:]]|$)/
 
         set_cell(rows, 1, "#")
         set_cell(rows, 2, "Name")
@@ -105,13 +116,33 @@ _dotfiles_box_table() {
         next
       }
 
-      name = rest(7)
+      if (has_git) {
+        if (is_git_status($6)) {
+          modified = $4 " " $5
+          git = $6
+          name = rest(7)
+        } else {
+          modified = $4
+          git = $5
+          name = rest(6)
+        }
+      } else {
+        git = ""
+        if (is_relative_time_unit($5)) {
+          modified = $4 " " $5
+          name = rest(6)
+        } else {
+          modified = $4
+          name = rest(5)
+        }
+      }
+
       set_cell(rows, 1, rows - 1)
       set_cell(rows, 2, name)
       set_cell(rows, 3, file_type($1, name))
       set_cell(rows, 4, $2)
-      set_cell(rows, 5, $4 " " $5)
-      set_cell(rows, 6, $6)
+      set_cell(rows, 5, modified)
+      set_cell(rows, 6, git)
       set_cell(rows, 7, $3)
       set_cell(rows, 8, $1)
     }

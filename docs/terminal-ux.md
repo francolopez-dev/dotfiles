@@ -107,8 +107,42 @@ To add more columns without changing the table renderer, use `l --raw` with any
 `eza` long-view flag. To permanently add columns to the boxed table, edit the
 `_dotfiles_box_table` parser in `stow/global/shell/.config/shell/aliases.sh`.
 
-Colors come from `eza` and the terminal theme. Permissions, user, directories,
-executables, symlinks, archives, images, and git state stay colored by `eza`.
+The boxed table keeps `eza` colors while parsing ANSI escape sequences for
+stable columns. Use `l --raw` when you want the original unboxed `eza` output.
+
+Permissions are shown in Unix mode style:
+
+| Character | Meaning |
+|---|---|
+| first `d` | Directory |
+| first `l` | Symlink |
+| first `.` or `-` | Regular file |
+| `r` | Read permission |
+| `w` | Write permission |
+| `x` | Execute/search permission |
+| `-` | Permission not set |
+
+After the first character, permissions are grouped as owner, group, and others.
+Example: `drwxr-xr-x` means directory; owner can read/write/enter; group and
+others can read/enter.
+
+Common Git column markers:
+
+| Marker | Meaning |
+|---|---|
+| `--` | Clean/tracked, no visible change |
+| `?` | Untracked |
+| `N` | New/added |
+| `M` | Modified |
+| `D` | Deleted |
+| `R` | Renamed |
+| `C` | Copied |
+| `I` | Ignored |
+| `T` | Type changed |
+| `U` | Unmerged/conflict |
+
+Two-character markers can combine states. Example: `-M` usually means modified
+in the working tree; `M-` usually means staged modified.
 
 ## Terminal Visual Style
 

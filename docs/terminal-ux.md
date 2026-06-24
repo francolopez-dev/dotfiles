@@ -33,7 +33,7 @@ servers.
 | `l` | Pretty long listing with headers, icons, git status, relative time |
 | `ll` | Same as `l` |
 | `la` | Pretty long listing including hidden files |
-| `L` | Capital Omerxx-inspired pretty long listing |
+| `L` | Capital Omerxx-inspired pretty long listing with row separators |
 | `lt` | Two-level tree with icons and git status |
 | `y` | Open yazi file manager |
 | `z` | Zoxide jump command after shell init |
@@ -58,7 +58,7 @@ sourced by both `stow/global/bash/.bashrc` and `stow/global/zsh/.zshrc`.
 | `l` | `eza --long ...` or `ls -lh` fallback | Pretty long listing |
 | `ll` | `eza --long ...` or `ls -lah` fallback | Pretty long listing |
 | `la` | `eza --long --all ...` or `ls -lah` fallback | Pretty all-files listing |
-| `L` | `eza --long ...` or `ls -lh` fallback | Omerxx-inspired table listing |
+| `L` | shell function around `eza --long ...` or `ls -lh` fallback | Omerxx-inspired table listing with horizontal separators |
 | `lt` | `eza --tree --level=2 ...` or `ls -lah` fallback | Small tree view |
 | `cls` | `clear && printf "\e[3J"` | Clear visible screen and scrollback |
 

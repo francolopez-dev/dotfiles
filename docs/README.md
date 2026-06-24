@@ -59,7 +59,7 @@ Terminal UX
   l                       pretty long listing
   ll                      pretty long listing
   la                      all files
-  L                       Omerxx-inspired table-style listing
+  L                       Omerxx-inspired listing with row separators
   lt                      two-level tree
   y                       yazi file manager
   z                       zoxide jump

@@ -12,6 +12,8 @@ alias y='yazi'
 
 # Pretty directory listings. eza is the preferred path; ls fallbacks keep
 # server shells usable before optional packages are installed.
+unalias l ll la L lt 2>/dev/null || true
+
 if command -v eza >/dev/null 2>&1; then
   alias ll='l'
   alias la='l --all'

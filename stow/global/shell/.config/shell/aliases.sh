@@ -10,11 +10,27 @@ alias ff='fastfetch 2>/dev/null || true'
 alias v='nvim'
 alias y='yazi'
 
-#in case i use EZA
+# Pretty directory listings. eza is the preferred path; ls fallbacks keep
+# server shells usable before optional packages are installed.
 if command -v eza >/dev/null 2>&1; then
-  alias ll='eza -lah'
+  alias l='eza --long --header --icons --git --group-directories-first --time-style=relative --classify=auto'
+  alias ll='eza --long --header --icons --git --group-directories-first --time-style=relative --classify=auto'
+  alias la='eza --long --all --header --icons --git --group-directories-first --time-style=relative --classify=auto'
+  alias L='eza --long --header --icons --git --group-directories-first --time-style=relative --classify=auto'
+  alias lt='eza --tree --level=2 --icons --git --group-directories-first --classify=auto'
 else
-  alias ll='ls -lah'
+  if ls --color=auto -d . >/dev/null 2>&1; then
+    alias l='ls -lh --color=auto --group-directories-first'
+    alias ll='ls -lah --color=auto --group-directories-first'
+    alias la='ls -lah --color=auto --group-directories-first'
+    alias L='ls -lh --color=auto --group-directories-first'
+  else
+    alias l='ls -lh'
+    alias ll='ls -lah'
+    alias la='ls -lah'
+    alias L='ls -lh'
+  fi
+  alias lt='ls -lah'
 fi
 
 #real clear

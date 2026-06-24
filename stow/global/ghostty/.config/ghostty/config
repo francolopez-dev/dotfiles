@@ -19,8 +19,10 @@ window-padding-x = 18
 window-padding-y = 14
 background-opacity = 0.92
 background-blur = true
+# Ghostty 1.3.1 does not expose background-blur-radius; do not add it here.
 background-opacity-cells = true
 unfocused-split-opacity = 0.9
+window-decoration = false
 
 # --- Behavior ---
 scrollback-limit = 10000
@@ -31,6 +33,8 @@ bold-is-bright = true
 mouse-hide-while-typing = true
 cursor-click-to-move = true
 selection-clear-on-copy = true
+# macos-option-as-alt is macOS-specific; keep it out of the Linux/Omarchy
+# global config until a macOS layer exists.
 
 # --- Cursor ---
 cursor-style = bar

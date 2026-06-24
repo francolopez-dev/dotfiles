@@ -6,6 +6,7 @@ change true everywhere it should apply.
 | I want to change… | Edit here |
 |---|---|
 | A global shell alias / env var | `stow/global/shell/.config/shell/aliases.sh` (or `env.sh`) |
+| Terminal UX cheat sheet / audit | `docs/terminal-ux.md` |
 | Zsh config / prompt | `stow/global/zsh/.zshrc`, `stow/global/zsh/.p10k.zsh` |
 | Git config | `stow/global/git/.gitconfig` |
 | Global Git ignore | `stow/global/git/.gitignore_global` |

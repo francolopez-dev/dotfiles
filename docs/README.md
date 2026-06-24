@@ -40,7 +40,8 @@ dotfiles status
 dotfiles update
 ```
 
-See [first-time-setup.md](first-time-setup.md) and [where-to-edit.md](where-to-edit.md).
+See [first-time-setup.md](first-time-setup.md), [where-to-edit.md](where-to-edit.md),
+and [terminal-ux.md](terminal-ux.md).
 
 ## Cheatsheet
 
@@ -53,6 +54,16 @@ Daily
   dotfiles status         dashboard: host, layers, drift, sync, recovery
   dotfiles update         pull + re-stow + install missing packages
   dotfiles apply          re-stow layers after editing configs
+
+Terminal UX
+  l                       pretty long listing
+  ll                      pretty long listing
+  la                      all files
+  L                       Omerxx-inspired table-style listing
+  lt                      two-level tree
+  y                       yazi file manager
+  z                       zoxide jump
+  atuin                   shell history
 
 Dry-run flags
   dotfiles update --dry-run   preview without changing anything

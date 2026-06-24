@@ -45,7 +45,19 @@ cmd_apply() {
   [[ "${1:-}" == "--dry-run" ]] && extra=(--no --verbose)
   info "machine: $(detect_hostname) ($(detect_os)); profile: $(active_profile)"
   apply_all_layers "${extra[@]}"
+  if [[ ${#extra[@]} -eq 0 ]]; then
+    apply_omarchy_system_overrides
+  fi
   [[ ${#extra[@]} -eq 0 ]] && ok "layers applied"
+}
+
+apply_omarchy_system_overrides() {
+  [[ "$(detect_os)" == "omarchy" ]] || return 0
+  [[ -x "$HOME/bin/dotfiles-apply-sddm-theme" ]] || return 0
+  info "Applying Omarchy system overrides"
+  if ! "$HOME/bin/dotfiles-apply-sddm-theme"; then
+    warn "could not apply SDDM theme override; stowed config remains available"
+  fi
 }
 
 install_missing_packages() {
@@ -113,6 +125,7 @@ cmd_update() {
       stow_failed=1
       warn "stow reported conflicts; package check will still run"
     fi
+    apply_omarchy_system_overrides
   fi
 
   if [[ $stow_failed -eq 1 ]]; then

@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Reapply the Git-managed login presentation after Omarchy updates.
+# Omarchy may refresh /usr/share/sddm/themes/omarchy during updates; this
+# hook restores our stowed Main.qml without changing SDDM or the session.
+set -euo pipefail
+
+if [[ -x "$HOME/bin/dotfiles-apply-sddm-theme" ]]; then
+  "$HOME/bin/dotfiles-apply-sddm-theme"
+fi

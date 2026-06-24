@@ -20,6 +20,24 @@ check_profile() {
   fi
 }
 
+check_hypridle_timeouts() {
+  local profile="$1" expected="$2" hypridle_conf timeouts
+  hypridle_conf="$repo_dir/stow/$profile/hypridle/.config/hypr/hypridle.conf"
+  if [[ ! -f "$hypridle_conf" ]]; then
+    printf 'missing profile hypridle: %s\n' "$profile" >&2
+    failed=1
+    return
+  fi
+
+  timeouts="$(grep -E '^[[:space:]]*timeout = ' "$hypridle_conf" | tr -s ' ' | cut -d' ' -f4 | paste -sd, -)"
+  if [[ "$timeouts" == "$expected" ]]; then
+    printf 'ok profile hypridle timeouts: %s (%s)\n' "$profile" "$timeouts"
+  else
+    printf 'bad profile hypridle timeouts: %s got %s expected %s\n' "$profile" "$timeouts" "$expected" >&2
+    failed=1
+  fi
+}
+
 check_profile profile-nox-omarchy
 check_profile profile-fornax-omarchy
 
@@ -37,6 +55,9 @@ if grep -RqsE '^wezterm(-git)?($|[[:space:]])' "$repo_dir/packages"; then
 else
   printf 'ok no wezterm package declarations\n'
 fi
+
+check_hypridle_timeouts profile-nox-omarchy 240,600,660,1800
+check_hypridle_timeouts profile-fornax-omarchy 180,600,900,3600
 
 stale_profile="laptop-personal"
 if grep -Rqs \

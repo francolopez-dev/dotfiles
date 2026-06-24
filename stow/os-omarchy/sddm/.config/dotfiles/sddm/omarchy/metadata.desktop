@@ -1,0 +1,6 @@
+[SddmGreeterTheme]
+Name=Omarchy
+Description=Git-managed polished Omarchy login theme overlay
+Author=jfranco
+Type=sddm-theme
+Version=1.0

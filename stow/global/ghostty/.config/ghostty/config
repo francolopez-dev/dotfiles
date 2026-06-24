@@ -2,9 +2,28 @@
 # Shared across every machine. Put font-size overrides in profiles.
 
 # --- Theme ---
-theme = Catppuccin Mocha
+background = #100d1f
+foreground = #ffffff
+selection-background = #3a245e
+selection-foreground = #ffffff
 minimum-contrast = 1.2
-palette-generate = true
+palette = 0=#201830
+palette = 1=#ff5c8a
+palette = 2=#7ef7b6
+palette = 3=#ffd166
+palette = 4=#8aa8ff
+palette = 5=#c77dff
+palette = 6=#56f0e5
+palette = 7=#ffffff
+palette = 8=#4b3c64
+palette = 9=#ff7aa8
+palette = 10=#9dffd0
+palette = 11=#ffe08a
+palette = 12=#a7bcff
+palette = 13=#d89cff
+palette = 14=#7ff7ef
+palette = 15=#ffffff
+palette-generate = false
 
 # --- Font ---
 font-family = JetBrains Mono
@@ -22,6 +41,8 @@ window-padding-x = 18
 window-padding-y = 14
 background-opacity = 0.92
 background-blur = true
+custom-shader = ?~/.config/ghostty/shaders/cursor_sweep.glsl
+custom-shader-animation = true
 # Ghostty 1.3.1 does not expose background-blur-radius; do not add it here.
 background-opacity-cells = true
 unfocused-split-opacity = 0.9
@@ -32,7 +53,6 @@ scrollback-limit = 10000
 confirm-close-surface = true
 shell-integration = detect
 shell-integration-features = cursor,sudo,title
-bold-is-bright = true
 mouse-hide-while-typing = true
 cursor-click-to-move = true
 selection-clear-on-copy = true
@@ -40,10 +60,10 @@ selection-clear-on-copy = true
 # global config until a macOS layer exists.
 
 # --- Cursor ---
-cursor-style = bar
+cursor-style = block
 cursor-style-blink = false
-cursor-color = cell-foreground
-cursor-text = cell-background
+cursor-color = #7ef7b6
+cursor-text = #100d1f
 adjust-cursor-thickness = 35%
 
 # --- Keybinds (Super = Win/macOS Command on Omarchy/Hyprland) ---

@@ -22,36 +22,36 @@ offset = { x = 0, y = 0 }
 glyph_offset = { x = 0, y = 0 }
 
 [colors.primary]
-background = "#100d1f"
-foreground = "#e9ddff"
+background = "#0b1024"
+foreground = "#dbe7ff"
 
 [colors.cursor]
-text = "#100d1f"
-cursor = "#d985ff"
+text = "#0b1024"
+cursor = "#77d9ff"
 
 [colors.selection]
-text = "#f4ecff"
-background = "#3a245e"
+text = "#eef5ff"
+background = "#253b6e"
 
 [colors.normal]
-black = "#201830"
-red = "#ff5c8a"
-green = "#7ef7b6"
-yellow = "#ffd166"
-blue = "#8aa8ff"
-magenta = "#c77dff"
-cyan = "#56f0e5"
-white = "#d8ccf2"
+black = "#172039"
+red = "#ff6b9d"
+green = "#75f2c8"
+yellow = "#ffd47a"
+blue = "#79a8ff"
+magenta = "#b88cff"
+cyan = "#5ee6ff"
+white = "#cfdcff"
 
 [colors.bright]
-black = "#4b3c64"
-red = "#ff7aa8"
-green = "#9dffd0"
-yellow = "#ffe08a"
-blue = "#a7bcff"
-magenta = "#d89cff"
-cyan = "#7ff7ef"
-white = "#f4ecff"
+black = "#46527a"
+red = "#ff8ab4"
+green = "#9dffdf"
+yellow = "#ffe49a"
+blue = "#9fc0ff"
+magenta = "#d1adff"
+cyan = "#8af3ff"
+white = "#eef5ff"
 
 [cursor]
 style = { shape = "Beam", blinking = "Never" }

@@ -65,9 +65,9 @@ Terminal UX
   ff                      fastfetch, quiet if unavailable
   v                       nvim
   y                       yazi file manager
-  l                       compact colored box table listing
+  l                       compact colored box table with hidden files: #, name, type, size, modified, git, user, permissions
   ll                      same as l
-  la                      same as l --all
+  la                      same as l
   lt                      two-level tree
   l --created             table using created date
   l --accessed            table using accessed date

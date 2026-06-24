@@ -39,9 +39,9 @@ servers.
 | `ff` | Fastfetch system summary, quiet if unavailable |
 | `v` | Open Neovim |
 | `y` | Open yazi file manager |
-| `l` | Pretty compact column table with colors, icons, git status, and relative time |
+| `l` | Pretty compact column table with hidden files, colors, icons, git status, and relative time |
 | `ll` | Same as `l` |
-| `la` | Same as `l --all` |
+| `la` | Same as `l`; hidden files are already shown by default |
 | `lt` | Two-level tree with icons and git status |
 | `z` | Zoxide jump command after shell init |
 | `atuin` | Shell history search and sync tool |
@@ -67,7 +67,7 @@ oh-my-zsh defaults cannot conflict with the managed `l()` function.
 | `y` | `yazi` | Open yazi |
 | `l` | shell function around `eza --long ...` or `ls -lh` fallback | Omerxx-inspired listing with column separators and outer borders |
 | `ll` | `l` | Same as `l` |
-| `la` | `l --all` | Pretty all-files listing |
+| `la` | `l` | Same as `l`; hidden files are already shown by default |
 | `lt` | `eza --tree --level=2 ...` or `ls -lah` fallback | Small tree view |
 | `cls` | `clear && printf "\e[3J"` | Clear visible screen and scrollback |
 
@@ -79,7 +79,6 @@ oh-my-zsh defaults cannot conflict with the managed `l()` function.
 
 ```bash
 l ~/Downloads
-l --all
 l --created
 l --accessed
 l --changed
@@ -87,8 +86,9 @@ l --sort=size
 l --sort=modified
 ```
 
-The boxed table is tuned for the standard columns: permissions, size, user,
-date, git, and name. If you want arbitrary extra metadata columns, use raw mode:
+Hidden files are shown by default. The boxed table is tuned for the standard
+columns: `#`, name, type, size, date, git, user, and permissions. If you want
+arbitrary extra metadata columns, use raw mode:
 
 ```bash
 l --raw --group
@@ -100,7 +100,7 @@ l --raw --created --sort=created
 Current styled table columns are:
 
 ```text
-Permissions | Size | User | Modified/Created/Accessed/Changed | Git | Name
+# | Name | Type | Size | Modified/Created/Accessed/Changed | Git | User | Permissions
 ```
 
 To add more columns without changing the table renderer, use `l --raw` with any

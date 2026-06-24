@@ -16,7 +16,7 @@ unalias l ll la L lt 2>/dev/null || true
 
 if command -v eza >/dev/null 2>&1; then
   alias ll='l'
-  alias la='l --all'
+  alias la='l'
   alias lt='eza --tree --level=2 --icons --git --group-directories-first --classify=auto'
 else
   if ls --color=auto -d . >/dev/null 2>&1; then
@@ -37,6 +37,12 @@ _dotfiles_box_table() {
       return length(plain)
     }
 
+    function plain_text(value, plain) {
+      plain = value
+      gsub(/\033\[[0-9;?]*[[:alpha:]]/, "", plain)
+      return plain
+    }
+
     function rest(start, value, i) {
       value = $start
       for (i = start + 1; i <= NF; i++) value = value " " $i
@@ -46,6 +52,28 @@ _dotfiles_box_table() {
     function set_cell(row, column, value) {
       cells[row, column] = value
       widths[column] = visible_length(value) > widths[column] ? visible_length(value) : widths[column]
+    }
+
+    function file_type(permissions, name, plain_permissions, plain_name, base) {
+      plain_permissions = plain_text(permissions)
+      plain_name = plain_text(name)
+      sub(/^[[:space:]]+/, "", plain_name)
+      sub(/[[:space:]]+$/, "", plain_name)
+      sub(/^[^[:space:]]+[[:space:]]+/, "", plain_name)
+
+      if (substr(plain_permissions, 1, 1) == "d") return "dir"
+      if (substr(plain_permissions, 1, 1) == "l") return "link"
+      if (plain_name ~ /\/$/) return "dir"
+      if (plain_name ~ /\*$/) return "exe"
+
+      base = plain_name
+      sub(/[\/@*|=]$/, "", base)
+      if (base ~ /\.[^.\/]+$/) {
+        sub(/^.*\./, "", base)
+        return base
+      }
+
+      return "file"
     }
 
     function border(left, middle, right, line, i, j) {
@@ -66,26 +94,31 @@ _dotfiles_box_table() {
         if ($0 ~ /Date Accessed/) date_heading = "Accessed"
         if ($0 ~ /Date Changed/) date_heading = "Changed"
 
-        set_cell(rows, 1, "Permissions")
-        set_cell(rows, 2, "Size")
-        set_cell(rows, 3, "User")
-        set_cell(rows, 4, date_heading)
-        set_cell(rows, 5, "Git")
-        set_cell(rows, 6, "Name")
+        set_cell(rows, 1, "#")
+        set_cell(rows, 2, "Name")
+        set_cell(rows, 3, "Type")
+        set_cell(rows, 4, "Size")
+        set_cell(rows, 5, date_heading)
+        set_cell(rows, 6, "Git")
+        set_cell(rows, 7, "User")
+        set_cell(rows, 8, "Permissions")
         next
       }
 
-      set_cell(rows, 1, $1)
-      set_cell(rows, 2, $2)
-      set_cell(rows, 3, $3)
-      set_cell(rows, 4, $4 " " $5)
-      set_cell(rows, 5, $6)
-      set_cell(rows, 6, rest(7))
+      name = rest(7)
+      set_cell(rows, 1, rows - 1)
+      set_cell(rows, 2, name)
+      set_cell(rows, 3, file_type($1, name))
+      set_cell(rows, 4, $2)
+      set_cell(rows, 5, $4 " " $5)
+      set_cell(rows, 6, $6)
+      set_cell(rows, 7, $3)
+      set_cell(rows, 8, $1)
     }
 
     END {
       if (rows == 0) exit
-      columns = 6
+      columns = 8
 
       border("┌", "┬", "┐")
       for (i = 1; i <= rows; i++) {
@@ -106,7 +139,7 @@ l() {
   if [ "${1:-}" = "--raw" ]; then
     shift
     if command -v eza >/dev/null 2>&1; then
-      command eza --long --header --icons --git --group-directories-first --time-style=relative --classify=auto --color=always "$@"
+      command eza --long --all --header --icons --git --group-directories-first --time-style=relative --classify=auto --color=always "$@"
     elif ls --color=auto -d . >/dev/null 2>&1; then
       command ls -lh --color=always --group-directories-first "$@"
     else
@@ -116,7 +149,7 @@ l() {
   fi
 
   if command -v eza >/dev/null 2>&1; then
-    command eza --long --header --icons --git --group-directories-first --time-style=relative --classify=auto --color=always "$@" | _dotfiles_box_table
+    command eza --long --all --header --icons --git --group-directories-first --time-style=relative --classify=auto --color=always "$@" | _dotfiles_box_table
   elif ls --color=auto -d . >/dev/null 2>&1; then
     command ls -lh --color=always --group-directories-first "$@"
   else

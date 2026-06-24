@@ -11,7 +11,7 @@ zsh.
 | Terminal | Ghostty | `stow/global/ghostty/.config/ghostty/config` plus profile overrides | Good base; only supported keys should be used | Keep Ghostty primary, validate with `ghostty +validate-config` |
 | Shell | zsh + oh-my-zsh | `stow/global/zsh/.zshrc` | No issue; default should not change | Keep zsh default |
 | Bash | bash compatibility shell | `stow/global/bash/.bashrc` | Immediately execs zsh for interactive shells | Keep bash aliases in shared file so non-zsh sessions still work |
-| Aliases | shared shell aliases | `stow/global/shell/.config/shell/aliases.sh` | `ll` was minimal and no `l`, `la`, `L`, `lt` | Use eza aliases with safe `ls` fallbacks |
+| Aliases | shared shell aliases | `stow/global/shell/.config/shell/aliases.sh` | `ll` was minimal and no styled `l`, `la`, `lt` | Use eza-backed functions/aliases with safe `ls` fallbacks |
 | Directory listing | eza | package in `packages/global.list` | Defaults were underused | Use long header, icons, git, relative time, directories first |
 | Colors | eza defaults + terminal theme | no custom `LS_COLORS` | `vivid` is not installed; custom colors add maintenance | Keep eza defaults for now; revisit `vivid` only if colors are not readable |
 | Prompt | Powerlevel10k | `stow/global/zsh/.p10k.zsh` | Already configured; Starship also installed but unused | Do not add another prompt framework |
@@ -30,10 +30,9 @@ servers.
 
 | Command | Purpose |
 |---|---|
-| `l` | Pretty long listing with headers, icons, git status, relative time |
+| `l` | Pretty compact column table with colors, icons, git status, and relative time |
 | `ll` | Same as `l` |
-| `la` | Pretty long listing including hidden files |
-| `L` | Capital Omerxx-inspired pretty long listing with row separators |
+| `la` | Same as `l --all` |
 | `lt` | Two-level tree with icons and git status |
 | `y` | Open yazi file manager |
 | `z` | Zoxide jump command after shell init |
@@ -55,12 +54,38 @@ sourced by both `stow/global/bash/.bashrc` and `stow/global/zsh/.zshrc`.
 | `ff` | `fastfetch 2>/dev/null || true` | Show system summary without shell noise |
 | `v` | `nvim` | Open Neovim |
 | `y` | `yazi` | Open yazi |
-| `l` | `eza --long ...` or `ls -lh` fallback | Pretty long listing |
-| `ll` | `eza --long ...` or `ls -lah` fallback | Pretty long listing |
-| `la` | `eza --long --all ...` or `ls -lah` fallback | Pretty all-files listing |
-| `L` | shell function around `eza --long ...` or `ls -lh` fallback | Omerxx-inspired table listing with horizontal separators |
+| `l` | shell function around `eza --long ...` or `ls -lh` fallback | Omerxx-inspired listing with column separators and outer borders |
+| `ll` | `l` | Same as `l` |
+| `la` | `l --all` | Pretty all-files listing |
 | `lt` | `eza --tree --level=2 ...` or `ls -lah` fallback | Small tree view |
 | `cls` | `clear && printf "\e[3J"` | Clear visible screen and scrollback |
+
+## Listing Syntax
+
+`l` passes arguments through to `eza`, so normal eza filters and paths work:
+
+```bash
+l ~/Downloads
+l --all
+l --created
+l --accessed
+l --changed
+l --sort=size
+l --sort=modified
+```
+
+The boxed table is tuned for the standard columns: permissions, size, user,
+date, git, and name. If you want arbitrary extra metadata columns, use raw mode:
+
+```bash
+l --raw --group
+l --raw --links --inode
+l --raw --octal-permissions --group
+l --raw --created --sort=created
+```
+
+Colors come from `eza` and the terminal theme. Permissions, user, directories,
+executables, symlinks, archives, images, and git state stay colored by `eza`.
 
 ## Terminal Visual Style
 
@@ -107,7 +132,6 @@ ghostty +show-config 2>/dev/null || true
 dotfiles update
 exec zsh
 l
-L
 la
 lt
 ghostty --version

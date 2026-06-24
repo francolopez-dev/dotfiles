@@ -56,10 +56,9 @@ Daily
   dotfiles apply          re-stow layers after editing configs
 
 Terminal UX
-  l                       pretty long listing
-  ll                      pretty long listing
+  l                       compact colored box table listing
+  ll                      same as l
   la                      all files
-  L                       Omerxx-inspired listing with row separators
   lt                      two-level tree
   y                       yazi file manager
   z                       zoxide jump

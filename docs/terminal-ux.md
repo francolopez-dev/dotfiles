@@ -30,18 +30,29 @@ servers.
 
 | Command | Purpose |
 |---|---|
+| `..` | Go up one directory |
+| `gs` | Git status |
+| `gp` | Git pull |
+| `dps` | Docker process list |
+| `dcu` | Start Docker Compose stack in background |
+| `dcd` | Stop Docker Compose stack |
+| `ff` | Fastfetch system summary, quiet if unavailable |
+| `v` | Open Neovim |
+| `y` | Open yazi file manager |
 | `l` | Pretty compact column table with colors, icons, git status, and relative time |
 | `ll` | Same as `l` |
 | `la` | Same as `l --all` |
 | `lt` | Two-level tree with icons and git status |
-| `y` | Open yazi file manager |
 | `z` | Zoxide jump command after shell init |
 | `atuin` | Shell history search and sync tool |
+| `cls` | Clear visible screen and scrollback |
 
 ## Bash And Zsh Alias Cheatsheet
 
 These aliases live in `stow/global/shell/.config/shell/aliases.sh` and are
 sourced by both `stow/global/bash/.bashrc` and `stow/global/zsh/.zshrc`.
+The file clears any existing `l`, `ll`, `la`, `L`, and `lt` aliases first so
+oh-my-zsh defaults cannot conflict with the managed `l()` function.
 
 | Alias | Expands to | Description |
 |---|---|---|
@@ -59,6 +70,8 @@ sourced by both `stow/global/bash/.bashrc` and `stow/global/zsh/.zshrc`.
 | `la` | `l --all` | Pretty all-files listing |
 | `lt` | `eza --tree --level=2 ...` or `ls -lah` fallback | Small tree view |
 | `cls` | `clear && printf "\e[3J"` | Clear visible screen and scrollback |
+
+`L` is intentionally not defined. Use lowercase `l` for the styled table.
 
 ## Listing Syntax
 
@@ -83,6 +96,16 @@ l --raw --links --inode
 l --raw --octal-permissions --group
 l --raw --created --sort=created
 ```
+
+Current styled table columns are:
+
+```text
+Permissions | Size | User | Modified/Created/Accessed/Changed | Git | Name
+```
+
+To add more columns without changing the table renderer, use `l --raw` with any
+`eza` long-view flag. To permanently add columns to the boxed table, edit the
+`_dotfiles_box_table` parser in `stow/global/shell/.config/shell/aliases.sh`.
 
 Colors come from `eza` and the terminal theme. Permissions, user, directories,
 executables, symlinks, archives, images, and git state stay colored by `eza`.

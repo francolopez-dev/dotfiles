@@ -56,13 +56,26 @@ Daily
   dotfiles apply          re-stow layers after editing configs
 
 Terminal UX
+  ..                      go up one directory
+  gs                      git status
+  gp                      git pull
+  dps                     docker ps
+  dcu                     docker compose up -d
+  dcd                     docker compose down
+  ff                      fastfetch, quiet if unavailable
+  v                       nvim
+  y                       yazi file manager
   l                       compact colored box table listing
   ll                      same as l
-  la                      all files
+  la                      same as l --all
   lt                      two-level tree
-  y                       yazi file manager
+  l --created             table using created date
+  l --accessed            table using accessed date
+  l --changed             table using changed date
+  l --raw <eza flags>     raw eza long listing for extra columns
   z                       zoxide jump
   atuin                   shell history
+  cls                     clear screen and scrollback
 
 Dry-run flags
   dotfiles update --dry-run   preview without changing anything

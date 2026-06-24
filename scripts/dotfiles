@@ -30,6 +30,7 @@ Usage:
   dotfiles update --dry-run  Show what update would do, change nothing.
   dotfiles apply             Re-stow layers only (after editing configs).
   dotfiles apply --dry-run   Show what stow would do, change nothing.
+  dotfiles doctor            Lightweight bootstrap health checks.
   dotfiles autostart status  Audit login/startup items.
   dotfiles autostart help    Show autostart subcommands.
 
@@ -42,9 +43,33 @@ EOF
 cmd_apply() {
   local extra=()
   [[ "${1:-}" == "--dry-run" ]] && extra=(--no --verbose)
-  info "machine: $(detect_hostname) ($(detect_os))"
+  info "machine: $(detect_hostname) ($(detect_os)); profile: $(active_profile)"
   apply_all_layers "${extra[@]}"
   [[ ${#extra[@]} -eq 0 ]] && ok "layers applied"
+}
+
+install_missing_packages() {
+  local dry="$1" mgr missing=() p
+  mgr="$(pkg_manager)"
+  if [[ -z "$mgr" ]]; then
+    warn "no known package manager for this OS, skipping"
+    return 0
+  fi
+  while read -r p; do
+    [[ -z "$p" ]] && continue
+    _pkg_installed "$p" || missing+=("$p")
+  done < <(desired_packages)
+  if [[ ${#missing[@]} -eq 0 ]]; then
+    ok "all declared packages installed"
+    return 0
+  fi
+  printf '  missing: %s\n' "${missing[*]}"
+  if [[ "$dry" -eq 1 ]]; then
+    dim "  would run: $mgr ${missing[*]}"
+  elif confirm "Install ${#missing[@]} missing package(s)?"; then
+    # shellcheck disable=SC2086
+    $mgr "${missing[@]}"
+  fi
 }
 
 # --- update --------------------------------------------------------------
@@ -53,8 +78,8 @@ cmd_update() {
   local stow_failed=0
   [[ "${1:-}" == "--dry-run" ]] && dry=1
 
-  info "Update plan for $(detect_hostname) ($(detect_os)):"
-  printf '  1. git pull --ff-only\n  2. re-stow layers (conflicts reported, never overwritten)\n  3. install missing packages\n'
+  info "Update plan for $(detect_hostname) ($(detect_os)); profile: $(active_profile):"
+  printf '  1. git pull --ff-only\n  2. install missing packages\n  3. re-stow layers (conflict wizard; never silently overwritten)\n'
   if [[ $dry -eq 1 ]]; then
     dim "(dry-run: nothing will change)"
   elif ! confirm "Proceed?"; then
@@ -72,7 +97,11 @@ cmd_update() {
     fi
   fi
 
-  # 2. re-stow (stow is non-destructive: conflicts are reported, not overwritten)
+  # 2. packages before stow; fresh bootstrap needs stow installed first.
+  info "Checking packages"
+  install_missing_packages "$dry"
+
+  # 3. re-stow with friendly conflict handling.
   info "Re-stowing layers"
   if [[ $dry -eq 1 ]]; then
     if ! apply_all_layers --no --verbose; then
@@ -86,35 +115,38 @@ cmd_update() {
     fi
   fi
 
-  # 3. packages
-  info "Checking packages"
-  local mgr; mgr="$(pkg_manager)"
-  if [[ -z "$mgr" ]]; then
-    warn "no known package manager for this OS, skipping"
-  else
-    local missing=()
-    local p
-    while read -r p; do
-      [[ -z "$p" ]] && continue
-      _pkg_installed "$p" || missing+=("$p")
-    done < <(desired_packages)
-    if [[ ${#missing[@]} -eq 0 ]]; then
-      ok "all declared packages installed"
-    else
-      printf '  missing: %s\n' "${missing[*]}"
-      if [[ $dry -eq 1 ]]; then
-        dim "  would run: $mgr ${missing[*]}"
-      elif confirm "Install ${#missing[@]} missing package(s)?"; then
-        # shellcheck disable=SC2086
-        $mgr "${missing[@]}"
-      fi
-    fi
-  fi
   if [[ $stow_failed -eq 1 ]]; then
     warn "update completed with stow conflicts"
     return 1
   fi
   [[ $dry -eq 0 ]] && ok "update complete"
+}
+
+cmd_doctor() {
+  local failed=0
+  info "Doctor"
+  for cmd in git stow bash curl; do
+    if command -v "$cmd" >/dev/null 2>&1; then
+      ok "$cmd installed"
+    else
+      warn "$cmd missing"
+      failed=1
+    fi
+  done
+  if [[ "$(detect_os)" == "omarchy" ]]; then
+    if command -v ghostty >/dev/null 2>&1; then
+      ok "ghostty installed"
+    else
+      warn "ghostty missing"
+      failed=1
+    fi
+    if [[ -f "$HOME/.config/xdg-terminals.list" ]] && grep -q 'ghostty' "$HOME/.config/xdg-terminals.list"; then
+      ok "terminal launcher prefers Ghostty"
+    else
+      warn "terminal launcher preference not stowed yet"
+    fi
+  fi
+  return "$failed"
 }
 
 # --- status (aggregated) -------------------------------------------------
@@ -123,7 +155,7 @@ cmd_status() {
   os="$(detect_os)"; host="$(detect_hostname)"
 
   info "Machine"
-  printf '  hostname : %s\n  os       : %s\n' "$host" "$os"
+  printf '  hostname : %s\n  os       : %s\n  profile  : %s\n' "$host" "$os" "$(active_profile "$os" "$host")"
 
   info "Active layers"
   resolve_layers "$os" "$host" | sed 's/^/  /'
@@ -193,6 +225,7 @@ main() {
     status) cmd_status "$@" ;;
     update) cmd_update "$@" ;;
     apply)  cmd_apply "$@" ;;
+    doctor) cmd_doctor "$@" ;;
     autostart) cmd_autostart "$@" ;;
     help|-h|--help) usage ;;
     *) err "unknown command: $cmd"; usage; exit 1 ;;

@@ -20,6 +20,20 @@ curl -fsSL <raw-url>/scripts/bootstrap.sh | bash
 
 Bootstrap clones or updates `~/dotfiles`, checks out `main` by default, applies the
 ordered Stow layers, and links `scripts/dotfiles` to `~/.local/bin/dotfiles`.
+It installs the bootstrap prerequisites (`git`, `stow`, `bash`, `curl`) before
+Stow runs.
+
+If bootstrap hits local config conflicts, choose the recommended
+`backup existing files and stow repo version` option. Backups are written under
+`~/.dotfiles-backup/YYYY-MM-DD-HHMMSS/`.
+
+If the shell cannot find `dotfiles` after an interrupted bootstrap, use the
+source checkout directly:
+
+```bash
+~/dotfiles/scripts/dotfiles status
+~/dotfiles/scripts/dotfiles update
+```
 
 ## 3. Verify
 
@@ -28,7 +42,8 @@ dotfiles status
 ```
 
 Confirm the hostname, OS, and active layers. For this work Lenovo, the active
-profile should be `profile-fornax-omarchy`.
+profile should be `profile-fornax-omarchy`. For the personal T490 named `nox`,
+the active profile should be `profile-nox-omarchy`.
 
 ## 4. Manual post-bootstrap steps
 

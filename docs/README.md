@@ -37,7 +37,7 @@ OS layers apply.
 ```bash
 curl -fsSL <raw-url>/scripts/bootstrap.sh | bash
 dotfiles status
-dotfiles apply
+dotfiles update
 ```
 
 See [first-time-setup.md](first-time-setup.md) and [where-to-edit.md](where-to-edit.md).
@@ -60,6 +60,7 @@ Dry-run flags
 
 Validation
   shellcheck -x scripts/dotfiles scripts/bootstrap.sh scripts/lib/*.sh
+  scripts/validate-profiles.sh
 
 Layer order
   stow/global  →  stow/os-<os>  →  stow/profile-<hostname>-<os>

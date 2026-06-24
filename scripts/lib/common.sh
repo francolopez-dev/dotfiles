@@ -19,13 +19,33 @@ dim()   { printf '%s%s%s\n' "$_c_dim" "$*" "$_c_reset"; }
 # confirm "Question?" -> returns 0 on yes. Defaults to no.
 confirm() {
   local q="$1" ans
-  printf '%s [y/N] ' "$q"
-  read -r ans || true
+  if have_tty; then
+    printf '%s [y/N] ' "$q" >/dev/tty
+    IFS= read -r ans </dev/tty || true
+  else
+    printf '%s [y/N] ' "$q"
+    read -r ans || true
+  fi
   [[ "$ans" == [yY] || "$ans" == [yY][eE][sS] ]]
+}
+
+have_tty() { [[ -r /dev/tty && -w /dev/tty ]]; }
+
+prompt_tty() {
+  local prompt="$1" ans
+  have_tty || return 1
+  printf '%s' "$prompt" >/dev/tty
+  IFS= read -r ans </dev/tty || true
+  printf '%s\n' "$ans"
 }
 
 # --- machine identity ----------------------------------------------------
 detect_hostname() { hostname -s 2>/dev/null || uname -n | cut -d. -f1; }
+
+active_profile() {
+  local os="${1:-$(detect_os)}" host="${2:-$(detect_hostname)}"
+  printf '%s\n' "${DOTFILES_PROFILE:-profile-${host}-${os}}"
+}
 
 # Echoes one of: omarchy | debian | ubuntu | unknown
 detect_os() {
@@ -50,7 +70,8 @@ resolve_layers() {
   local os="${1:-$(detect_os)}" host="${2:-$(detect_hostname)}"
   echo "global"
   [[ -d "$DOTFILES_DIR/stow/os-$os" ]] && echo "os-$os"
-  local profile="profile-${host}-${os}"
+  local profile
+  profile="$(active_profile "$os" "$host")"
   [[ -d "$DOTFILES_DIR/stow/$profile" ]] && echo "$profile"
   return 0
 }
@@ -58,7 +79,9 @@ resolve_layers() {
 # Echoes ordered package list files for this machine (those that exist).
 resolve_package_lists() {
   local os="${1:-$(detect_os)}" host="${2:-$(detect_hostname)}"
-  for name in "global" "os-$os" "profile-${host}-${os}"; do
+  local profile
+  profile="$(active_profile "$os" "$host")"
+  for name in "global" "os-$os" "$profile"; do
     local f="$DOTFILES_DIR/packages/${name}.list"
     [[ -f "$f" ]] && echo "$f"
   done

@@ -19,6 +19,10 @@ dim()   { printf '%s%s%s\n' "$_c_dim" "$*" "$_c_reset"; }
 # confirm "Question?" -> returns 0 on yes. Defaults to no.
 confirm() {
   local q="$1" ans
+  if [[ "${DOTFILES_ASSUME_YES:-0}" == "1" ]]; then
+    printf '%s [y/N] y\n' "$q"
+    return 0
+  fi
   if have_tty; then
     printf '%s [y/N] ' "$q" >/dev/tty
     IFS= read -r ans </dev/tty || true

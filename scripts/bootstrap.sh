@@ -328,7 +328,7 @@ if [[ $DRY_RUN -eq 1 ]]; then
     warn "dry-run: would run $DOTFILES_DIR/scripts/dotfiles update --dry-run after clone"
   fi
 else
-  "$DOTFILES_DIR/scripts/dotfiles" update
+  DOTFILES_ASSUME_YES=1 "$DOTFILES_DIR/scripts/dotfiles" update
 fi
 
 bootstrap_summary() {

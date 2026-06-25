@@ -56,7 +56,7 @@ detect_bootstrap_os() {
 
 install_bootstrap_prereqs() {
   local missing=() cmd
-  for cmd in git stow bash curl; do
+  for cmd in git stow bash curl zsh; do
     command -v "$cmd" >/dev/null 2>&1 || missing+=("$cmd")
   done
   [[ ${#missing[@]} -eq 0 ]] && return 0
@@ -88,11 +88,28 @@ install_bootstrap_prereqs() {
 
 install_bootstrap_prereqs
 
+install_oh_my_zsh() {
+  local omz_dir="$HOME/.oh-my-zsh"
+  if [[ -r "$omz_dir/oh-my-zsh.sh" ]]; then
+    return 0
+  fi
+
+  say "Installing Oh My Zsh"
+  if [[ $DRY_RUN -eq 1 ]]; then
+    warn "dry-run: would clone Oh My Zsh to $omz_dir"
+    return 0
+  fi
+
+  git clone --depth=1 https://github.com/ohmyzsh/ohmyzsh.git "$omz_dir"
+}
+
+install_oh_my_zsh
+
 # 1. clone or update
 if [[ -d "$DOTFILES_DIR/.git" ]]; then
   say "Updating existing repo at $DOTFILES_DIR"
   if [[ $DRY_RUN -eq 1 ]]; then
-    git -C "$DOTFILES_DIR" fetch --dry-run 2>&1 | sed 's/^/  /' || true
+    git -C "$DOTFILES_DIR" fetch --dry-run || true
   else
     git -C "$DOTFILES_DIR" fetch --all --prune
   fi

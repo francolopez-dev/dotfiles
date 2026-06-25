@@ -1,9 +1,0 @@
-#!/usr/bin/env bash
-set -euo pipefail
-
-# Launch Walker and ensure its Elephant backend is available.
-if ! pgrep -x elephant >/dev/null 2>&1; then
-  setsid uwsm-app -- elephant >/dev/null 2>&1 &
-fi
-
-exec env GSK_RENDERER=cairo walker --width 644 --maxheight 300 --minheight 300 "$@"

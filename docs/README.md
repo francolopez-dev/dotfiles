@@ -1,20 +1,21 @@
 # dotfiles
 
-A small, layered, GNU Stow based personal platform for rebuilding and
-maintaining machines. Git is the source of truth for system intent. Secrets do
-not live here: Vaultwarden owns passwords and the encrypted recovery pack owns
-key material.
+Personal machine rebuild kit using Git, Bash, and GNU Stow.
 
-## Philosophy
+Git records system intent. Secrets do not live here: Vaultwarden owns passwords,
+and the encrypted recovery pack owns keys and infrastructure exports.
+
+## Rules
 
 - Machines are disposable.
 - Every managed config is a real file under `stow/`.
-- Directory names explain scope: global, OS, then hostname profile.
-- Bash and Stow only. No Ansible, Nix, templates, or generated config files.
+- Layers go from broad to specific: global, OS, hostname profile.
+- Keep Omarchy defaults on Omarchy. Do not stow app launcher config or package
+  entries unless there is a specific reason to override upstream.
+- No Ansible, Nix, templates, generated configs, private keys, logs, or recovery
+  packs.
 
 ## Layers
-
-Configs apply in strict order:
 
 ```text
 stow/global
@@ -22,69 +23,59 @@ stow/os-<os>
 stow/profile-<hostname>-<os>
 ```
 
-The supported OS IDs are `omarchy`, `debian`, and `ubuntu`. The profile name is
-derived from `hostname -s`, so this work Lenovo named `fornax` on Omarchy uses
-`stow/profile-fornax-omarchy/`. If that directory does not exist, only global and
-OS layers apply.
+Supported OS IDs: `omarchy`, `debian`, `ubuntu`.
 
-## Current Profiles
+The profile is derived from `hostname -s`. A machine named `fornax` on Omarchy
+uses `stow/profile-fornax-omarchy/` and
+`packages/profile-fornax-omarchy.list`. If the profile does not exist, only the
+global and OS layers apply.
+
+Current profiles:
 
 - `profile-nox-omarchy`: personal Lenovo T490.
 - `profile-fornax-omarchy`: work Lenovo.
 
-## Quickstart
+## Daily Use
+
+```bash
+dotfiles status
+dotfiles update
+dotfiles apply
+```
+
+Use dry runs before risky changes:
+
+```bash
+dotfiles update --dry-run
+dotfiles apply --dry-run
+```
+
+First install:
 
 ```bash
 curl -fsSL <raw-url>/scripts/bootstrap.sh | bash
-dotfiles status
-dotfiles update
 ```
 
-See [first-time-setup.md](first-time-setup.md), [where-to-edit.md](where-to-edit.md),
-and [terminal-ux.md](terminal-ux.md).
+## Where Things Go
 
-## Cheatsheet
+- Shared shell, Git, SSH, tmux, terminals: `stow/global/`.
+- Shared Omarchy desktop config: `stow/os-omarchy/`.
+- Machine-specific monitors, autostart, idle, and lock config:
+  `stow/profile-<hostname>-omarchy/`.
+- Packages for every machine: `packages/global.list`.
+- Packages for every Omarchy machine: `packages/os-omarchy.list`.
+- Packages for one machine: `packages/profile-<hostname>-<os>.list`.
 
-```text
-Setup
-  curl -fsSL <raw-url>/scripts/bootstrap.sh | bash         first-time install
-  DOTFILES_BRANCH=<branch> bash                            pick a branch
+For exact edit locations, see [where-to-edit.md](where-to-edit.md).
 
-Daily
-  dotfiles status         dashboard: host, layers, drift, sync, recovery
-  dotfiles update         pull + re-stow + install missing packages
-  dotfiles apply          re-stow layers after editing configs
+## Checks
 
-Terminal UX
-  ..                      go up one directory
-  gs                      git status
-  gp                      git pull
-  dps                     docker ps
-  dcu                     docker compose up -d
-  dcd                     docker compose down
-  ff                      fastfetch, quiet if unavailable
-  v                       nvim
-  y                       yazi file manager
-  l                       compact colored box table with hidden files: #, name, type, size, modified, git, user, permissions
-  ll                      same as l
-  la                      same as l
-  lt                      two-level tree
-  l --created             table using created date
-  l --accessed            table using accessed date
-  l --changed             table using changed date
-  l --raw <eza flags>     raw eza long listing for extra columns
-  z                       zoxide jump
-  atuin                   shell history
-  cls                     clear screen and scrollback
-
-Dry-run flags
-  dotfiles update --dry-run   preview without changing anything
-  dotfiles apply  --dry-run   preview stow without touching files
-
-Validation
-  shellcheck -x scripts/dotfiles scripts/bootstrap.sh scripts/lib/*.sh
-  scripts/validate-profiles.sh
-
-Layer order
-  stow/global  →  stow/os-<os>  →  stow/profile-<hostname>-<os>
+```bash
+shellcheck -x scripts/dotfiles scripts/bootstrap.sh scripts/lib/*.sh
+scripts/validate-profiles.sh
+scripts/dotfiles status
+scripts/dotfiles apply --dry-run
 ```
+
+More docs: [first-time-setup.md](first-time-setup.md),
+[autostart.md](autostart.md), and [terminal-ux.md](terminal-ux.md).

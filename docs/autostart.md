@@ -25,7 +25,7 @@ desktop files in `~/.config/autostart/`, and enabled, linked, or masked user
 systemd units.
 
 Each item is printed with an item id such as `hypr:uwsm-app -- slack`,
-`xdg:walker.desktop`, `xdg-system:org.fcitx.Fcitx5.desktop`, or
+`xdg:dropbox.desktop`, `xdg-system:org.fcitx.Fcitx5.desktop`, or
 `systemd:synergy.service`.
 
 ## Add A Managed Login App
@@ -53,7 +53,7 @@ dotfiles autostart apply
 For a user XDG desktop file shown by status:
 
 ```bash
-dotfiles autostart adopt xdg walker.desktop
+dotfiles autostart adopt xdg dropbox.desktop
 dotfiles autostart apply
 ```
 
@@ -62,7 +62,7 @@ XDG adoption reads `Exec=` and stores it as a managed Hyprland startup command.
 ## Keep Something Local
 
 ```bash
-dotfiles autostart ignore xdg:walker.desktop
+dotfiles autostart ignore xdg:dropbox.desktop
 dotfiles autostart ignore systemd:synergy.service
 dotfiles autostart apply
 ```
@@ -76,7 +76,7 @@ stow/profile-<hostname>-omarchy/dotfiles/.config/dotfiles/autostart.ignore
 Remove an ignore rule with:
 
 ```bash
-dotfiles autostart unignore xdg:walker.desktop
+dotfiles autostart unignore xdg:dropbox.desktop
 ```
 
 ## Remove
@@ -91,7 +91,7 @@ dotfiles autostart apply
 Remove a user XDG autostart file:
 
 ```bash
-dotfiles autostart remove xdg:walker.desktop
+dotfiles autostart remove xdg:dropbox.desktop
 ```
 
 Disable and stop a user systemd unit:

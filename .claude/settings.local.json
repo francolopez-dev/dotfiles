@@ -54,19 +54,10 @@
       "Bash(systemctl --user is-enabled synergy.service)",
       "Bash(hyprctl binds *)",
       "Bash(systemctl --user list-units)",
-      "Bash(systemctl --user status app-walker@autostart.service)",
-      "Bash(systemctl --user mask app-walker@autostart.service)",
-      "Bash(systemctl --user stop app-walker@autostart.service)",
       "Bash(systemctl --user daemon-reload)",
-      "Bash(systemctl --user is-active app-walker@autostart.service)",
       "Bash(hyprctl -j binds)",
       "Read(//home/jfranco/.local/state/omarchy/toggles/hypr/**)",
-      "Bash(systemctl --user show-environment)",
-      "Bash(systemctl --user status elephant.service)",
-      "Bash(elephant service *)",
-      "Bash(systemctl --user unmask app-walker@autostart.service)",
-      "Bash(systemctl --user start app-walker@autostart.service)",
-      "Bash(timeout 3 dotfiles-launch-walker)"
+      "Bash(systemctl --user show-environment)"
     ]
   }
 }

@@ -18,7 +18,7 @@ Examples:
   dotfiles autostart add uwsm-app -- slack
   dotfiles autostart remove 'uwsm-app -- slack'
   dotfiles autostart remove synergy.service
-  dotfiles autostart adopt xdg walker.desktop
+  dotfiles autostart adopt xdg dropbox.desktop
   dotfiles autostart ignore systemd:synergy.service
 
 Items and copy-paste actions are shown by `dotfiles autostart status`. Managed

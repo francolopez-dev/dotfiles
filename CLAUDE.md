@@ -40,7 +40,8 @@ If the profile directory does not exist, only `global` and `os-<os>` apply.
 - `stow/global/`: universal shell, git, ssh, tmux, zsh, bash, Ghostty, and
   Alacritty config.
 - `stow/os-omarchy/`: shared Omarchy desktop config such as Hyprland, Waybar,
-  Rofi, Atuin, Neovim, Yazi, Satty, themes, and scripts.
+  Atuin, Neovim, Yazi, Satty, themes, and scripts. Omarchy-owned app launcher
+  defaults are not managed here.
 - `stow/os-debian/`: Debian/Ubuntu server essentials.
 - `stow/profile-<hostname>-<os>/`: machine-specific overrides such as monitors,
   autostart, idle, and lock config.

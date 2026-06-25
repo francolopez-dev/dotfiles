@@ -15,7 +15,6 @@ change true everywhere it should apply.
 | Hyprland keybinds (all Omarchy machines) | `stow/os-omarchy/hyprland/.config/hypr/conf.d/99-omarchy-keymap.conf` |
 | Hyprland look/feel (all Omarchy machines) | `stow/os-omarchy/hyprland/.config/hypr/conf.d/99-personal.conf` |
 | Waybar | `stow/os-omarchy/waybar/.config/waybar/` |
-| Rofi | `stow/os-omarchy/rofi/.config/rofi/` |
 | Ghostty terminal style/shortcuts | `stow/global/ghostty/.config/ghostty/config` |
 | Alacritty terminal style/shortcuts | `stow/global/alacritty/.config/alacritty/alacritty.toml` |
 | Terminal font overrides for one machine | `stow/profile-<hostname>-<os>/{ghostty,alacritty}/.config/<terminal>/profile-overrides*` |
@@ -35,6 +34,8 @@ change true everywhere it should apply.
 - **Monitor config is always machine-specific.** It belongs in the profile
   layer's `20-monitors.conf`, never in `os-omarchy`. Putting it in the OS layer
   was the old scale bug.
+- **App launcher config stays with Omarchy.** Do not stow Walker/Rofi config or
+  package entries here unless there is a specific new need.
 - The OS layer and profile layer both drop files into `conf.d/`, but with
   distinct filenames, so Stow merges them without conflict.
 - After editing anything, run `dotfiles apply`.

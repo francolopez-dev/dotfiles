@@ -45,7 +45,11 @@ cmd_apply() {
   local extra=()
   [[ "${1:-}" == "--dry-run" ]] && extra=(--no --verbose)
   info "machine: $(detect_hostname) ($(detect_os)); profile: $(active_profile)"
-  apply_all_layers "${extra[@]}"
+  if [[ ${#extra[@]} -gt 0 ]]; then
+    apply_all_layers "${extra[@]}"
+  else
+    apply_all_layers
+  fi
   if [[ ${#extra[@]} -eq 0 ]]; then
     apply_omarchy_system_overrides
   fi

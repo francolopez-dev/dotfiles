@@ -4,7 +4,7 @@
 #
 # Clones (or updates) the repo, checks out the working branch, applies the
 # stow layers for this machine, and symlinks `dotfiles` onto PATH.
-set -euo pipefail
+set -Eeuo pipefail
 
 REPO_URL="${DOTFILES_REPO_URL:-https://github.com/jfrancolopez/dotfiles.git}"
 export DOTFILES_DIR="${DOTFILES_DIR:-$HOME/dotfiles}"
@@ -15,6 +15,22 @@ ZSHRC_GUARD_MARKER="# dotfiles bootstrap zsh-newuser-install guard"
 
 say() { printf '\033[34m==>\033[0m %s\n' "$*"; }
 warn() { printf '\033[33mwarn\033[0m %s\n' "$*" >&2; }
+
+die() {
+  local reason="$1" fix="$2"
+  printf 'ERROR:\n%s\n%s\n' "$reason" "$fix" >&2
+  exit 1
+}
+
+on_error() {
+  local line="$1" command="$2" status="$3"
+  trap - ERR
+  printf 'ERROR:\nbootstrap failed at line %s with exit status %s: %s\n' "$line" "$status" "$command" >&2
+  printf 'Fix the command above, then rerun bootstrap. It is safe to rerun.\n' >&2
+  exit "$status"
+}
+
+trap 'on_error "$LINENO" "$BASH_COMMAND" "$?"' ERR
 
 repo_dirty() {
   [[ -n "$(git -C "$DOTFILES_DIR" status --porcelain 2>/dev/null || true)" ]]
@@ -56,6 +72,10 @@ while [[ $# -gt 0 ]]; do
 done
 
 detect_bootstrap_os() {
+  if [[ -n "${DOTFILES_BOOTSTRAP_OS:-}" ]]; then
+    echo "$DOTFILES_BOOTSTRAP_OS"
+    return 0
+  fi
   if [[ -f /etc/os-release ]]; then
     # shellcheck disable=SC1091
     . /etc/os-release
@@ -76,7 +96,15 @@ install_bootstrap_prereqs() {
 
   case "$(detect_bootstrap_os)" in
     omarchy)
-      command -v pacman >/dev/null 2>&1 || { warn "pacman is required to install bootstrap prerequisites"; return 1; }
+      if ! command -v pacman >/dev/null 2>&1; then
+        if [[ $DRY_RUN -eq 1 ]]; then
+          warn "dry-run: pacman is not available on this host"
+          return 0
+        fi
+        die \
+          "pacman is required to install bootstrap prerequisites." \
+          "Install pacman/base system packages or run this on a complete Omarchy installation."
+      fi
       for pkg in "${prereqs[@]}"; do
         pacman -Qq "$pkg" >/dev/null 2>&1 || missing+=("$pkg")
       done
@@ -104,7 +132,9 @@ install_bootstrap_prereqs() {
     *)
       warn "cannot install prerequisites automatically on this OS: ${prereqs[*]}"
       [[ $DRY_RUN -eq 1 ]] && return 0
-      return 1
+      die \
+        "Unsupported OS for automatic prerequisite installation: $(detect_bootstrap_os)." \
+        "Install these prerequisites manually, then rerun bootstrap: ${prereqs[*]}"
       ;;
   esac
 }
@@ -148,6 +178,11 @@ install_oh_my_zsh() {
   if [[ -r "$omz_dir/oh-my-zsh.sh" ]]; then
     return 0
   fi
+  if [[ -e "$omz_dir" ]]; then
+    die \
+      "Found $omz_dir, but it does not contain oh-my-zsh.sh." \
+      "Move or remove the incomplete directory, then rerun bootstrap."
+  fi
 
   say "Installing Oh My Zsh"
   if [[ $DRY_RUN -eq 1 ]]; then
@@ -166,6 +201,11 @@ install_oh_my_zsh_plugin() {
   if [[ -d "$plugin_dir" ]]; then
     return 0
   fi
+  if [[ -e "$plugin_dir" ]]; then
+    die \
+      "Found $plugin_dir, but it is not a directory." \
+      "Move or remove that path, then rerun bootstrap."
+  fi
 
   say "Installing Oh My Zsh plugin: $name"
   if [[ $DRY_RUN -eq 1 ]]; then
@@ -183,6 +223,11 @@ install_powerlevel10k() {
   local theme_dir="$HOME/.oh-my-zsh/custom/themes/powerlevel10k"
   if [[ -d "$theme_dir" ]]; then
     return 0
+  fi
+  if [[ -e "$theme_dir" ]]; then
+    die \
+      "Found $theme_dir, but it is not a directory." \
+      "Move or remove that path, then rerun bootstrap."
   fi
 
   say "Installing Powerlevel10k"
@@ -209,6 +254,11 @@ else
   if [[ $DRY_RUN -eq 1 ]]; then
     warn "dry-run: would clone $REPO_URL to $DOTFILES_DIR"
   else
+    if [[ -e "$DOTFILES_DIR" ]]; then
+      die \
+        "Found $DOTFILES_DIR, but it is not a Git checkout." \
+        "Move it aside or set DOTFILES_DIR to another path, then rerun bootstrap."
+    fi
     git clone "$REPO_URL" "$DOTFILES_DIR"
   fi
 fi
@@ -216,6 +266,9 @@ if [[ -d "$DOTFILES_DIR/.git" ]]; then
   if [[ $DRY_RUN -eq 0 ]]; then
     if repo_dirty; then
       show_repo_dirty_help
+      die \
+        "Refusing to update a dotfiles checkout with local changes." \
+        "Commit, stash, or discard those changes intentionally, then rerun bootstrap."
     else
       if git -C "$DOTFILES_DIR" rev-parse --verify "$BRANCH" >/dev/null 2>&1; then
         git -C "$DOTFILES_DIR" checkout "$BRANCH"
@@ -229,14 +282,21 @@ if [[ -d "$DOTFILES_DIR/.git" ]]; then
   fi
 fi
 
-# 2. symlink the CLI onto PATH before stow so fallback exists if conflicts occur.
-mkdir -p "$BIN_DIR"
 if [[ $DRY_RUN -eq 1 ]]; then
+  say "Would configure repo-local Git hooks"
+elif [[ -d "$DOTFILES_DIR/.githooks" ]]; then
+  git -C "$DOTFILES_DIR" config core.hooksPath .githooks
+fi
+
+# 2. symlink the CLI onto PATH before stow so fallback exists if conflicts occur.
+if [[ $DRY_RUN -eq 1 ]]; then
+  say "Would create $BIN_DIR"
   say "Would link dotfiles -> $BIN_DIR/dotfiles"
 else
+  mkdir -p "$BIN_DIR"
   ln -sf "$DOTFILES_DIR/scripts/dotfiles" "$BIN_DIR/dotfiles"
+  say "Linked dotfiles -> $BIN_DIR/dotfiles"
 fi
-say "Linked dotfiles -> $BIN_DIR/dotfiles"
 
 # 3. Make dotfiles available to the current bootstrap shell immediately.
 case ":$PATH:" in
@@ -255,7 +315,7 @@ if [[ $DRY_RUN -eq 1 ]]; then
     warn "dry-run: repo checkout is not present, so stow cannot be simulated"
   fi
 else
-  "$DOTFILES_DIR/scripts/dotfiles" apply || warn "managed shell config pre-apply had conflicts; continuing to update"
+  "$DOTFILES_DIR/scripts/dotfiles" apply
 fi
 
 # 5. Install declared packages, then re-apply layers with conflict wizard.
@@ -275,6 +335,10 @@ bootstrap_summary() {
   local host host_upper
   host="$(hostname -s 2>/dev/null || uname -n | cut -d. -f1)"
   host_upper="$(printf '%s' "$host" | tr '[:lower:]' '[:upper:]')"
+  if [[ $DRY_RUN -eq 1 ]]; then
+    printf '\nBootstrap dry-run complete for %s. No changes were made.\n' "$host_upper"
+    return 0
+  fi
   printf '\nBootstrap complete for %s.\n\n' "$host_upper"
   printf 'Ready:\n'
   printf '  dotfiles command installed: %s\n' "$(command -v dotfiles 2>/dev/null || printf '%s' "$BIN_DIR/dotfiles")"

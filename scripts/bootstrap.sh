@@ -236,8 +236,6 @@ install_bootstrap_prereqs() {
   return 0
 }
 
-install_bootstrap_prereqs
-
 install_zshrc_guard() {
   local zshrc="$HOME/.zshrc"
   if [[ -e "$zshrc" || -L "$zshrc" ]]; then
@@ -251,6 +249,7 @@ install_zshrc_guard() {
   fi
 
   printf '%s\n# Replaced by stowed dotfiles zsh config during bootstrap.\n' "$ZSHRC_GUARD_MARKER" >"$zshrc"
+  return 0
 }
 
 remove_zshrc_guard() {
@@ -266,9 +265,8 @@ remove_zshrc_guard() {
       rm -f "$zshrc"
     fi
   fi
+  return 0
 }
-
-install_zshrc_guard
 
 install_oh_my_zsh() {
   local omz_dir="$HOME/.oh-my-zsh"
@@ -288,9 +286,8 @@ install_oh_my_zsh() {
   fi
 
   git clone --depth=1 https://github.com/ohmyzsh/ohmyzsh.git "$omz_dir"
+  return 0
 }
-
-install_oh_my_zsh
 
 install_oh_my_zsh_plugin() {
   local name="$1" url="$2" plugin_dir
@@ -311,10 +308,8 @@ install_oh_my_zsh_plugin() {
   fi
 
   git clone --depth=1 "$url" "$plugin_dir"
+  return 0
 }
-
-install_oh_my_zsh_plugin zsh-autosuggestions https://github.com/zsh-users/zsh-autosuggestions.git
-install_oh_my_zsh_plugin zsh-syntax-highlighting https://github.com/zsh-users/zsh-syntax-highlighting.git
 
 install_powerlevel10k() {
   local theme_dir="$HOME/.oh-my-zsh/custom/themes/powerlevel10k"
@@ -334,11 +329,11 @@ install_powerlevel10k() {
   fi
 
   git clone --depth=1 https://github.com/romkatv/powerlevel10k.git "$theme_dir"
+  return 0
 }
 
-install_powerlevel10k
-
 # 1. clone or update
+run_bootstrap_repo_flow() {
 if [[ -d "$DOTFILES_DIR/.git" ]]; then
   say "Updating existing repo at $DOTFILES_DIR"
   if [[ $DRY_RUN -eq 1 ]]; then
@@ -429,6 +424,7 @@ if [[ $DRY_RUN -eq 1 ]]; then
 else
   DOTFILES_ASSUME_YES=1 DOTFILES_STOW_CONFLICTS="${DOTFILES_STOW_CONFLICTS:-backup}" "$DOTFILES_DIR/scripts/dotfiles" update
 fi
+}
 
 bootstrap_summary() {
   local host host_upper
@@ -453,4 +449,15 @@ bootstrap_summary() {
   printf '  run dotfiles status && dotfiles doctor\n'
 }
 
-bootstrap_summary
+main() {
+  install_bootstrap_prereqs
+  install_zshrc_guard
+  install_oh_my_zsh
+  install_oh_my_zsh_plugin zsh-autosuggestions https://github.com/zsh-users/zsh-autosuggestions.git
+  install_oh_my_zsh_plugin zsh-syntax-highlighting https://github.com/zsh-users/zsh-syntax-highlighting.git
+  install_powerlevel10k
+  run_bootstrap_repo_flow
+  bootstrap_summary
+}
+
+main "$@"

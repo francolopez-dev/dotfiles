@@ -17,7 +17,7 @@ say() { printf '\033[34m==>\033[0m %s\n' "$*"; }
 warn() { printf '\033[33mwarn\033[0m %s\n' "$*" >&2; }
 
 print_diagnostics() {
-  local reason="$1" cmd pkg pkg_info
+  local reason="$1" cmd pkg pkg_info install_info_path
   {
     printf '\n%s\n' '--- BOOTSTRAP DIAGNOSTICS START ---'
     printf 'reason: %s\n' "$reason"
@@ -56,6 +56,20 @@ print_diagnostics() {
       done
       printf '\npacman hook/script symlink references:\n'
       grep -Rns 'symlink' /etc/pacman.d/hooks /usr/share/libalpm/hooks /usr/share/libalpm/scripts 2>/dev/null | sed 's/^/  /' || printf '  none found\n'
+      printf '\npacman info hook/script files:\n'
+      for pkg_info in /usr/share/libalpm/hooks/*info* /usr/share/libalpm/scripts/*info*; do
+        [[ -e "$pkg_info" ]] || continue
+        printf '  %s\n' "$pkg_info"
+        sed -n '1,80p' "$pkg_info" 2>/dev/null | sed 's/^/    /' || true
+      done
+      if command -v install-info >/dev/null 2>&1; then
+        install_info_path="$(command -v install-info)"
+        printf '\ninstall-info command:\n'
+        printf '  path: %s\n' "$install_info_path"
+        if [[ -L "$install_info_path" ]]; then
+          printf '  symlink_target: %s\n' "$(readlink "$install_info_path" 2>/dev/null || true)"
+        fi
+      fi
     fi
     if [[ -d "$DOTFILES_DIR/.git" ]]; then
       printf '\ndotfiles git status:\n'
@@ -173,17 +187,26 @@ install_bootstrap_prereqs() {
         warn "dry-run: would install pacman prerequisites: ${missing[*]}"
         return 0
       fi
-      if ! sudo pacman -S --needed "${missing[@]}"; then
-        local still_missing=()
-        for pkg in "${missing[@]}"; do
-          pacman -Qq "$pkg" >/dev/null 2>&1 || still_missing+=("$pkg")
-        done
-        if [[ ${#still_missing[@]} -gt 0 ]]; then
-          print_diagnostics "pacman failed and prerequisites are still missing: ${still_missing[*]}"
-          die \
-            "pacman failed before installing bootstrap prerequisites: ${still_missing[*]}" \
-            "Fix pacman, then rerun bootstrap. Already installed prerequisites will be reused."
-        fi
+      local pacman_status=0 still_missing=()
+      trap - ERR
+      set +e
+      sudo pacman -S --needed "${missing[@]}"
+      pacman_status=$?
+      set -e
+      trap 'on_error "$LINENO" "$BASH_COMMAND" "$?"' ERR
+
+      say "pacman prerequisite install returned: $pacman_status"
+      for pkg in "${missing[@]}"; do
+        pacman -Qq "$pkg" >/dev/null 2>&1 || still_missing+=("$pkg")
+      done
+      if [[ ${#still_missing[@]} -gt 0 ]]; then
+        print_diagnostics "pacman failed and prerequisites are still missing: ${still_missing[*]}"
+        die \
+          "pacman failed before installing bootstrap prerequisites: ${still_missing[*]}" \
+          "Fix pacman, then rerun bootstrap. Already installed prerequisites will be reused."
+      fi
+      say "bootstrap prerequisites present after pacman"
+      if [[ $pacman_status -ne 0 ]]; then
         warn "pacman reported an error after installing prerequisites; continuing because required packages are present"
         print_diagnostics "pacman returned nonzero after prerequisites installed"
       fi

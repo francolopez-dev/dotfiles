@@ -91,16 +91,27 @@ EOF
 chmod +x "$tmp_dir/bin/sudo" "$tmp_dir/bin/pacman" "$tmp_dir/bin/stow" "$tmp_dir/bin/git"
 
 for run in 1 2; do
+  output_file="$tmp_dir/bootstrap-run-$run.out"
   printf '==> bootstrap first-run fixture pass %s\n' "$run"
-  PATH="$tmp_dir/bin:$PATH" \
-  PACMAN_MOCK_STATE="$tmp_dir/pacman-state" \
-  HOME="$tmp_dir/home" \
-  DOTFILES_DIR="$tmp_dir/home/dotfiles" \
-  DOTFILES_REPO_URL="file://$repo_dir" \
-  DOTFILES_BOOTSTRAP_OS=omarchy \
-  DOTFILES_BRANCH="$current_branch" \
-  DOTFILES_STOW_CONFLICTS=backup \
-    bash "$repo_dir/scripts/bootstrap.sh"
+  if ! PATH="$tmp_dir/bin:$PATH" \
+    PACMAN_MOCK_STATE="$tmp_dir/pacman-state" \
+    HOME="$tmp_dir/home" \
+    DOTFILES_DIR="$tmp_dir/home/dotfiles" \
+    DOTFILES_REPO_URL="file://$repo_dir" \
+    DOTFILES_BOOTSTRAP_OS=omarchy \
+    DOTFILES_BRANCH="$current_branch" \
+    DOTFILES_STOW_CONFLICTS=backup \
+      bash "$repo_dir/scripts/bootstrap.sh" >"$output_file" 2>&1; then
+    sed 's/^/  /' "$output_file"
+    fail "bootstrap fixture pass $run failed"
+  fi
+  sed 's/^/  /' "$output_file"
+
+  if [[ $run -eq 1 ]]; then
+    grep -Fq 'pacman prerequisite install returned: 1' "$output_file" || fail 'missing pacman nonzero checkpoint'
+    grep -Fq 'bootstrap prerequisites present after pacman' "$output_file" || fail 'missing pacman package verification checkpoint'
+    grep -Fq -- '--- BOOTSTRAP DIAGNOSTICS START ---' "$output_file" || fail 'missing diagnostics block after pacman failure'
+  fi
 
   [[ -d "$tmp_dir/home/dotfiles/.git" ]] || fail 'dotfiles repo was not cloned'
   [[ -L "$tmp_dir/home/.local/bin/dotfiles" ]] || fail 'dotfiles CLI was not linked'

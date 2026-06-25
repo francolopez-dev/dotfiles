@@ -29,7 +29,7 @@ confirm() {
   [[ "$ans" == [yY] || "$ans" == [yY][eE][sS] ]]
 }
 
-have_tty() { [[ -r /dev/tty && -w /dev/tty ]]; }
+have_tty() { [[ -r /dev/tty && -w /dev/tty ]] && { : </dev/tty >/dev/tty; } 2>/dev/null; }
 
 prompt_tty() {
   local prompt="$1" ans
@@ -50,6 +50,7 @@ active_profile() {
 # Echoes one of: omarchy | debian | ubuntu | unknown
 detect_os() {
   if [[ -f /etc/os-release ]]; then
+    # shellcheck disable=SC1091
     . /etc/os-release
     local id="${ID-}" id_like="${ID_LIKE-}"
     case "${id,,}:${id_like,,}" in

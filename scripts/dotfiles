@@ -31,6 +31,7 @@ Usage:
   dotfiles apply             Re-stow layers only (after editing configs).
   dotfiles apply --dry-run   Show what stow would do, change nothing.
   dotfiles doctor            Lightweight bootstrap health checks.
+  dotfiles git setup-ssh     Guided GitHub SSH setup; prompts before changes.
   dotfiles autostart status  Audit login/startup items.
   dotfiles autostart help    Show autostart subcommands.
 
@@ -191,7 +192,41 @@ cmd_update() {
     warn "update completed with stow conflicts"
     return 1
   fi
+
+  configure_declared_services "$dry"
+
   [[ $dry -eq 0 ]] && ok "update complete"
+  [[ $dry -eq 0 ]] && print_next_steps
+}
+
+configure_declared_services() {
+  local dry="$1"
+  [[ "$(detect_os)" == "omarchy" ]] || return 0
+  package_declared tailscale || return 0
+  command -v systemctl >/dev/null 2>&1 || return 0
+  command -v tailscaled >/dev/null 2>&1 || command -v tailscale >/dev/null 2>&1 || return 0
+  if systemctl is-active --quiet tailscaled.service 2>/dev/null; then
+    ok "tailscaled daemon running"
+    return 0
+  fi
+  if [[ "$dry" -eq 1 ]]; then
+    dim "  would run: sudo systemctl enable --now tailscaled.service"
+  elif confirm "Enable and start tailscaled.service?"; then
+    sudo systemctl enable --now tailscaled.service
+  else
+    warn "tailscaled.service not started; run: sudo systemctl enable --now tailscaled.service"
+  fi
+}
+
+print_next_steps() {
+  printf '\nNext steps:\n'
+  if package_declared tailscale; then
+    printf '  Tailscale login: sudo tailscale up\n'
+  fi
+  printf '  GitHub SSH: dotfiles git setup-ssh\n'
+  printf '  Recovery pack: build the encrypted recovery pack when ready\n'
+  printf '  Atuin: atuin login && atuin sync\n'
+  printf '  Shell: open a new terminal or run exec zsh\n'
 }
 
 update_repo_safely() {
@@ -303,7 +338,7 @@ cmd_doctor() {
   remote="$(git -C "$DOTFILES_DIR" remote get-url origin 2>/dev/null || true)"
   case "$remote" in
     git@github.com:*) ok "GitHub remote uses SSH" ;;
-    https://github.com/*) warn "GitHub remote uses HTTPS; password auth does not work, switch to SSH" ;;
+    https://github.com/*) warn "GitHub remote uses HTTPS; password auth does not work. Run: dotfiles git setup-ssh" ;;
     "") warn "Git remote origin not configured" ;;
     *) dim "  git remote: $remote" ;;
   esac
@@ -353,11 +388,7 @@ cmd_doctor() {
       else
         warn "hyprctl configerrors failed"
       fi
-      if hyprctl getoption general:col.active_border 2>/dev/null | grep -qi '50fa7b'; then
-        ok "green focused border active"
-      else
-        warn "green focused border not confirmed"
-      fi
+      check_hypr_active_border || failed=1
     else
       warn "hyprctl missing or not available outside Hyprland"
     fi
@@ -400,7 +431,7 @@ cmd_status() {
   fi
 
   info "Sync tools"
-  _status_line "tailscale" 'tailscale status >/dev/null 2>&1' "up" "not connected"
+  _tailscale_status
   _status_line "atuin"     'atuin status >/dev/null 2>&1'     "logged in" "not logged in"
   _status_line "syncthing" 'pgrep -x syncthing >/dev/null'    "running" "stopped"
 
@@ -442,8 +473,8 @@ cmd_status() {
   rm -f /tmp/dotfiles-status-stow.$$
 
   info "Service state"
-  _systemd_status tailscaled
-  _systemd_user_status waybar
+  _tailscaled_daemon_status
+  _waybar_status
 
   info "Recovery pack"
   local pack="${RECOVERY_PACK_PATH:-$HOME/recovery/recovery-pack.age}"
@@ -452,8 +483,43 @@ cmd_status() {
     age_days=$(( ( $(date +%s) - $(_mtime "$pack") ) / 86400 ))
     ok "present (${age_days}d old): $pack"
   else
-    warn "no recovery pack at $pack"
+    printf '  recovery pack: not built yet (%s)\n' "$pack"
+    printf '  next step: build the encrypted recovery pack when ready\n'
   fi
+}
+
+cmd_git() {
+  local subcmd="${1:-}" remote
+  case "$subcmd" in
+    setup-ssh)
+      info "GitHub SSH setup"
+      printf '  1. Create a key if needed:\n'
+      printf '     ssh-keygen -t ed25519 -C "email@gmail.com"\n'
+      printf '  2. Copy the public key:\n'
+      printf '     cat ~/.ssh/id_ed25519.pub\n'
+      printf '  3. Add it in GitHub: Settings -> SSH and GPG keys -> New SSH key\n'
+      printf '  4. Test auth:\n'
+      printf '     ssh -T git@github.com\n'
+      remote="$(git -C "$DOTFILES_DIR" remote get-url origin 2>/dev/null || true)"
+      if [[ "$remote" == git@github.com:* ]]; then
+        ok "origin already uses SSH: $remote"
+      elif [[ "$remote" == https://github.com/* ]]; then
+        printf '\nCurrent origin: %s\n' "$remote"
+        if confirm "Switch origin to git@github.com:jfrancolopez/dotfiles.git now?"; then
+          git -C "$DOTFILES_DIR" remote set-url origin git@github.com:jfrancolopez/dotfiles.git
+          ok "origin switched to SSH"
+        else
+          printf '  later: git -C %q remote set-url origin git@github.com:jfrancolopez/dotfiles.git\n' "$DOTFILES_DIR"
+        fi
+      else
+        warn "origin is not the expected GitHub HTTPS remote: ${remote:-none}"
+      fi
+      ;;
+    help|-h|--help|"")
+      printf 'Usage: dotfiles git setup-ssh\n'
+      ;;
+    *) err "unknown git subcommand: $subcmd"; return 1 ;;
+  esac
 }
 
 _command_status() {
@@ -471,6 +537,77 @@ _systemd_user_status() {
   local unit="$1"
   command -v systemctl >/dev/null 2>&1 || return 0
   systemctl --user is-active --quiet "$unit" 2>/dev/null && printf '  %s: active\n' "$unit" || printf '  %s: inactive/unknown\n' "$unit"
+}
+
+package_declared() {
+  local pkg="$1" declared
+  while read -r declared; do
+    [[ "$declared" == "$pkg" ]] && return 0
+  done < <(desired_packages)
+  return 1
+}
+
+_tailscaled_daemon_status() {
+  if ! command -v systemctl >/dev/null 2>&1; then
+    return 0
+  fi
+  if ! package_declared tailscale && ! command -v tailscale >/dev/null 2>&1; then
+    return 0
+  fi
+  if systemctl is-active --quiet tailscaled.service 2>/dev/null; then
+    printf '  tailscaled daemon: running\n'
+  else
+    printf '  tailscaled daemon: not running\n'
+    printf '  next step: sudo systemctl enable --now tailscaled.service\n'
+  fi
+}
+
+_tailscale_status() {
+  if ! command -v tailscale >/dev/null 2>&1; then
+    dim "  tailscale login: not installed"
+  elif tailscale status >/dev/null 2>&1; then
+    printf '  tailscale login: connected\n'
+  else
+    printf '  tailscale login: not connected\n'
+    printf '  next step: sudo tailscale up\n'
+  fi
+}
+
+_waybar_status() {
+  if pgrep -x waybar >/dev/null 2>&1; then
+    printf '  waybar: running (process)\n'
+    return 0
+  fi
+  if command -v systemctl >/dev/null 2>&1 && systemctl --user list-unit-files waybar.service --no-legend 2>/dev/null | grep -q '^waybar\.service'; then
+    if systemctl --user is-active --quiet waybar.service 2>/dev/null; then
+      printf '  waybar: running (systemd user service)\n'
+    else
+      printf '  waybar: not running (systemd user service inactive)\n'
+    fi
+  else
+    printf '  waybar: not running (no systemd user service detected; Omarchy may launch it as a process)\n'
+  fi
+}
+
+expected_hypr_active_border() {
+  local file="$DOTFILES_DIR/stow/os-omarchy/hyprland/.config/hypr/conf.d/99-personal.conf"
+  sed -n 's/^[[:space:]]*col\.active_border[[:space:]]*=[[:space:]]*//p' "$file" 2>/dev/null | tail -n 1
+}
+
+check_hypr_active_border() {
+  local expected live live_lower expected_hex
+  expected="$(expected_hypr_active_border)"
+  expected_hex="$(printf '%s\n' "$expected" | tr '[:upper:]' '[:lower:]' | sed -n 's/.*rgba(\([0-9a-f]\{6,8\}\)).*/\1/p')"
+  live="$(hyprctl getoption general:col.active_border 2>/dev/null || true)"
+  live_lower="$(printf '%s\n' "$live" | tr '[:upper:]' '[:lower:]')"
+  if [[ -n "$expected_hex" && "$live_lower" == *"$expected_hex"* ]]; then
+    ok "active border color matches expected green ($expected)"
+    return 0
+  fi
+  warn "active border color mismatch"
+  printf '  expected: %s\n' "${expected:-unknown}"
+  printf '  live    : %s\n' "${live:-unavailable}"
+  return 1
 }
 
 # _status_line <label> <test-cmd> <ok-text> <bad-text>
@@ -502,6 +639,7 @@ main() {
     update) cmd_update "$@" ;;
     apply)  cmd_apply "$@" ;;
     doctor) cmd_doctor "$@" ;;
+    git) cmd_git "$@" ;;
     autostart) cmd_autostart "$@" ;;
     help|-h|--help) usage ;;
     *) err "unknown command: $cmd"; usage; exit 1 ;;

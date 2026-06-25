@@ -44,41 +44,41 @@ check_forbidden_aur_packages() {
 }
 
 check_package_duplicates() {
-  local kind pkg f key
-  declare -A seen=()
+  local kind pkg f tmp
   for kind in pacman aur apt; do
-    seen=()
+    tmp="$(mktemp)"
     for f in "$repo_dir"/packages/*/"$kind".txt; do
       [[ -f "$f" ]] || continue
       while read -r pkg; do
-        key="$kind:$pkg"
-        if [[ -n "${seen[$key]:-}" ]]; then
-          printf 'duplicate %s package: %s in %s and %s\n' "$kind" "$pkg" "${seen[$key]}" "${f#"$repo_dir/"}" >&2
-          failed=1
-        else
-          seen[$key]="${f#"$repo_dir/"}"
-        fi
+        printf '%s\t%s\n' "$pkg" "${f#"$repo_dir/"}" >>"$tmp"
       done < <(package_items "$f")
     done
+    awk -F '\t' -v kind="$kind" '
+      seen[$1] { printf "duplicate %s package: %s in %s and %s\n", kind, $1, seen[$1], $2 > "/dev/stderr"; bad=1; next }
+      { seen[$1]=$2 }
+      END { exit bad ? 1 : 0 }
+    ' "$tmp" || failed=1
+    rm -f "$tmp"
   done
 }
 
 check_pacman_aur_overlap() {
-  local pkg f
-  declare -A pacman_pkgs=()
+  local pkg f pacman_tmp aur_tmp
+  pacman_tmp="$(mktemp)"
+  aur_tmp="$(mktemp)"
   for f in "$repo_dir"/packages/*/pacman.txt; do
     [[ -f "$f" ]] || continue
-    while read -r pkg; do pacman_pkgs[$pkg]=1; done < <(package_items "$f")
+    package_items "$f" >>"$pacman_tmp"
   done
   for f in "$repo_dir"/packages/*/aur.txt; do
     [[ -f "$f" ]] || continue
-    while read -r pkg; do
-      if [[ -n "${pacman_pkgs[$pkg]:-}" ]]; then
-        printf 'bad package declaration: %s appears in both pacman.txt and aur.txt\n' "$pkg" >&2
-        failed=1
-      fi
-    done < <(package_items "$f")
+    package_items "$f" >>"$aur_tmp"
   done
+  while read -r pkg; do
+    printf 'bad package declaration: %s appears in both pacman.txt and aur.txt\n' "$pkg" >&2
+    failed=1
+  done < <(sort -u "$pacman_tmp" | comm -12 - <(sort -u "$aur_tmp"))
+  rm -f "$pacman_tmp" "$aur_tmp"
 }
 
 check_pacman_declarations() {

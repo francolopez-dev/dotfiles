@@ -11,6 +11,7 @@ export DOTFILES_DIR="${DOTFILES_DIR:-$HOME/dotfiles}"
 BRANCH="${DOTFILES_BRANCH:-main}"
 BIN_DIR="$HOME/.local/bin"
 DRY_RUN=0
+ZSHRC_GUARD_MARKER="# dotfiles bootstrap zsh-newuser-install guard"
 
 say() { printf '\033[34m==>\033[0m %s\n' "$*"; }
 warn() { printf '\033[33mwarn\033[0m %s\n' "$*" >&2; }
@@ -56,6 +57,7 @@ done
 
 detect_bootstrap_os() {
   if [[ -f /etc/os-release ]]; then
+    # shellcheck disable=SC1091
     . /etc/os-release
     local id="${ID-}" id_like="${ID_LIKE-}"
     case "${id,,}:${id_like,,}" in
@@ -101,12 +103,45 @@ install_bootstrap_prereqs() {
       ;;
     *)
       warn "cannot install prerequisites automatically on this OS: ${prereqs[*]}"
+      [[ $DRY_RUN -eq 1 ]] && return 0
       return 1
       ;;
   esac
 }
 
 install_bootstrap_prereqs
+
+install_zshrc_guard() {
+  local zshrc="$HOME/.zshrc"
+  if [[ -e "$zshrc" || -L "$zshrc" ]]; then
+    return 0
+  fi
+
+  say "Installing temporary zsh first-run guard"
+  if [[ $DRY_RUN -eq 1 ]]; then
+    warn "dry-run: would create temporary $zshrc until managed zsh config is stowed"
+    return 0
+  fi
+
+  printf '%s\n# Replaced by stowed dotfiles zsh config during bootstrap.\n' "$ZSHRC_GUARD_MARKER" >"$zshrc"
+}
+
+remove_zshrc_guard() {
+  local zshrc="$HOME/.zshrc"
+  if [[ ! -f "$zshrc" || -L "$zshrc" ]]; then
+    return 0
+  fi
+  if sed -n '1p' "$zshrc" | grep -Fxq "$ZSHRC_GUARD_MARKER"; then
+    say "Removing temporary zsh first-run guard"
+    if [[ $DRY_RUN -eq 1 ]]; then
+      warn "dry-run: would remove temporary $zshrc before stow"
+    else
+      rm -f "$zshrc"
+    fi
+  fi
+}
+
+install_zshrc_guard
 
 install_oh_my_zsh() {
   local omz_dir="$HOME/.oh-my-zsh"
@@ -203,14 +238,27 @@ else
 fi
 say "Linked dotfiles -> $BIN_DIR/dotfiles"
 
-# 3. ~/.local/bin is added by stow/global/shell/.config/shell/env.sh once the
-# shell layer is stowed. Do not edit ~/.zshrc here; it is repo-managed.
+# 3. Make dotfiles available to the current bootstrap shell immediately.
 case ":$PATH:" in
   *":$BIN_DIR:"*) ;;
-  *) warn "$BIN_DIR is not on PATH in this shell yet; restart shell after stow" ;;
+  *) export PATH="$BIN_DIR:$PATH" ;;
 esac
 
-# 4. install declared packages before stow, then apply layers with conflict wizard.
+# 4. Stow managed shell config before the longer package/update phase so a new
+# terminal cannot fall into zsh-newuser-install on fresh installs.
+remove_zshrc_guard
+say "Applying managed shell config"
+if [[ $DRY_RUN -eq 1 ]]; then
+  if [[ -x "$DOTFILES_DIR/scripts/dotfiles" ]]; then
+    "$DOTFILES_DIR/scripts/dotfiles" apply --dry-run || warn "dry-run: managed shell config pre-apply reported conflicts; continuing"
+  else
+    warn "dry-run: repo checkout is not present, so stow cannot be simulated"
+  fi
+else
+  "$DOTFILES_DIR/scripts/dotfiles" apply || warn "managed shell config pre-apply had conflicts; continuing to update"
+fi
+
+# 5. Install declared packages, then re-apply layers with conflict wizard.
 say "Running dotfiles update"
 if [[ $DRY_RUN -eq 1 ]]; then
   if [[ -x "$DOTFILES_DIR/scripts/dotfiles" ]]; then
@@ -223,4 +271,23 @@ else
   "$DOTFILES_DIR/scripts/dotfiles" update
 fi
 
-say "Done. Run: dotfiles status"
+bootstrap_summary() {
+  local host host_upper
+  host="$(hostname -s 2>/dev/null || uname -n | cut -d. -f1)"
+  host_upper="$(printf '%s' "$host" | tr '[:lower:]' '[:upper:]')"
+  printf '\nBootstrap complete for %s.\n\n' "$host_upper"
+  printf 'Ready:\n'
+  printf '  dotfiles command installed: %s\n' "$(command -v dotfiles 2>/dev/null || printf '%s' "$BIN_DIR/dotfiles")"
+  printf '  managed shell config applied\n'
+  printf '  packages checked and stow applied\n'
+  printf '\nNeeds manual action:\n'
+  printf '  Tailscale: run sudo tailscale up\n'
+  printf '  GitHub SSH: run dotfiles git setup-ssh\n'
+  printf '  Recovery pack: build the encrypted recovery pack when ready\n'
+  printf '  Atuin: run atuin login && atuin sync\n'
+  printf '\nRecommended:\n'
+  printf '  open a new terminal or run exec zsh\n'
+  printf '  run dotfiles status && dotfiles doctor\n'
+}
+
+bootstrap_summary

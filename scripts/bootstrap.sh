@@ -139,6 +139,23 @@ install_oh_my_zsh_plugin() {
 install_oh_my_zsh_plugin zsh-autosuggestions https://github.com/zsh-users/zsh-autosuggestions.git
 install_oh_my_zsh_plugin zsh-syntax-highlighting https://github.com/zsh-users/zsh-syntax-highlighting.git
 
+install_powerlevel10k() {
+  local theme_dir="$HOME/.oh-my-zsh/custom/themes/powerlevel10k"
+  if [[ -d "$theme_dir" ]]; then
+    return 0
+  fi
+
+  say "Installing Powerlevel10k"
+  if [[ $DRY_RUN -eq 1 ]]; then
+    warn "dry-run: would clone Powerlevel10k to $theme_dir"
+    return 0
+  fi
+
+  git clone --depth=1 https://github.com/romkatv/powerlevel10k.git "$theme_dir"
+}
+
+install_powerlevel10k
+
 # 1. clone or update
 if [[ -d "$DOTFILES_DIR/.git" ]]; then
   say "Updating existing repo at $DOTFILES_DIR"

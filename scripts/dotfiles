@@ -196,6 +196,13 @@ cmd_doctor() {
       failed=1
     fi
   done
+  if [[ -d "$HOME/.oh-my-zsh/custom/themes/powerlevel10k" || -d "$HOME/powerlevel10k" ]]; then
+    ok "Powerlevel10k installed"
+  else
+    warn "Powerlevel10k missing; zsh prompt will fall back to robbyrussell"
+    failed=1
+  fi
+  [[ -f "$HOME/.p10k.zsh" ]] && ok "Powerlevel10k config stowed" || warn "Powerlevel10k config missing at ~/.p10k.zsh"
   remote="$(git -C "$DOTFILES_DIR" remote get-url origin 2>/dev/null || true)"
   case "$remote" in
     git@github.com:*) ok "GitHub remote uses SSH" ;;
@@ -292,6 +299,8 @@ cmd_status() {
   for plugin in zsh-autosuggestions zsh-syntax-highlighting; do
     [[ -d "$HOME/.oh-my-zsh/custom/plugins/$plugin" ]] && ok "oh-my-zsh plugin installed: $plugin" || warn "oh-my-zsh plugin missing: $plugin"
   done
+  [[ -d "$HOME/.oh-my-zsh/custom/themes/powerlevel10k" || -d "$HOME/powerlevel10k" ]] && ok "Powerlevel10k installed" || warn "Powerlevel10k missing; zsh prompt will fall back to robbyrussell"
+  [[ -f "$HOME/.p10k.zsh" ]] && ok "Powerlevel10k config stowed" || warn "Powerlevel10k config missing at ~/.p10k.zsh"
 
   info "Stow state"
   if apply_all_layers --no --verbose >/tmp/dotfiles-status-stow.$$ 2>&1; then

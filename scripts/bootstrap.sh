@@ -172,7 +172,12 @@ esac
 # 4. install declared packages before stow, then apply layers with conflict wizard.
 say "Running dotfiles update"
 if [[ $DRY_RUN -eq 1 ]]; then
-  "$DOTFILES_DIR/scripts/dotfiles" update --dry-run
+  if [[ -x "$DOTFILES_DIR/scripts/dotfiles" ]]; then
+    "$DOTFILES_DIR/scripts/dotfiles" update --dry-run
+  else
+    warn "dry-run: repo checkout is not present, so dotfiles update cannot be simulated"
+    warn "dry-run: would run $DOTFILES_DIR/scripts/dotfiles update --dry-run after clone"
+  fi
 else
   "$DOTFILES_DIR/scripts/dotfiles" update
 fi

@@ -147,5 +147,5 @@ Walker is an Omarchy default app launcher. This repo does not install, stow, or
 configure Walker.
 
 More docs: [first-time-setup.md](first-time-setup.md), [first-time-system.md](first-time-system.md),
-[autostart.md](autostart.md), [terminal-ux.md](terminal-ux.md), and
-[where-to-edit.md](where-to-edit.md).
+[git-github-cheatsheet.md](git-github-cheatsheet.md), [autostart.md](autostart.md),
+[terminal-ux.md](terminal-ux.md), and [where-to-edit.md](where-to-edit.md).

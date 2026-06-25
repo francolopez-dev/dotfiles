@@ -244,7 +244,7 @@ print_next_steps() {
 }
 
 update_repo_safely() {
-  local dirty choice
+  local current_branch dirty choice default_branch
   dirty="$(git -C "$DOTFILES_DIR" status --porcelain)"
   if [[ -n "$dirty" ]]; then
     warn "repo has local changes; pull skipped until you choose how to handle them"
@@ -273,6 +273,23 @@ update_repo_safely() {
       *) warn "unknown choice; skipping pull"; return 0 ;;
     esac
   fi
+
+  current_branch="$(git -C "$DOTFILES_DIR" symbolic-ref --quiet --short HEAD 2>/dev/null || true)"
+  if [[ -z "$current_branch" ]]; then
+    default_branch="$(git -C "$DOTFILES_DIR" symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null || true)"
+    default_branch="${default_branch#origin/}"
+    default_branch="${default_branch:-main}"
+    warn "repo is in detached HEAD; switching to $default_branch before pulling"
+    if git -C "$DOTFILES_DIR" show-ref --verify --quiet "refs/heads/$default_branch"; then
+      git -C "$DOTFILES_DIR" switch "$default_branch"
+    elif git -C "$DOTFILES_DIR" show-ref --verify --quiet "refs/remotes/origin/$default_branch"; then
+      git -C "$DOTFILES_DIR" switch -c "$default_branch" "origin/$default_branch"
+    else
+      warn "cannot find origin/$default_branch; run: git -C '$DOTFILES_DIR' switch main"
+      return 1
+    fi
+  fi
+
   if ! git -C "$DOTFILES_DIR" pull --ff-only; then
     warn "fast-forward failed; run: git status --short --branch && git diff --name-only"
     return 1

@@ -140,4 +140,28 @@ grep -Fq 'pacman prerequisite install returned: 0' "$success_output" || fail 'mi
 grep -Fq 'bootstrap prerequisites present after pacman' "$success_output" || fail 'missing pacman success verification checkpoint'
 [[ -d "$tmp_dir/success-home/dotfiles/.git" ]] || fail 'dotfiles repo was not cloned after pacman success'
 
+printf '==> bootstrap first-run fixture pass detached-update-recovery\n'
+cp "$repo_dir/scripts/dotfiles" "$tmp_dir/success-home/dotfiles/scripts/dotfiles"
+git -C "$tmp_dir/success-home/dotfiles" add scripts/dotfiles
+git -C "$tmp_dir/success-home/dotfiles" \
+  -c core.hooksPath=/dev/null \
+  -c user.name='Dotfiles Test' \
+  -c user.email='dotfiles-test@example.invalid' \
+  commit -m 'test detached update recovery' >/dev/null
+git -C "$tmp_dir/success-home/dotfiles" checkout --detach >/dev/null 2>&1
+detached_output="$tmp_dir/detached-update.out"
+if ! PATH="$tmp_dir/bin:$PATH" \
+  PACMAN_MOCK_STATE="$tmp_dir/pacman-success-state" \
+  HOME="$tmp_dir/success-home" \
+  DOTFILES_DIR="$tmp_dir/success-home/dotfiles" \
+  DOTFILES_ASSUME_YES=1 \
+  DOTFILES_STOW_CONFLICTS=backup \
+    "$tmp_dir/success-home/dotfiles/scripts/dotfiles" update >"$detached_output" 2>&1; then
+  sed 's/^/  /' "$detached_output"
+  fail 'detached update recovery failed'
+fi
+sed 's/^/  /' "$detached_output"
+grep -Fq 'repo is in detached HEAD; switching to' "$detached_output" || fail 'missing detached HEAD recovery warning'
+[[ "$(git -C "$tmp_dir/success-home/dotfiles" branch --show-current)" == "$current_branch" ]] || fail 'repo did not return to the expected branch after detached update'
+
 printf 'ok bootstrap first-run tests\n'

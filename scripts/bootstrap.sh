@@ -48,7 +48,8 @@ print_diagnostics() {
     if command -v pacman >/dev/null 2>&1; then
       printf '\npacman packages:\n'
       for pkg in git stow zsh curl bash ca-certificates; do
-        if pkg_info="$(pacman -Q "$pkg" 2>/dev/null)"; then
+        pkg_info="$(pacman -Q "$pkg" 2>/dev/null || true)"
+        if [[ -n "$pkg_info" ]]; then
           printf '  %s\n' "$pkg_info"
         else
           printf '  %s: NOT INSTALLED\n' "$pkg"
@@ -190,7 +191,12 @@ install_bootstrap_prereqs() {
       local pacman_status=0 still_missing=()
       trap - ERR
       set +e
-      sudo pacman -S --needed "${missing[@]}"
+      if { : </dev/tty; } 2>/dev/null; then
+        # shellcheck disable=SC2024
+        sudo pacman -S --needed "${missing[@]}" </dev/tty
+      else
+        sudo pacman -S --needed "${missing[@]}"
+      fi
       pacman_status=$?
       set -e
       trap 'on_error "$LINENO" "$BASH_COMMAND" "$?"' ERR

@@ -102,7 +102,7 @@ for run in 1 2; do
     DOTFILES_BOOTSTRAP_OS=omarchy \
     DOTFILES_BRANCH="$current_branch" \
     DOTFILES_STOW_CONFLICTS=backup \
-      bash "$repo_dir/scripts/bootstrap.sh" >"$output_file" 2>&1; then
+      bash "$repo_dir/scripts/bootstrap.sh" </dev/null >"$output_file" 2>&1; then
     sed 's/^/  /' "$output_file"
     fail "bootstrap fixture pass $run failed"
   fi
@@ -131,7 +131,7 @@ if ! PATH="$tmp_dir/bin:$PATH" \
   DOTFILES_BOOTSTRAP_OS=omarchy \
   DOTFILES_BRANCH="$current_branch" \
   DOTFILES_STOW_CONFLICTS=backup \
-    bash "$repo_dir/scripts/bootstrap.sh" >"$success_output" 2>&1; then
+    bash "$repo_dir/scripts/bootstrap.sh" </dev/null >"$success_output" 2>&1; then
   sed 's/^/  /' "$success_output"
   fail 'bootstrap fixture pacman-success failed'
 fi

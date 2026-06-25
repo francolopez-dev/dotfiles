@@ -188,6 +188,14 @@ cmd_doctor() {
   [[ -f "$DOTFILES_DIR/packages/$profile.list" ]] && ok "profile package list exists" || warn "profile package list missing: packages/$profile.list"
   command -v dotfiles >/dev/null 2>&1 && ok "dotfiles command in PATH" || warn "dotfiles command not in PATH"
   [[ -r "$HOME/.oh-my-zsh/oh-my-zsh.sh" ]] && ok "oh-my-zsh installed" || { warn "oh-my-zsh missing at $HOME/.oh-my-zsh"; failed=1; }
+  for plugin in zsh-autosuggestions zsh-syntax-highlighting; do
+    if [[ -d "$HOME/.oh-my-zsh/custom/plugins/$plugin" ]]; then
+      ok "oh-my-zsh plugin installed: $plugin"
+    else
+      warn "oh-my-zsh plugin missing: $plugin"
+      failed=1
+    fi
+  done
   remote="$(git -C "$DOTFILES_DIR" remote get-url origin 2>/dev/null || true)"
   case "$remote" in
     git@github.com:*) ok "GitHub remote uses SSH" ;;
@@ -281,6 +289,9 @@ cmd_status() {
   _command_status ghostty
   _command_status firefox
   [[ -r "$HOME/.oh-my-zsh/oh-my-zsh.sh" ]] && ok "oh-my-zsh installed" || warn "oh-my-zsh missing at $HOME/.oh-my-zsh"
+  for plugin in zsh-autosuggestions zsh-syntax-highlighting; do
+    [[ -d "$HOME/.oh-my-zsh/custom/plugins/$plugin" ]] && ok "oh-my-zsh plugin installed: $plugin" || warn "oh-my-zsh plugin missing: $plugin"
+  done
 
   info "Stow state"
   if apply_all_layers --no --verbose >/tmp/dotfiles-status-stow.$$ 2>&1; then

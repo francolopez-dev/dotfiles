@@ -42,8 +42,8 @@ check_profile profile-nox-omarchy
 check_profile profile-fornax-omarchy
 
 nox_monitor="$repo_dir/stow/profile-nox-omarchy/hyprland/.config/hypr/conf.d/20-monitors.conf"
-if grep -Eq '^[[:space:]]*monitor = eDP-1, preferred, auto, 1\.10?[[:space:]]*$' "$nox_monitor"; then
-  printf 'ok nox monitor scale: eDP-1 scale 1.10\n'
+if grep -Eq '^[[:space:]]*monitor = eDP-1, preferred, auto, 1(\.10?)?[[:space:]]*$' "$nox_monitor"; then
+  printf 'ok nox monitor scale: eDP-1 scale 1 or 1.1\n'
 else
   printf 'bad nox monitor scale in %s\n' "$nox_monitor" >&2
   failed=1

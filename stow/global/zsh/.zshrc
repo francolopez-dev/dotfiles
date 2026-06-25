@@ -13,8 +13,10 @@ if [[ ! -d "$ZSH/custom/themes/powerlevel10k" && ! -d "$HOME/powerlevel10k" ]]; 
 fi
 
 # Which plugins would you like to load?
-plugins=(git zsh-autosuggestions zsh-syntax-highlighting docker-compose python nmap)
-# Optional plugins if available
+plugins=(git docker-compose python nmap)
+# Optional plugins if available.
+[[ -d "$ZSH/custom/plugins/zsh-autosuggestions" ]] && plugins+=(zsh-autosuggestions)
+[[ -d "$ZSH/custom/plugins/zsh-syntax-highlighting" ]] && plugins+=(zsh-syntax-highlighting)
 [[ -d "$ZSH/plugins/gcloud" ]] && plugins+=(gcloud)
 [[ -d "$ZSH/plugins/vscode" ]] && plugins+=(vscode)
 

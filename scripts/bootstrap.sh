@@ -120,6 +120,25 @@ install_oh_my_zsh() {
 
 install_oh_my_zsh
 
+install_oh_my_zsh_plugin() {
+  local name="$1" url="$2" plugin_dir
+  plugin_dir="$HOME/.oh-my-zsh/custom/plugins/$name"
+  if [[ -d "$plugin_dir" ]]; then
+    return 0
+  fi
+
+  say "Installing Oh My Zsh plugin: $name"
+  if [[ $DRY_RUN -eq 1 ]]; then
+    warn "dry-run: would clone $url to $plugin_dir"
+    return 0
+  fi
+
+  git clone --depth=1 "$url" "$plugin_dir"
+}
+
+install_oh_my_zsh_plugin zsh-autosuggestions https://github.com/zsh-users/zsh-autosuggestions.git
+install_oh_my_zsh_plugin zsh-syntax-highlighting https://github.com/zsh-users/zsh-syntax-highlighting.git
+
 # 1. clone or update
 if [[ -d "$DOTFILES_DIR/.git" ]]; then
   say "Updating existing repo at $DOTFILES_DIR"

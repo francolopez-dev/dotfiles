@@ -103,8 +103,7 @@ cmd_update() {
   if [[ $dry -eq 1 ]]; then
     git -C "$DOTFILES_DIR" fetch --dry-run 2>&1 | sed 's/^/  /' || true
   else
-    if ! git -C "$DOTFILES_DIR" pull --ff-only; then
-      warn "fast-forward failed — resolve manually (stash/rebase) then re-run"
+    if ! update_repo_safely; then
       return 1
     fi
   fi
@@ -135,10 +134,46 @@ cmd_update() {
   [[ $dry -eq 0 ]] && ok "update complete"
 }
 
+update_repo_safely() {
+  local dirty choice
+  dirty="$(git -C "$DOTFILES_DIR" status --porcelain)"
+  if [[ -n "$dirty" ]]; then
+    warn "repo has local changes; pull skipped until you choose how to handle them"
+    git -C "$DOTFILES_DIR" status --short --branch
+    printf '\nDiagnostics:\n  git status --short --branch\n  git diff --name-only\n\n'
+    if ! have_tty; then
+      warn "no TTY available; safe default is to stop before pulling"
+      return 1
+    fi
+    printf 'Choose:\n  1) skip pull and continue package/stow update [recommended]\n  2) stash local changes, pull, then leave stash for manual review\n  3) reset local changes and pull [destructive]\nSelection [1]: ' >/dev/tty
+    IFS= read -r choice </dev/tty || true
+    case "${choice:-1}" in
+      1) warn "skipping pull; continuing with current checkout"; return 0 ;;
+      2)
+        git -C "$DOTFILES_DIR" stash push -u -m "dotfiles update $(date +%Y-%m-%d-%H%M%S)"
+        ;;
+      3)
+        if [[ "$(prompt_tty "Type yes to permanently reset local repo changes: ")" == "yes" ]]; then
+          git -C "$DOTFILES_DIR" reset --hard
+          git -C "$DOTFILES_DIR" clean -fd
+        else
+          warn "reset not confirmed; skipping pull"
+          return 0
+        fi
+        ;;
+      *) warn "unknown choice; skipping pull"; return 0 ;;
+    esac
+  fi
+  if ! git -C "$DOTFILES_DIR" pull --ff-only; then
+    warn "fast-forward failed; run: git status --short --branch && git diff --name-only"
+    return 1
+  fi
+}
+
 cmd_doctor() {
   local failed=0
   info "Doctor"
-  for cmd in git stow bash curl; do
+  for cmd in git stow bash curl zsh; do
     if command -v "$cmd" >/dev/null 2>&1; then
       ok "$cmd installed"
     else
@@ -146,17 +181,56 @@ cmd_doctor() {
       failed=1
     fi
   done
-  if [[ "$(detect_os)" == "omarchy" ]]; then
-    if command -v ghostty >/dev/null 2>&1; then
-      ok "ghostty installed"
-    else
-      warn "ghostty missing"
-      failed=1
+
+  local os host profile remote missing p
+  os="$(detect_os)"; host="$(detect_hostname)"; profile="$(active_profile "$os" "$host")"
+  [[ -d "$DOTFILES_DIR/stow/$profile" ]] && ok "profile exists: $profile" || warn "profile missing: $profile"
+  [[ -f "$DOTFILES_DIR/packages/$profile.list" ]] && ok "profile package list exists" || warn "profile package list missing: packages/$profile.list"
+  command -v dotfiles >/dev/null 2>&1 && ok "dotfiles command in PATH" || warn "dotfiles command not in PATH"
+  [[ -r "$HOME/.oh-my-zsh/oh-my-zsh.sh" ]] && ok "oh-my-zsh installed" || { warn "oh-my-zsh missing at $HOME/.oh-my-zsh"; failed=1; }
+  remote="$(git -C "$DOTFILES_DIR" remote get-url origin 2>/dev/null || true)"
+  case "$remote" in
+    git@github.com:*) ok "GitHub remote uses SSH" ;;
+    https://github.com/*) warn "GitHub remote uses HTTPS; password auth does not work, switch to SSH" ;;
+    "") warn "Git remote origin not configured" ;;
+    *) dim "  git remote: $remote" ;;
+  esac
+
+  info "Declared package health"
+  missing=0
+  while read -r p; do
+    [[ -z "$p" ]] && continue
+    if ! _pkg_installed "$p"; then
+      printf '  missing: %s\n' "$p"
+      missing=$((missing+1))
     fi
+  done < <(desired_packages)
+  [[ $missing -eq 0 ]] && ok "all declared packages installed" || failed=1
+
+  info "Stow health"
+  if apply_all_layers --no --verbose >/tmp/dotfiles-doctor-stow.$$ 2>&1; then
+    ok "stow dry-run clean"
+  else
+    warn "stow dry-run found issues"
+    sed 's/^/  /' /tmp/dotfiles-doctor-stow.$$ >&2
+    failed=1
+  fi
+  rm -f /tmp/dotfiles-doctor-stow.$$
+
+  if [[ "$(detect_os)" == "omarchy" ]]; then
+    for cmd in ghostty firefox atuin zoxide yazi satty tailscale; do
+      command -v "$cmd" >/dev/null 2>&1 && ok "$cmd installed" || { warn "$cmd missing"; failed=1; }
+    done
     if [[ -f "$HOME/.config/xdg-terminals.list" ]] && grep -q 'ghostty' "$HOME/.config/xdg-terminals.list"; then
       ok "terminal launcher prefers Ghostty"
     else
       warn "terminal launcher preference not stowed yet"
+    fi
+    if command -v hyprctl >/dev/null 2>&1; then
+      hyprctl configerrors >/dev/null 2>&1 && ok "Hyprland configerrors command ran" || warn "hyprctl configerrors failed"
+      hyprctl getoption general:col.active_border 2>/dev/null | grep -qi '50fa7b' && ok "green focused border active" || warn "green focused border not confirmed"
+    else
+      warn "hyprctl missing or not available outside Hyprland"
     fi
   fi
   return "$failed"
@@ -175,10 +249,12 @@ cmd_status() {
 
   if [[ -d "$DOTFILES_DIR/.git" ]]; then
     info "Repo"
-    local branchline dirty
+    local branchline dirty remote
     branchline="$(git -C "$DOTFILES_DIR" status -sb | sed -n '1p')"
     dirty="$(git -C "$DOTFILES_DIR" status --porcelain | grep -c '' || true)"
-    printf '  %s\n  dirty    : %s file(s)\n' "$branchline" "$dirty"
+    remote="$(git -C "$DOTFILES_DIR" remote get-url origin 2>/dev/null || true)"
+    printf '  %s\n  dirty    : %s file(s)\n  remote   : %s\n' "$branchline" "$dirty" "${remote:-none}"
+    [[ "$dirty" -gt 0 ]] && printf '  inspect  : git status --short --branch && git diff --name-only\n'
   fi
 
   info "Package drift"
@@ -199,6 +275,26 @@ cmd_status() {
   _status_line "atuin"     'atuin status >/dev/null 2>&1'     "logged in" "not logged in"
   _status_line "syncthing" 'pgrep -x syncthing >/dev/null'    "running" "stopped"
 
+  info "Terminal and apps"
+  _command_status zsh
+  _command_status dotfiles
+  _command_status ghostty
+  _command_status firefox
+  [[ -r "$HOME/.oh-my-zsh/oh-my-zsh.sh" ]] && ok "oh-my-zsh installed" || warn "oh-my-zsh missing at $HOME/.oh-my-zsh"
+
+  info "Stow state"
+  if apply_all_layers --no --verbose >/tmp/dotfiles-status-stow.$$ 2>&1; then
+    ok "stow dry-run clean"
+  else
+    warn "stow dry-run reports conflicts or drift"
+    sed 's/^/  /' /tmp/dotfiles-status-stow.$$ >&2
+  fi
+  rm -f /tmp/dotfiles-status-stow.$$
+
+  info "Service state"
+  _systemd_status tailscaled
+  _systemd_user_status waybar
+
   info "Recovery pack"
   local pack="${RECOVERY_PACK_PATH:-$HOME/recovery/recovery-pack.age}"
   if [[ -f "$pack" ]]; then
@@ -208,6 +304,23 @@ cmd_status() {
   else
     warn "no recovery pack at $pack"
   fi
+}
+
+_command_status() {
+  local cmd="$1"
+  command -v "$cmd" >/dev/null 2>&1 && printf '  %s: installed\n' "$cmd" || printf '  %s: missing\n' "$cmd"
+}
+
+_systemd_status() {
+  local unit="$1"
+  command -v systemctl >/dev/null 2>&1 || return 0
+  systemctl is-active --quiet "$unit" 2>/dev/null && printf '  %s: active\n' "$unit" || printf '  %s: inactive/unknown\n' "$unit"
+}
+
+_systemd_user_status() {
+  local unit="$1"
+  command -v systemctl >/dev/null 2>&1 || return 0
+  systemctl --user is-active --quiet "$unit" 2>/dev/null && printf '  %s: active\n' "$unit" || printf '  %s: inactive/unknown\n' "$unit"
 }
 
 # _status_line <label> <test-cmd> <ok-text> <bad-text>

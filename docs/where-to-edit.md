@@ -34,7 +34,7 @@ change true everywhere it should apply.
 - **Monitor config is always machine-specific.** It belongs in the profile
   layer's `20-monitors.conf`, never in `os-omarchy`. Putting it in the OS layer
   was the old scale bug.
-- **App launcher config stays with Omarchy.** Do not stow Walker/Rofi config or
+- **App launcher config stays with Omarchy.** Do not stow launcher config or
   package entries here unless there is a specific new need.
 - The OS layer and profile layer both drop files into `conf.d/`, but with
   distinct filenames, so Stow merges them without conflict.

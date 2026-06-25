@@ -15,13 +15,16 @@ hostname -s
 ## 2. Run bootstrap
 
 ```bash
-curl -fsSL <raw-url>/scripts/bootstrap.sh | bash
+curl -fsSL https://raw.githubusercontent.com/jfrancolopez/dotfiles/refs/heads/main/scripts/bootstrap.sh | bash
 ```
 
 Bootstrap clones or updates `~/dotfiles`, checks out `main` by default, applies the
 ordered Stow layers, and links `scripts/dotfiles` to `~/.local/bin/dotfiles`.
-It installs the bootstrap prerequisites (`git`, `stow`, `bash`, `curl`) before
-Stow runs.
+It installs the bootstrap prerequisites (`git`, `stow`, `bash`, `curl`, `zsh`)
+and Oh My Zsh before Stow runs.
+
+Walker is an Omarchy default app launcher. This repo does not install, stow, or
+configure Walker.
 
 If bootstrap hits local config conflicts, choose the recommended
 `backup existing files and stow repo version` option. Backups are written under
@@ -52,7 +55,34 @@ the active profile should be `profile-nox-omarchy`.
 - Restore private keys only from the encrypted recovery pack.
 - Keep passwords in Vaultwarden, never in Git.
 
-## 5. New Machine Profile
+## 5. GitHub SSH
+
+GitHub password authentication over HTTPS does not work anymore. Use SSH.
+
+```bash
+ssh-keygen -t ed25519 -C "email@gmail.com"
+cat ~/.ssh/id_ed25519.pub
+```
+
+Copy the public key, then go to GitHub -> Settings -> SSH and GPG keys -> New
+SSH key. Use a machine name such as `NOX Omarchy T490` or `FORNAX Omarchy Work
+Laptop`.
+
+```bash
+cd ~/dotfiles
+git remote set-url origin git@github.com:jfrancolopez/dotfiles.git
+ssh -T git@github.com
+git status --short --branch
+git push
+```
+
+Expected SSH success text is generally:
+
+```text
+Hi <username>! You've successfully authenticated...
+```
+
+## 6. New Machine Profile
 
 If a machine needs overrides, copy the closest existing profile and rename it:
 

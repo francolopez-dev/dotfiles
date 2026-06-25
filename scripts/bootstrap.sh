@@ -15,6 +15,21 @@ DRY_RUN=0
 say() { printf '\033[34m==>\033[0m %s\n' "$*"; }
 warn() { printf '\033[33mwarn\033[0m %s\n' "$*" >&2; }
 
+repo_dirty() {
+  [[ -n "$(git -C "$DOTFILES_DIR" status --porcelain 2>/dev/null || true)" ]]
+}
+
+show_repo_dirty_help() {
+  warn "repo has local changes; skipping bootstrap pull to protect your work"
+  git -C "$DOTFILES_DIR" status --short --branch || true
+  printf '\nRun these diagnostics:\n'
+  printf '  cd ~/dotfiles\n'
+  printf '  git status --short --branch\n'
+  printf '  git diff --name-only\n'
+  printf '\nThen run:\n'
+  printf '  ~/dotfiles/scripts/dotfiles update\n\n'
+}
+
 usage() {
   cat <<'EOF'
 Usage: bootstrap.sh [--dry-run] [--profile profile-<host>-<os>]
@@ -123,12 +138,16 @@ else
 fi
 if [[ -d "$DOTFILES_DIR/.git" ]]; then
   if [[ $DRY_RUN -eq 0 ]]; then
-    if git -C "$DOTFILES_DIR" rev-parse --verify "$BRANCH" >/dev/null 2>&1; then
-      git -C "$DOTFILES_DIR" checkout "$BRANCH"
+    if repo_dirty; then
+      show_repo_dirty_help
     else
-      git -C "$DOTFILES_DIR" checkout -b "$BRANCH" "origin/$BRANCH"
+      if git -C "$DOTFILES_DIR" rev-parse --verify "$BRANCH" >/dev/null 2>&1; then
+        git -C "$DOTFILES_DIR" checkout "$BRANCH"
+      else
+        git -C "$DOTFILES_DIR" checkout -b "$BRANCH" "origin/$BRANCH"
+      fi
+      git -C "$DOTFILES_DIR" pull --ff-only origin "$BRANCH"
     fi
-    git -C "$DOTFILES_DIR" pull --ff-only origin "$BRANCH"
   else
     say "Dry-run branch: $BRANCH"
   fi
@@ -143,19 +162,12 @@ else
 fi
 say "Linked dotfiles -> $BIN_DIR/dotfiles"
 
-# 3. ensure ~/.local/bin is on PATH via .zshrc
-ZSHRC="$HOME/.zshrc"
-# shellcheck disable=SC2016
-PATH_LINE='export PATH="$HOME/.local/bin:$PATH"'
-[[ $DRY_RUN -eq 1 ]] || touch "$ZSHRC"
-if [[ -f "$ZSHRC" ]] && ! grep -qF "$PATH_LINE" "$ZSHRC"; then
-  if [[ $DRY_RUN -eq 1 ]]; then
-    say "Would add ~/.local/bin to PATH in .zshrc"
-  else
-    printf '\n# Added by dotfiles bootstrap\n%s\n' "$PATH_LINE" >> "$ZSHRC"
-    say "Added ~/.local/bin to PATH in .zshrc (restart shell)"
-  fi
-fi
+# 3. ~/.local/bin is added by stow/global/shell/.config/shell/env.sh once the
+# shell layer is stowed. Do not edit ~/.zshrc here; it is repo-managed.
+case ":$PATH:" in
+  *":$BIN_DIR:"*) ;;
+  *) warn "$BIN_DIR is not on PATH in this shell yet; restart shell after stow" ;;
+esac
 
 # 4. install declared packages before stow, then apply layers with conflict wizard.
 say "Running dotfiles update"

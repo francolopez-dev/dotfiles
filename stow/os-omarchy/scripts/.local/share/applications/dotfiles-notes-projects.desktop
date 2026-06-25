@@ -5,4 +5,4 @@ Comment=Open ~/Documents/Notes/projects in Yazi
 Exec=omarchy-notes-projects
 Terminal=false
 Categories=Utility;FileManager;
-Keywords=projects;notes;yazi;walker;
+Keywords=projects;notes;yazi;

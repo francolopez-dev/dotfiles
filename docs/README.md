@@ -2,38 +2,35 @@
 
 Personal machine rebuild kit using Git, Bash, and GNU Stow.
 
-Git records system intent. Secrets do not live here: Vaultwarden owns passwords,
-and the encrypted recovery pack owns keys and infrastructure exports.
+Git is the source of truth for system intent. Secrets, private keys, recovery
+packs, logs, and machine-local credentials do not live in this repo.
 
-## Rules
+## What This Does
 
-- Machines are disposable.
-- Every managed config is a real file under `stow/`.
-- Layers go from broad to specific: global, OS, hostname profile.
-- Keep Omarchy defaults on Omarchy. Do not stow app launcher config or package
-  entries unless there is a specific reason to override upstream.
-- No Ansible, Nix, templates, generated configs, private keys, logs, or recovery
-  packs.
+- Installs declared packages for Omarchy and Debian/Ubuntu machines.
+- Applies real config files from `stow/` into `$HOME` with GNU Stow.
+- Uses layers: `global`, `os-<os>`, then `profile-<hostname>-<os>`.
+- Provides one daily command: `dotfiles`.
+- Avoids Ansible, Nix, templates, and generated config frameworks.
 
-## Layers
+## Bootstrap A New Omarchy System
 
-```text
-stow/global
-stow/os-<os>
-stow/profile-<hostname>-<os>
+Set the hostname first so the right profile is selected. Current Omarchy
+profiles are `profile-nox-omarchy` and `profile-fornax-omarchy`.
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/jfrancolopez/dotfiles/refs/heads/main/scripts/bootstrap.sh | bash
+exec zsh
+dotfiles status
+dotfiles doctor
 ```
 
-Supported OS IDs: `omarchy`, `debian`, `ubuntu`.
+Bootstrap is for first run on a new machine. It clones `~/dotfiles`, installs
+bootstrap prerequisites, installs Oh My Zsh, links `~/.local/bin/dotfiles`, and
+runs `dotfiles update`.
 
-The profile is derived from `hostname -s`. A machine named `fornax` on Omarchy
-uses `stow/profile-fornax-omarchy/` and
-`packages/profile-fornax-omarchy.list`. If the profile does not exist, only the
-global and OS layers apply.
-
-Current profiles:
-
-- `profile-nox-omarchy`: personal Lenovo T490.
-- `profile-fornax-omarchy`: work Lenovo.
+If Stow finds existing Omarchy config, choose the recommended backup option.
+Backups go under `~/.dotfiles-backup/YYYY-MM-DD-HHMMSS/`.
 
 ## Daily Use
 
@@ -50,32 +47,105 @@ dotfiles update --dry-run
 dotfiles apply --dry-run
 ```
 
-First install:
+Fallback if PATH is broken:
 
 ```bash
-curl -fsSL <raw-url>/scripts/bootstrap.sh | bash
+~/dotfiles/scripts/dotfiles status
+~/dotfiles/scripts/dotfiles update --dry-run
 ```
 
-## Where Things Go
+## Choose Or Switch Profile
 
-- Shared shell, Git, SSH, tmux, terminals: `stow/global/`.
-- Shared Omarchy desktop config: `stow/os-omarchy/`.
-- Machine-specific monitors, autostart, idle, and lock config:
-  `stow/profile-<hostname>-omarchy/`.
-- Packages for every machine: `packages/global.list`.
-- Packages for every Omarchy machine: `packages/os-omarchy.list`.
-- Packages for one machine: `packages/profile-<hostname>-<os>.list`.
+The default profile comes from `hostname -s` and OS:
 
-For exact edit locations, see [where-to-edit.md](where-to-edit.md).
+```text
+stow/profile-<hostname>-<os>/
+packages/profile-<hostname>-<os>.list
+```
 
-## Checks
+Examples:
+
+- `nox` on Omarchy uses `profile-nox-omarchy`.
+- `fornax` on Omarchy uses `profile-fornax-omarchy`.
+
+To test another profile without renaming the machine:
 
 ```bash
-shellcheck -x scripts/dotfiles scripts/bootstrap.sh scripts/lib/*.sh
+DOTFILES_PROFILE=profile-nox-omarchy dotfiles status
+DOTFILES_PROFILE=profile-nox-omarchy dotfiles apply --dry-run
+```
+
+To permanently switch, rename the host or create the matching profile directory
+and package list.
+
+## Git And SSH Fixes
+
+GitHub password authentication over HTTPS does not work anymore. Use SSH.
+
+```bash
+ssh-keygen -t ed25519 -C "email@gmail.com"
+cat ~/.ssh/id_ed25519.pub
+```
+
+Copy the public key, open GitHub, then go to Settings -> SSH and GPG keys -> New
+SSH key. Name it after the machine, for example `NOX Omarchy T490` or `FORNAX
+Omarchy Work Laptop`.
+
+Switch the repo remote to SSH:
+
+```bash
+cd ~/dotfiles
+git remote set-url origin git@github.com:jfrancolopez/dotfiles.git
+ssh -T git@github.com
+```
+
+Expected success text is generally:
+
+```text
+Hi <username>! You've successfully authenticated...
+```
+
+Then verify push state:
+
+```bash
+git status --short --branch
+git push
+```
+
+If update stops because the repo is dirty, inspect before changing anything:
+
+```bash
+git status --short --branch
+git diff --name-only
+```
+
+`dotfiles update` will offer to skip pull, stash local changes, or reset only
+with explicit confirmation.
+
+## Validate The System
+
+```bash
+dotfiles status
+dotfiles doctor
+hyprctl configerrors
+hyprctl monitors
+hyprctl getoption general:col.active_border
+command -v ghostty firefox atuin zoxide yazi satty tailscale
+git status --short --branch
+```
+
+Repo checks after edits:
+
+```bash
+shellcheck -x bootstrap.sh scripts/*.sh scripts/lib/*.sh
 scripts/validate-profiles.sh
-scripts/dotfiles status
-scripts/dotfiles apply --dry-run
+./bootstrap.sh --dry-run --profile profile-fornax-omarchy
+./bootstrap.sh --dry-run --profile profile-nox-omarchy
 ```
 
-More docs: [first-time-setup.md](first-time-setup.md),
-[autostart.md](autostart.md), and [terminal-ux.md](terminal-ux.md).
+Walker is an Omarchy default app launcher. This repo does not install, stow, or
+configure Walker.
+
+More docs: [first-time-setup.md](first-time-setup.md), [first-time-system.md](first-time-system.md),
+[autostart.md](autostart.md), [terminal-ux.md](terminal-ux.md), and
+[where-to-edit.md](where-to-edit.md).

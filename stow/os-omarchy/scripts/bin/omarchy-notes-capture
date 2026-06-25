@@ -10,13 +10,9 @@ ensure_notes() {
 }
 
 prompt_title() {
-  if command -v walker >/dev/null 2>&1; then
-    walker --dmenu --inputonly --placeholder 'New note title:'
-  else
-    printf 'New note title: ' >&2
-    IFS= read -r title
-    printf '%s\n' "$title"
-  fi
+  printf 'New note title: ' >&2
+  IFS= read -r title
+  printf '%s\n' "$title"
 }
 
 slugify() {

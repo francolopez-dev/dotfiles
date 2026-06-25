@@ -118,7 +118,12 @@ install_missing_omarchy_packages() {
     if [[ "$dry" -eq 1 ]]; then
       dim "  would run: sudo pacman -S --needed ${missing_pacman[*]}"
     elif confirm "Install ${#missing_pacman[@]} missing pacman package(s)?"; then
-      sudo pacman -S --needed "${missing_pacman[@]}"
+      if have_tty; then
+        # shellcheck disable=SC2024
+        sudo pacman -S --needed "${missing_pacman[@]}" </dev/tty
+      else
+        sudo pacman -S --needed "${missing_pacman[@]}"
+      fi
     fi
   fi
 

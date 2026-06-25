@@ -12,7 +12,7 @@ zsh.
 | Shell | zsh + oh-my-zsh | `stow/global/zsh/.zshrc` | No issue; default should not change | Keep zsh default |
 | Bash | bash compatibility shell | `stow/global/bash/.bashrc` | Immediately execs zsh for interactive shells | Keep bash aliases in shared file so non-zsh sessions still work |
 | Aliases | shared shell aliases | `stow/global/shell/.config/shell/aliases.sh` | `ll` was minimal and no styled `l`, `la`, `lt` | Use eza-backed functions/aliases with safe `ls` fallbacks |
-| Directory listing | eza | package in `packages/global.list` | Defaults were underused | Use long header, icons, git, relative time, directories first |
+| Directory listing | eza | package in `packages/global/pacman.txt` | Defaults were underused | Use long header, icons, git, relative time, directories first |
 | Colors | eza defaults + terminal theme | no custom `LS_COLORS` | `vivid` is not installed; custom colors add maintenance | Keep eza defaults for now; revisit `vivid` only if colors are not readable |
 | Prompt | Powerlevel10k | `stow/global/zsh/.p10k.zsh` | Already configured; Starship also installed but unused | Do not add another prompt framework |
 | History | Atuin | `stow/os-omarchy/atuin/.config/atuin/config.toml` | Good compact fuzzy host-filtered setup | Keep as-is |

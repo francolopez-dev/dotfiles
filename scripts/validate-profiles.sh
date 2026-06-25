@@ -4,6 +4,10 @@ set -euo pipefail
 repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 failed=0
 
+package_items() {
+  sed -e 's/#.*//' -e 's/[[:space:]]*$//' "$@" | awk 'NF'
+}
+
 check_profile() {
   local profile="$1"
   if [[ -d "$repo_dir/stow/$profile" ]]; then
@@ -12,12 +16,99 @@ check_profile() {
     printf 'missing profile dir: %s\n' "$profile" >&2
     failed=1
   fi
-  if [[ -f "$repo_dir/packages/$profile.list" ]]; then
-    printf 'ok package list: %s.list\n' "$profile"
+  if [[ -f "$repo_dir/packages/$profile/pacman.txt" && -f "$repo_dir/packages/$profile/aur.txt" ]]; then
+    printf 'ok package declarations: %s/{pacman,aur}.txt\n' "$profile"
   else
-    printf 'missing package list: %s.list\n' "$profile" >&2
+    printf 'missing package declarations: %s/{pacman,aur}.txt\n' "$profile" >&2
     failed=1
   fi
+}
+
+check_forbidden_aur_packages() {
+  local pkg f
+  for f in "$repo_dir"/packages/*/aur.txt; do
+    [[ -f "$f" ]] || continue
+    while read -r pkg; do
+      case "$pkg" in
+        git|stow|zsh|curl|bash|ca-certificates|pacman|base-devel)
+          printf 'bad AUR declaration: %s in %s belongs in pacman.txt\n' "$pkg" "${f#"$repo_dir/"}" >&2
+          failed=1
+          ;;
+      esac
+      if command -v pacman >/dev/null 2>&1 && pacman -Si "$pkg" >/dev/null 2>&1; then
+        printf 'bad AUR declaration: %s in %s exists in official repos\n' "$pkg" "${f#"$repo_dir/"}" >&2
+        failed=1
+      fi
+    done < <(package_items "$f")
+  done
+}
+
+check_package_duplicates() {
+  local kind pkg f key
+  declare -A seen=()
+  for kind in pacman aur apt; do
+    seen=()
+    for f in "$repo_dir"/packages/*/"$kind".txt; do
+      [[ -f "$f" ]] || continue
+      while read -r pkg; do
+        key="$kind:$pkg"
+        if [[ -n "${seen[$key]:-}" ]]; then
+          printf 'duplicate %s package: %s in %s and %s\n' "$kind" "$pkg" "${seen[$key]}" "${f#"$repo_dir/"}" >&2
+          failed=1
+        else
+          seen[$key]="${f#"$repo_dir/"}"
+        fi
+      done < <(package_items "$f")
+    done
+  done
+}
+
+check_pacman_aur_overlap() {
+  local pkg f
+  declare -A pacman_pkgs=()
+  for f in "$repo_dir"/packages/*/pacman.txt; do
+    [[ -f "$f" ]] || continue
+    while read -r pkg; do pacman_pkgs[$pkg]=1; done < <(package_items "$f")
+  done
+  for f in "$repo_dir"/packages/*/aur.txt; do
+    [[ -f "$f" ]] || continue
+    while read -r pkg; do
+      if [[ -n "${pacman_pkgs[$pkg]:-}" ]]; then
+        printf 'bad package declaration: %s appears in both pacman.txt and aur.txt\n' "$pkg" >&2
+        failed=1
+      fi
+    done < <(package_items "$f")
+  done
+}
+
+check_pacman_declarations() {
+  local pkg f
+  command -v pacman >/dev/null 2>&1 || return 0
+  for f in "$repo_dir"/packages/*/pacman.txt; do
+    [[ -f "$f" ]] || continue
+    while read -r pkg; do
+      if ! pacman -Si "$pkg" >/dev/null 2>&1; then
+        printf 'bad pacman declaration: %s in %s not found in official repos\n' "$pkg" "${f#"$repo_dir/"}" >&2
+        failed=1
+      fi
+    done < <(package_items "$f")
+  done
+}
+
+check_bootstrap_prereqs_declared() {
+  local prereq found
+  for prereq in git stow zsh curl bash ca-certificates; do
+    found=0
+    if package_items "$repo_dir/packages/global/pacman.txt" "$repo_dir/packages/os-omarchy/pacman.txt" | grep -qx "$prereq"; then
+      found=1
+    fi
+    if [[ $found -eq 1 ]]; then
+      printf 'ok bootstrap pacman prerequisite declared: %s\n' "$prereq"
+    else
+      printf 'missing bootstrap pacman prerequisite declaration: %s\n' "$prereq" >&2
+      failed=1
+    fi
+  done
 }
 
 check_hypridle_timeouts() {
@@ -55,6 +146,12 @@ if grep -RqsE '^wezterm(-git)?($|[[:space:]])' "$repo_dir/packages"; then
 else
   printf 'ok no wezterm package declarations\n'
 fi
+
+check_forbidden_aur_packages
+check_package_duplicates
+check_pacman_aur_overlap
+check_pacman_declarations
+check_bootstrap_prereqs_declared
 
 check_hypridle_timeouts profile-nox-omarchy 240,600,660,1800
 check_hypridle_timeouts profile-fornax-omarchy 180,600,900,3600

@@ -1,0 +1,18 @@
+# Global pacman packages, installed on every Arch/Omarchy machine.
+git
+stow
+tmux
+fzf
+ripgrep
+jq
+bat
+eza
+fastfetch
+btop
+htop
+neovim
+zsh
+curl
+bash
+wget
+nano

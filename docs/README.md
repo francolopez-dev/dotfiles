@@ -60,7 +60,7 @@ The default profile comes from `hostname -s` and OS:
 
 ```text
 stow/profile-<hostname>-<os>/
-packages/profile-<hostname>-<os>.list
+packages/profile-<hostname>-<os>/
 ```
 
 Examples:
@@ -75,8 +75,8 @@ DOTFILES_PROFILE=profile-nox-omarchy dotfiles status
 DOTFILES_PROFILE=profile-nox-omarchy dotfiles apply --dry-run
 ```
 
-To permanently switch, rename the host or create the matching profile directory
-and package list.
+To permanently switch, rename the host or create the matching stow profile and
+package declaration directories.
 
 ## Git And SSH Fixes
 

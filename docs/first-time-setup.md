@@ -88,8 +88,8 @@ If a machine needs overrides, copy the closest existing profile and rename it:
 
 ```bash
 cp -a stow/profile-fornax-omarchy stow/profile-$(hostname -s)-omarchy
-cp packages/profile-fornax-omarchy.list packages/profile-$(hostname -s)-omarchy.list
+cp -a packages/profile-fornax-omarchy packages/profile-$(hostname -s)-omarchy
 ```
 
-Then edit `20-monitors.conf`, `30-autostart.conf`, and package list entries for
+Then edit `20-monitors.conf`, `30-autostart.conf`, and package declarations for
 that machine.

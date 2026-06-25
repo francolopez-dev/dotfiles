@@ -1,0 +1,2 @@
+# nox (personal Lenovo T490) AUR packages.
+# (none yet)

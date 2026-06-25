@@ -70,32 +70,37 @@ detect_bootstrap_os() {
 }
 
 install_bootstrap_prereqs() {
-  local missing=() cmd
-  for cmd in git stow bash curl zsh; do
-    command -v "$cmd" >/dev/null 2>&1 || missing+=("$cmd")
-  done
-  [[ ${#missing[@]} -eq 0 ]] && return 0
-
-  say "Installing bootstrap prerequisites: ${missing[*]}"
-  if [[ $DRY_RUN -eq 1 ]]; then
-    warn "dry-run: would install ${missing[*]}"
-    return 0
-  fi
+  local prereqs=(git stow zsh curl bash ca-certificates) missing=() pkg
 
   case "$(detect_bootstrap_os)" in
     omarchy)
-      if command -v yay >/dev/null 2>&1; then
-        yay -S --needed --noconfirm "${missing[@]}"
-      else
-        sudo pacman -S --needed --noconfirm "${missing[@]}"
+      command -v pacman >/dev/null 2>&1 || { warn "pacman is required to install bootstrap prerequisites"; return 1; }
+      for pkg in "${prereqs[@]}"; do
+        pacman -Qq "$pkg" >/dev/null 2>&1 || missing+=("$pkg")
+      done
+      [[ ${#missing[@]} -eq 0 ]] && return 0
+      say "Installing bootstrap prerequisites with pacman: ${missing[*]}"
+      if [[ $DRY_RUN -eq 1 ]]; then
+        warn "dry-run: would install pacman prerequisites: ${missing[*]}"
+        return 0
       fi
+      sudo pacman -S --needed "${missing[@]}"
       ;;
     debian|ubuntu)
+      for pkg in git stow zsh curl bash ca-certificates; do
+        dpkg -s "$pkg" >/dev/null 2>&1 || missing+=("$pkg")
+      done
+      [[ ${#missing[@]} -eq 0 ]] && return 0
+      say "Installing bootstrap prerequisites with apt: ${missing[*]}"
+      if [[ $DRY_RUN -eq 1 ]]; then
+        warn "dry-run: would install apt prerequisites: ${missing[*]}"
+        return 0
+      fi
       sudo apt-get update
       sudo apt-get install -y "${missing[@]}"
       ;;
     *)
-      warn "cannot install prerequisites automatically on this OS: ${missing[*]}"
+      warn "cannot install prerequisites automatically on this OS: ${prereqs[*]}"
       return 1
       ;;
   esac

@@ -40,7 +40,7 @@ prompt_tty() {
 }
 
 # --- machine identity ----------------------------------------------------
-detect_hostname() { hostname -s 2>/dev/null || uname -n | cut -d. -f1; }
+detect_hostname() { (hostname -s 2>/dev/null || uname -n | cut -d. -f1) | tr '[:upper:]' '[:lower:]'; }
 
 active_profile() {
   local os="${1:-$(detect_os)}" host="${2:-$(detect_hostname)}"
@@ -76,14 +76,24 @@ resolve_layers() {
   return 0
 }
 
-# Echoes ordered package list files for this machine (those that exist).
-resolve_package_lists() {
-  local os="${1:-$(detect_os)}" host="${2:-$(detect_hostname)}"
+# Echoes ordered package declaration files for this machine and package source.
+resolve_package_files() {
+  local kind="$1"
+  local os="${2:-$(detect_os)}" host="${3:-$(detect_hostname)}"
   local profile
   profile="$(active_profile "$os" "$host")"
   for name in "global" "os-$os" "$profile"; do
-    local f="$DOTFILES_DIR/packages/${name}.list"
+    local f="$DOTFILES_DIR/packages/${name}/${kind}.txt"
     [[ -f "$f" ]] && echo "$f"
   done
   return 0
+}
+
+# Echoes ordered package files for the current OS' native package manager.
+resolve_package_lists() {
+  local os="${1:-$(detect_os)}"
+  case "$os" in
+    omarchy) resolve_package_files pacman "$@" ;;
+    debian|ubuntu) resolve_package_files apt "$@" ;;
+  esac
 }

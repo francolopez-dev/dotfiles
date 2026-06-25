@@ -25,9 +25,10 @@ change true everywhere it should apply.
 | Monitor scale/resolution for `fornax` | `stow/profile-fornax-omarchy/hyprland/.config/hypr/conf.d/20-monitors.conf` |
 | Autostart apps (one machine) | `stow/profile-<hostname>-omarchy/hyprland/.config/hypr/conf.d/30-autostart.conf` |
 | Autostart audit ignore list | `stow/profile-<hostname>-omarchy/dotfiles/.config/dotfiles/autostart.ignore` |
-| Add a package everywhere | `packages/global.list` |
-| Add a package on all Omarchy machines | `packages/os-omarchy.list` |
-| Add a package on one machine | `packages/profile-<hostname>-<os>.list` |
+| Add an Omarchy pacman package everywhere | `packages/global/pacman.txt` |
+| Add an Omarchy AUR package everywhere | `packages/global/aur.txt` |
+| Add a package on all Omarchy machines | `packages/os-omarchy/{pacman,aur}.txt` |
+| Add a package on one machine | `packages/profile-<hostname>-<os>/{pacman,aur}.txt` |
 
 ## Rules of thumb
 

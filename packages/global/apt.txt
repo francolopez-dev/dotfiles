@@ -1,0 +1,18 @@
+# Global apt packages, installed on every Debian/Ubuntu machine.
+git
+stow
+tmux
+fzf
+ripgrep
+jq
+bat
+eza
+fastfetch
+btop
+htop
+neovim
+zsh
+curl
+bash
+wget
+nano

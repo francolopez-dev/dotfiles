@@ -1,0 +1,2 @@
+# Omarchy (Arch) packages installed via yay after pacman packages.
+zen-browser-bin

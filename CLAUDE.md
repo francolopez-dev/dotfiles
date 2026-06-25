@@ -30,7 +30,8 @@ the work Lenovo named `fornax` on Omarchy uses:
 
 ```text
 stow/profile-fornax-omarchy/
-packages/profile-fornax-omarchy.list
+packages/profile-fornax-omarchy/pacman.txt
+packages/profile-fornax-omarchy/aur.txt
 ```
 
 If the profile directory does not exist, only `global` and `os-<os>` apply.
@@ -55,15 +56,18 @@ stow/profile-<hostname>-omarchy/hyprland/.config/hypr/conf.d/20-monitors.conf
 
 ## Package Lists
 
-Package lists concatenate in the same order as stow layers:
+Package declarations concatenate in the same order as stow layers:
 
 ```text
-packages/global.list
-packages/os-<os>.list
-packages/profile-<hostname>-<os>.list
+packages/global/<source>.txt
+packages/os-<os>/<source>.txt
+packages/profile-<hostname>-<os>/<source>.txt
 ```
 
-One package per line. Comments and blank lines are allowed.
+For Omarchy, `pacman.txt` installs first with pacman and `aur.txt` installs
+second with yay. Do not put official repo packages in `aur.txt`. For
+Debian/Ubuntu, use `apt.txt`. One package per line. Comments and blank lines
+are allowed.
 
 ## Commands
 

@@ -1,4 +1,4 @@
-# Omarchy (Arch) packages — installed via pacman/yay on top of global.list.
+# Omarchy (Arch) packages installed via pacman on top of global/pacman.txt.
 ca-certificates
 shellcheck
 atuin
@@ -20,4 +20,3 @@ satty
 socat
 restic
 age
-zen-browser-bin

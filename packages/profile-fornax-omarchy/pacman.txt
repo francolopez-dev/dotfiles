@@ -1,0 +1,2 @@
+# fornax (work Lenovo) pacman packages, on top of global + os-omarchy.
+# (none yet)

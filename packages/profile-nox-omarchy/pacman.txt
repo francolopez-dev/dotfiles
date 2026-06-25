@@ -1,0 +1,2 @@
+# nox (personal Lenovo T490) pacman packages, on top of global + os-omarchy.
+# (none yet)

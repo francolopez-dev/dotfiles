@@ -6,6 +6,7 @@ tmp_dir="$(mktemp -d)"
 trap 'rm -rf "$tmp_dir"' EXIT
 
 scripts=(
+  "$repo_dir/bootstrap.sh"
   "$repo_dir/scripts/bootstrap.sh"
   "$repo_dir/scripts/dotfiles"
   "$repo_dir/scripts/validate-bootstrap.sh"
@@ -14,6 +15,7 @@ scripts=(
   "$repo_dir/scripts/lib/common.sh"
   "$repo_dir/scripts/lib/packages.sh"
   "$repo_dir/scripts/lib/stow.sh"
+  "$repo_dir/tests/bootstrap-first-run.sh"
   "$repo_dir/.githooks/pre-commit"
 )
 
@@ -32,5 +34,8 @@ DOTFILES_REPO_URL="file://$repo_dir" \
 DOTFILES_BOOTSTRAP_OS=omarchy \
 DOTFILES_BRANCH="$(git -C "$repo_dir" branch --show-current)" \
   bash "$repo_dir/scripts/bootstrap.sh" --dry-run
+
+printf '==> bootstrap first-run fixture\n'
+"$repo_dir/tests/bootstrap-first-run.sh"
 
 printf 'ok bootstrap validation passed\n'

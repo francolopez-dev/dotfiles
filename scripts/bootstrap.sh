@@ -322,7 +322,9 @@ fi
 say "Running dotfiles update"
 if [[ $DRY_RUN -eq 1 ]]; then
   if [[ -x "$DOTFILES_DIR/scripts/dotfiles" ]]; then
-    "$DOTFILES_DIR/scripts/dotfiles" update --dry-run
+    if ! "$DOTFILES_DIR/scripts/dotfiles" update --dry-run; then
+      warn "dry-run: dotfiles update reported conflicts"
+    fi
   else
     warn "dry-run: repo checkout is not present, so dotfiles update cannot be simulated"
     warn "dry-run: would run $DOTFILES_DIR/scripts/dotfiles update --dry-run after clone"

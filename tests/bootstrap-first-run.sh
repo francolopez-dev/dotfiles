@@ -14,7 +14,7 @@ real_git="$(command -v git)"
 current_branch="$(git -C "$repo_dir" branch --show-current)"
 [[ -n "$current_branch" ]] || current_branch=main
 
-mkdir -p "$tmp_dir/bin" "$tmp_dir/home"
+mkdir -p "$tmp_dir/bin" "$tmp_dir/home" "$tmp_dir/pacman-state"
 
 cat >"$tmp_dir/bin/sudo" <<'EOF'
 #!/usr/bin/env bash
@@ -25,9 +25,23 @@ EOF
 cat >"$tmp_dir/bin/pacman" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
+state_dir="${PACMAN_MOCK_STATE:?}"
 case "${1:-}" in
-  -Qq) exit 1 ;;
-  -S) exit 0 ;;
+  -Qq)
+    [[ -e "$state_dir/${2:-}" ]]
+    ;;
+  -S)
+    shift
+    for arg in "$@"; do
+      [[ "$arg" == --* ]] && continue
+      touch "$state_dir/$arg"
+    done
+    if [[ ! -e "$state_dir/failed-once" ]]; then
+      touch "$state_dir/failed-once"
+      printf 'bash: line 143: symlink: No such file or directory\n' >&2
+      exit 1
+    fi
+    ;;
   *) exit 0 ;;
 esac
 EOF
@@ -72,6 +86,7 @@ chmod +x "$tmp_dir/bin/sudo" "$tmp_dir/bin/pacman" "$tmp_dir/bin/stow" "$tmp_dir
 for run in 1 2; do
   printf '==> bootstrap first-run fixture pass %s\n' "$run"
   PATH="$tmp_dir/bin:$PATH" \
+  PACMAN_MOCK_STATE="$tmp_dir/pacman-state" \
   HOME="$tmp_dir/home" \
   DOTFILES_DIR="$tmp_dir/home/dotfiles" \
   DOTFILES_REPO_URL="file://$repo_dir" \

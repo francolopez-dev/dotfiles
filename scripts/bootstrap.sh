@@ -114,7 +114,18 @@ install_bootstrap_prereqs() {
         warn "dry-run: would install pacman prerequisites: ${missing[*]}"
         return 0
       fi
-      sudo pacman -S --needed "${missing[@]}"
+      if ! sudo pacman -S --needed "${missing[@]}"; then
+        local still_missing=()
+        for pkg in "${missing[@]}"; do
+          pacman -Qq "$pkg" >/dev/null 2>&1 || still_missing+=("$pkg")
+        done
+        if [[ ${#still_missing[@]} -gt 0 ]]; then
+          die \
+            "pacman failed before installing bootstrap prerequisites: ${still_missing[*]}" \
+            "Fix pacman, then rerun bootstrap. Already installed prerequisites will be reused."
+        fi
+        warn "pacman reported an error after installing prerequisites; continuing because required packages are present"
+      fi
       ;;
     debian|ubuntu)
       for pkg in git stow zsh curl bash ca-certificates; do
@@ -315,7 +326,7 @@ if [[ $DRY_RUN -eq 1 ]]; then
     warn "dry-run: repo checkout is not present, so stow cannot be simulated"
   fi
 else
-  "$DOTFILES_DIR/scripts/dotfiles" apply
+  DOTFILES_STOW_CONFLICTS="${DOTFILES_STOW_CONFLICTS:-backup}" "$DOTFILES_DIR/scripts/dotfiles" apply
 fi
 
 # 5. Install declared packages, then re-apply layers with conflict wizard.
@@ -330,7 +341,7 @@ if [[ $DRY_RUN -eq 1 ]]; then
     warn "dry-run: would run $DOTFILES_DIR/scripts/dotfiles update --dry-run after clone"
   fi
 else
-  DOTFILES_ASSUME_YES=1 "$DOTFILES_DIR/scripts/dotfiles" update
+  DOTFILES_ASSUME_YES=1 DOTFILES_STOW_CONFLICTS="${DOTFILES_STOW_CONFLICTS:-backup}" "$DOTFILES_DIR/scripts/dotfiles" update
 fi
 
 bootstrap_summary() {

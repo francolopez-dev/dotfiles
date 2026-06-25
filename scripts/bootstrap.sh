@@ -210,6 +210,7 @@ install_bootstrap_prereqs() {
         warn "pacman reported an error after installing prerequisites; continuing because required packages are present"
         print_diagnostics "pacman returned nonzero after prerequisites installed"
       fi
+      return 0
       ;;
     debian|ubuntu)
       for pkg in git stow zsh curl bash ca-certificates; do
@@ -232,6 +233,7 @@ install_bootstrap_prereqs() {
         "Install these prerequisites manually, then rerun bootstrap: ${prereqs[*]}"
       ;;
   esac
+  return 0
 }
 
 install_bootstrap_prereqs

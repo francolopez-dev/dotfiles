@@ -43,7 +43,7 @@ case "${1:-}" in
       [[ "$arg" == --* ]] && continue
       touch "$state_dir/$arg"
     done
-    if [[ ! -e "$state_dir/failed-once" ]]; then
+    if [[ "${PACMAN_MOCK_FAIL_ONCE:-0}" == "1" && ! -e "$state_dir/failed-once" ]]; then
       touch "$state_dir/failed-once"
       printf 'bash: line 143: symlink: No such file or directory\n' >&2
       exit 1
@@ -95,6 +95,7 @@ for run in 1 2; do
   printf '==> bootstrap first-run fixture pass %s\n' "$run"
   if ! PATH="$tmp_dir/bin:$PATH" \
     PACMAN_MOCK_STATE="$tmp_dir/pacman-state" \
+    PACMAN_MOCK_FAIL_ONCE=1 \
     HOME="$tmp_dir/home" \
     DOTFILES_DIR="$tmp_dir/home/dotfiles" \
     DOTFILES_REPO_URL="file://$repo_dir" \
@@ -117,5 +118,26 @@ for run in 1 2; do
   [[ -L "$tmp_dir/home/.local/bin/dotfiles" ]] || fail 'dotfiles CLI was not linked'
   [[ -r "$tmp_dir/home/.oh-my-zsh/oh-my-zsh.sh" ]] || fail 'Oh My Zsh was not installed'
 done
+
+mkdir -p "$tmp_dir/success-home" "$tmp_dir/pacman-success-state"
+success_output="$tmp_dir/bootstrap-success.out"
+printf '==> bootstrap first-run fixture pass pacman-success\n'
+if ! PATH="$tmp_dir/bin:$PATH" \
+  PACMAN_MOCK_STATE="$tmp_dir/pacman-success-state" \
+  PACMAN_MOCK_FAIL_ONCE=0 \
+  HOME="$tmp_dir/success-home" \
+  DOTFILES_DIR="$tmp_dir/success-home/dotfiles" \
+  DOTFILES_REPO_URL="file://$repo_dir" \
+  DOTFILES_BOOTSTRAP_OS=omarchy \
+  DOTFILES_BRANCH="$current_branch" \
+  DOTFILES_STOW_CONFLICTS=backup \
+    bash "$repo_dir/scripts/bootstrap.sh" >"$success_output" 2>&1; then
+  sed 's/^/  /' "$success_output"
+  fail 'bootstrap fixture pacman-success failed'
+fi
+sed 's/^/  /' "$success_output"
+grep -Fq 'pacman prerequisite install returned: 0' "$success_output" || fail 'missing pacman success checkpoint'
+grep -Fq 'bootstrap prerequisites present after pacman' "$success_output" || fail 'missing pacman success verification checkpoint'
+[[ -d "$tmp_dir/success-home/dotfiles/.git" ]] || fail 'dotfiles repo was not cloned after pacman success'
 
 printf 'ok bootstrap first-run tests\n'

@@ -30,6 +30,13 @@ case "${1:-}" in
   -Qq)
     [[ -e "$state_dir/${2:-}" ]]
     ;;
+  -Q)
+    if [[ -e "$state_dir/${2:-}" ]]; then
+      printf '%s 1.0-1\n' "$2"
+    else
+      exit 1
+    fi
+    ;;
   -S)
     shift
     for arg in "$@"; do

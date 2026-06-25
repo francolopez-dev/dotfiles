@@ -16,6 +16,59 @@ ZSHRC_GUARD_MARKER="# dotfiles bootstrap zsh-newuser-install guard"
 say() { printf '\033[34m==>\033[0m %s\n' "$*"; }
 warn() { printf '\033[33mwarn\033[0m %s\n' "$*" >&2; }
 
+print_diagnostics() {
+  local reason="$1" cmd pkg pkg_info
+  {
+    printf '\n%s\n' '--- BOOTSTRAP DIAGNOSTICS START ---'
+    printf 'reason: %s\n' "$reason"
+    printf 'date: %s\n' "$(date 2>/dev/null || true)"
+    printf 'bash: %s\n' "$BASH_VERSION"
+    printf 'user: %s\n' "${USER:-unknown}"
+    printf 'home: %s\n' "$HOME"
+    printf 'pwd: %s\n' "$PWD"
+    printf 'path: %s\n' "$PATH"
+    printf 'repo_url: %s\n' "$REPO_URL"
+    printf 'dotfiles_dir: %s\n' "$DOTFILES_DIR"
+    printf 'branch: %s\n' "$BRANCH"
+    printf 'dry_run: %s\n' "$DRY_RUN"
+    printf 'profile: %s\n' "${DOTFILES_PROFILE:-<auto>}"
+    printf 'os_detected: %s\n' "$(detect_bootstrap_os 2>/dev/null || printf unknown)"
+    printf '\ncommands:\n'
+    for cmd in bash git curl sudo pacman stow zsh; do
+      if command -v "$cmd" >/dev/null 2>&1; then
+        printf '  %s: %s\n' "$cmd" "$(command -v "$cmd")"
+      else
+        printf '  %s: MISSING\n' "$cmd"
+      fi
+    done
+    if [[ -r /etc/os-release ]]; then
+      printf '\n/etc/os-release:\n'
+      sed 's/^/  /' /etc/os-release
+    fi
+    if command -v pacman >/dev/null 2>&1; then
+      printf '\npacman packages:\n'
+      for pkg in git stow zsh curl bash ca-certificates; do
+        if pkg_info="$(pacman -Q "$pkg" 2>/dev/null)"; then
+          printf '  %s\n' "$pkg_info"
+        else
+          printf '  %s: NOT INSTALLED\n' "$pkg"
+        fi
+      done
+      printf '\npacman hook/script symlink references:\n'
+      grep -Rns 'symlink' /etc/pacman.d/hooks /usr/share/libalpm/hooks /usr/share/libalpm/scripts 2>/dev/null | sed 's/^/  /' || printf '  none found\n'
+    fi
+    if [[ -d "$DOTFILES_DIR/.git" ]]; then
+      printf '\ndotfiles git status:\n'
+      git -C "$DOTFILES_DIR" status --short --branch 2>/dev/null | sed 's/^/  /' || true
+      printf '\ndotfiles HEAD:\n'
+      git -C "$DOTFILES_DIR" log --oneline -1 2>/dev/null | sed 's/^/  /' || true
+    else
+      printf '\ndotfiles git status:\n  no checkout at %s\n' "$DOTFILES_DIR"
+    fi
+    printf '%s\n\n' '--- BOOTSTRAP DIAGNOSTICS END ---'
+  } >&2
+}
+
 die() {
   local reason="$1" fix="$2"
   printf 'ERROR:\n%s\n%s\n' "$reason" "$fix" >&2
@@ -27,6 +80,7 @@ on_error() {
   trap - ERR
   printf 'ERROR:\nbootstrap failed at line %s with exit status %s: %s\n' "$line" "$status" "$command" >&2
   printf 'Fix the command above, then rerun bootstrap. It is safe to rerun.\n' >&2
+  print_diagnostics "fatal error at line $line"
   exit "$status"
 }
 
@@ -55,6 +109,7 @@ Environment:
   DOTFILES_REPO_URL  Git repo URL (default: jfrancolopez/dotfiles)
   DOTFILES_DIR       Checkout path (default: ~/dotfiles)
   DOTFILES_BRANCH    Git branch (default: main)
+  DOTFILES_BOOTSTRAP_DIAGNOSTICS=1  Print copy-paste diagnostics
 EOF
 }
 
@@ -91,6 +146,10 @@ detect_bootstrap_os() {
   fi
 }
 
+if [[ "${DOTFILES_BOOTSTRAP_DIAGNOSTICS:-0}" == "1" ]]; then
+  print_diagnostics "requested by DOTFILES_BOOTSTRAP_DIAGNOSTICS=1"
+fi
+
 install_bootstrap_prereqs() {
   local prereqs=(git stow zsh curl bash ca-certificates) missing=() pkg
 
@@ -120,11 +179,13 @@ install_bootstrap_prereqs() {
           pacman -Qq "$pkg" >/dev/null 2>&1 || still_missing+=("$pkg")
         done
         if [[ ${#still_missing[@]} -gt 0 ]]; then
+          print_diagnostics "pacman failed and prerequisites are still missing: ${still_missing[*]}"
           die \
             "pacman failed before installing bootstrap prerequisites: ${still_missing[*]}" \
             "Fix pacman, then rerun bootstrap. Already installed prerequisites will be reused."
         fi
         warn "pacman reported an error after installing prerequisites; continuing because required packages are present"
+        print_diagnostics "pacman returned nonzero after prerequisites installed"
       fi
       ;;
     debian|ubuntu)

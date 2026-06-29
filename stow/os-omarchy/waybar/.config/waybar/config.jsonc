@@ -50,9 +50,8 @@
 
   "clock": {
     "format": "{:%I:%M %p}",
-    "format-alt": "{:%H:%M}",
     "tooltip": false,
-    "on-click": "sh -lc 'if command -v gsimplecal >/dev/null 2>&1; then gsimplecal; else notify-send Calendar \"Install gsimplecal with: dotfiles update\"; fi'",
+    "on-click": "notify-send -u low \"$(omarchy-weather-status)\"",
     "on-click-right": "omarchy-launch-floating-terminal-with-presentation omarchy-tz-select"
   },
 

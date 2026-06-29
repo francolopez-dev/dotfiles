@@ -5,3 +5,4 @@ fi
 # Dotfiles shell config
 [ -f "$HOME/.config/shell/env.sh" ] && . "$HOME/.config/shell/env.sh"
 [ -f "$HOME/.config/shell/aliases.sh" ] && . "$HOME/.config/shell/aliases.sh"
+[ -f "$HOME/.config/shell/tmux-layouts.sh" ] && . "$HOME/.config/shell/tmux-layouts.sh"

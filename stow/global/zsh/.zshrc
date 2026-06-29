@@ -29,6 +29,7 @@ fi
 #symlinks
 [[ -f "$HOME/.config/shell/env.sh" ]] && source "$HOME/.config/shell/env.sh"
 [[ -f "$HOME/.config/shell/aliases.sh" ]] && source "$HOME/.config/shell/aliases.sh"
+[[ -f "$HOME/.config/shell/tmux-layouts.sh" ]] && source "$HOME/.config/shell/tmux-layouts.sh"
 command -v zoxide >/dev/null 2>&1 && eval "$(zoxide init zsh)"
 # User configuration
 # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.

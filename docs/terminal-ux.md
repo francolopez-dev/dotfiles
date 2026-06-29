@@ -47,6 +47,24 @@ servers.
 | `atuin` | Shell history search and sync tool |
 | `cls` | Clear visible screen and scrollback |
 
+## Tmux AI Layouts
+
+Shared functions live in `stow/global/shell/.config/shell/tmux-layouts.sh` and
+work anywhere tmux plus the requested agent command are installed. Agent short
+names are resolved before tmux sessions are created: `c` and `oc` use
+`opencode`, `cx` uses `claude`, and `codex` uses `codex`.
+
+| Command | Layout |
+|---|---|
+| `tdl c` | editor + opencode + shell |
+| `tdl cx` | editor + claude + shell |
+| `tdl c cx` | editor + opencode + claude + shell |
+| `tdlm c` | one tmux window per immediate subdirectory |
+| `tsl 4 c` | four opencode panes |
+
+Convenience aliases: `ic='tdl c'`, `icx='tdl c cx'`, and `icl='tdl cx'`.
+Missing agent commands fail with a clear error and do not install anything.
+
 ## Bash And Zsh Alias Cheatsheet
 
 These aliases live in `stow/global/shell/.config/shell/aliases.sh` and are

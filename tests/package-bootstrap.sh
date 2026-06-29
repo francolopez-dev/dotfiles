@@ -53,9 +53,9 @@ mkdir -p \
   "$tmp/packages/profile-test-omarchy"
 
 printf '%s\n' stow git >"$tmp/packages/global/pacman.txt"
-printf '%s\n' ca-certificates >"$tmp/packages/os-omarchy/pacman.txt"
+printf '%s\n' ca-certificates zen-browser-bin >"$tmp/packages/os-omarchy/pacman.txt"
 printf '%s\n' profile-pacman-package >"$tmp/packages/profile-test-omarchy/pacman.txt"
-printf '%s\n' zen-browser-bin >"$tmp/packages/os-omarchy/aur.txt"
+printf '%s\n' '# no os AUR packages' >"$tmp/packages/os-omarchy/aur.txt"
 printf '%s\n' profile-aur-package >"$tmp/packages/profile-test-omarchy/aur.txt"
 
 export DOTFILES_DIR="$tmp"
@@ -74,12 +74,12 @@ detect_hostname() { printf 'test\n'; }
 
 desired_pacman_packages | assert_line stow
 desired_pacman_packages | assert_line profile-pacman-package
-desired_pacman_packages | assert_no_line zen-browser-bin
-desired_aur_packages | assert_line zen-browser-bin
+desired_pacman_packages | assert_line zen-browser-bin
+desired_aur_packages | assert_no_line zen-browser-bin
 desired_aur_packages | assert_line profile-aur-package
 desired_aur_packages | assert_no_line stow
 
-printf '%s\n' stow >"$tmp/packages/profile-test-omarchy/aur.txt"
+printf '%s\n' stow zen-browser-bin >"$tmp/packages/profile-test-omarchy/aur.txt"
 if validate_aur_package_names >/dev/null 2>&1; then
   fail 'forbidden AUR package stow was accepted'
 fi

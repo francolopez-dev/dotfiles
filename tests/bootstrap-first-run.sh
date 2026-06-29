@@ -14,6 +14,25 @@ real_git="$(command -v git)"
 current_branch="$(git -C "$repo_dir" branch --show-current)"
 [[ -n "$current_branch" ]] || current_branch=main
 
+source_repo="$tmp_dir/source-repo"
+git clone "$repo_dir" "$source_repo" >/dev/null 2>&1
+while IFS= read -r -d '' tracked_file; do
+  if [[ -e "$repo_dir/$tracked_file" ]]; then
+    mkdir -p "$source_repo/$(dirname "$tracked_file")"
+    cp -a "$repo_dir/$tracked_file" "$source_repo/$tracked_file"
+  else
+    git -C "$source_repo" rm -q --ignore-unmatch -- "$tracked_file"
+  fi
+done < <(git -C "$repo_dir" ls-files -z)
+git -C "$source_repo" add -A
+if ! git -C "$source_repo" diff --cached --quiet; then
+  git -C "$source_repo" \
+    -c core.hooksPath=/dev/null \
+    -c user.name='Dotfiles Test' \
+    -c user.email='dotfiles-test@example.invalid' \
+    commit -m 'test fixture source snapshot' >/dev/null
+fi
+
 mkdir -p "$tmp_dir/bin" "$tmp_dir/home" "$tmp_dir/pacman-state"
 
 cat >"$tmp_dir/bin/sudo" <<'EOF'
@@ -45,7 +64,7 @@ case "${1:-}" in
     done
     if [[ "${PACMAN_MOCK_FAIL_ONCE:-0}" == "1" && ! -e "$state_dir/failed-once" ]]; then
       touch "$state_dir/failed-once"
-      printf 'bash: line 143: symlink: No such file or directory\n' >&2
+      printf 'mock pacman: intentional nonzero after installing requested packages\n' >&2
       exit 1
     fi
     ;;
@@ -98,7 +117,7 @@ for run in 1 2; do
     PACMAN_MOCK_FAIL_ONCE=1 \
     HOME="$tmp_dir/home" \
     DOTFILES_DIR="$tmp_dir/home/dotfiles" \
-    DOTFILES_REPO_URL="file://$repo_dir" \
+    DOTFILES_REPO_URL="file://$source_repo" \
     DOTFILES_BOOTSTRAP_OS=omarchy \
     DOTFILES_BRANCH="$current_branch" \
     DOTFILES_STOW_CONFLICTS=backup \
@@ -106,12 +125,17 @@ for run in 1 2; do
     sed 's/^/  /' "$output_file"
     fail "bootstrap fixture pass $run failed"
   fi
-  sed 's/^/  /' "$output_file"
+  if [[ "${DOTFILES_FIXTURE_VERBOSE:-0}" == "1" ]]; then
+    sed 's/^/  /' "$output_file"
+  fi
 
   if [[ $run -eq 1 ]]; then
     grep -Fq 'pacman prerequisite install returned: 1' "$output_file" || fail 'missing pacman nonzero checkpoint'
     grep -Fq 'bootstrap prerequisites present after pacman' "$output_file" || fail 'missing pacman package verification checkpoint'
-    grep -Fq -- '--- BOOTSTRAP DIAGNOSTICS START ---' "$output_file" || fail 'missing diagnostics block after pacman failure'
+    grep -Fq 'mock pacman: intentional nonzero after installing requested packages' "$output_file" || fail 'missing intentional pacman mock failure checkpoint'
+    if grep -Fq 'bash: line 143: symlink: No such file or directory' "$output_file"; then
+      fail 'fixture leaked stale symlink error'
+    fi
   fi
 
   [[ -d "$tmp_dir/home/dotfiles/.git" ]] || fail 'dotfiles repo was not cloned'
@@ -127,7 +151,7 @@ if ! PATH="$tmp_dir/bin:$PATH" \
   PACMAN_MOCK_FAIL_ONCE=0 \
   HOME="$tmp_dir/success-home" \
   DOTFILES_DIR="$tmp_dir/success-home/dotfiles" \
-  DOTFILES_REPO_URL="file://$repo_dir" \
+  DOTFILES_REPO_URL="file://$source_repo" \
   DOTFILES_BOOTSTRAP_OS=omarchy \
   DOTFILES_BRANCH="$current_branch" \
   DOTFILES_STOW_CONFLICTS=backup \
@@ -135,13 +159,16 @@ if ! PATH="$tmp_dir/bin:$PATH" \
   sed 's/^/  /' "$success_output"
   fail 'bootstrap fixture pacman-success failed'
 fi
-sed 's/^/  /' "$success_output"
+if [[ "${DOTFILES_FIXTURE_VERBOSE:-0}" == "1" ]]; then
+  sed 's/^/  /' "$success_output"
+fi
 grep -Fq 'pacman prerequisite install returned: 0' "$success_output" || fail 'missing pacman success checkpoint'
 grep -Fq 'bootstrap prerequisites present after pacman' "$success_output" || fail 'missing pacman success verification checkpoint'
 [[ -d "$tmp_dir/success-home/dotfiles/.git" ]] || fail 'dotfiles repo was not cloned after pacman success'
 
 printf '==> bootstrap first-run fixture pass detached-update-recovery\n'
 cp "$repo_dir/scripts/dotfiles" "$tmp_dir/success-home/dotfiles/scripts/dotfiles"
+printf '\n# fixture detached update recovery\n' >>"$tmp_dir/success-home/dotfiles/scripts/dotfiles"
 git -C "$tmp_dir/success-home/dotfiles" add scripts/dotfiles
 git -C "$tmp_dir/success-home/dotfiles" \
   -c core.hooksPath=/dev/null \
@@ -160,7 +187,9 @@ if ! PATH="$tmp_dir/bin:$PATH" \
   sed 's/^/  /' "$detached_output"
   fail 'detached update recovery failed'
 fi
-sed 's/^/  /' "$detached_output"
+if [[ "${DOTFILES_FIXTURE_VERBOSE:-0}" == "1" ]]; then
+  sed 's/^/  /' "$detached_output"
+fi
 grep -Fq 'repo is in detached HEAD; switching to' "$detached_output" || fail 'missing detached HEAD recovery warning'
 [[ "$(git -C "$tmp_dir/success-home/dotfiles" branch --show-current)" == "$current_branch" ]] || fail 'repo did not return to the expected branch after detached update'
 

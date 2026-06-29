@@ -41,7 +41,7 @@ aur_pkg_manager() {
 
 is_forbidden_aur_package() {
   case "$1" in
-    git|stow|zsh|curl|bash|ca-certificates|pacman|base-devel) return 0 ;;
+    git|stow|zsh|curl|bash|ca-certificates|pacman|base-devel|zen-browser-bin) return 0 ;;
     *) return 1 ;;
   esac
 }

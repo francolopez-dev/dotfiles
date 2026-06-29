@@ -214,7 +214,6 @@ install_bootstrap_prereqs() {
       say "bootstrap prerequisites present after pacman"
       if [[ $pacman_status -ne 0 ]]; then
         warn "pacman reported an error after installing prerequisites; continuing because required packages are present"
-        print_diagnostics "pacman returned nonzero after prerequisites installed"
       fi
       return 0
       ;;

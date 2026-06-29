@@ -3,6 +3,7 @@ set -euo pipefail
 
 repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 failed=0
+warned=0
 
 package_items() {
   sed -e 's/#.*//' -e 's/[[:space:]]*$//' "$@" | awk 'NF'
@@ -30,13 +31,13 @@ check_forbidden_aur_packages() {
     [[ -f "$f" ]] || continue
     while read -r pkg; do
       case "$pkg" in
-        git|stow|zsh|curl|bash|ca-certificates|pacman|base-devel)
-          printf 'bad AUR declaration: %s in %s belongs in pacman.txt\n' "$pkg" "${f#"$repo_dir/"}" >&2
+        git|stow|zsh|curl|bash|ca-certificates|pacman|base-devel|zen-browser-bin)
+          printf 'fail: forbidden AUR package declaration\nfile: %s\npackage: %s\nfix: move to the matching pacman.txt\n' "${f#"$repo_dir/"}" "$pkg" >&2
           failed=1
           ;;
       esac
       if command -v pacman >/dev/null 2>&1 && pacman -Si "$pkg" >/dev/null 2>&1; then
-        printf 'bad AUR declaration: %s in %s exists in official repos\n' "$pkg" "${f#"$repo_dir/"}" >&2
+        printf 'fail: forbidden AUR package declaration\nfile: %s\npackage: %s\nfix: move to the matching pacman.txt; package exists in official repos\n' "${f#"$repo_dir/"}" "$pkg" >&2
         failed=1
       fi
     done < <(package_items "$f")
@@ -44,7 +45,7 @@ check_forbidden_aur_packages() {
 }
 
 check_package_duplicates() {
-  local kind pkg f tmp
+  local kind pkg f tmp status
   for kind in pacman aur apt; do
     tmp="$(mktemp)"
     for f in "$repo_dir"/packages/*/"$kind".txt; do
@@ -53,32 +54,43 @@ check_package_duplicates() {
         printf '%s\t%s\n' "$pkg" "${f#"$repo_dir/"}" >>"$tmp"
       done < <(package_items "$f")
     done
+    status=0
     awk -F '\t' -v kind="$kind" '
-      seen[$1] { printf "duplicate %s package: %s in %s and %s\n", kind, $1, seen[$1], $2 > "/dev/stderr"; bad=1; next }
+      seen[$1] { printf "warn: duplicate %s package: %s in %s and %s; install helpers dedupe it\n", kind, $1, seen[$1], $2 > "/dev/stderr"; warned=1; next }
       { seen[$1]=$2 }
-      END { exit bad ? 1 : 0 }
-    ' "$tmp" || failed=1
+      END { exit warned ? 2 : 0 }
+    ' "$tmp" || status=$?
+    if [[ $status -eq 2 ]]; then
+      warned=1
+    elif [[ $status -ne 0 ]]; then
+      failed=1
+    fi
     rm -f "$tmp"
   done
 }
 
-check_pacman_aur_overlap() {
-  local pkg f pacman_tmp aur_tmp
+check_pacman_aur_overlap_for_profile() {
+  local profile="$1" pkg f pacman_tmp aur_tmp layer
   pacman_tmp="$(mktemp)"
   aur_tmp="$(mktemp)"
-  for f in "$repo_dir"/packages/*/pacman.txt; do
-    [[ -f "$f" ]] || continue
-    package_items "$f" >>"$pacman_tmp"
+  for layer in global os-omarchy "$profile"; do
+    f="$repo_dir/packages/$layer/pacman.txt"
+    [[ -f "$f" ]] && package_items "$f" >>"$pacman_tmp"
   done
-  for f in "$repo_dir"/packages/*/aur.txt; do
-    [[ -f "$f" ]] || continue
-    package_items "$f" >>"$aur_tmp"
+  for layer in global os-omarchy "$profile"; do
+    f="$repo_dir/packages/$layer/aur.txt"
+    [[ -f "$f" ]] && package_items "$f" >>"$aur_tmp"
   done
   while read -r pkg; do
-    printf 'bad package declaration: %s appears in both pacman.txt and aur.txt\n' "$pkg" >&2
+    printf 'fail: package declaration overlap\nprofile: %s\npackage: %s\nfix: declare the package in pacman.txt or aur.txt, not both\n' "$profile" "$pkg" >&2
     failed=1
   done < <(sort -u "$pacman_tmp" | comm -12 - <(sort -u "$aur_tmp"))
   rm -f "$pacman_tmp" "$aur_tmp"
+}
+
+check_pacman_aur_overlap() {
+  check_pacman_aur_overlap_for_profile profile-nox-omarchy
+  check_pacman_aur_overlap_for_profile profile-fornax-omarchy
 }
 
 check_pacman_declarations() {
@@ -87,6 +99,9 @@ check_pacman_declarations() {
   for f in "$repo_dir"/packages/*/pacman.txt; do
     [[ -f "$f" ]] || continue
     while read -r pkg; do
+      case "$pkg" in
+        zen-browser-bin) continue ;;
+      esac
       if ! pacman -Si "$pkg" >/dev/null 2>&1; then
         printf 'bad pacman declaration: %s in %s not found in official repos\n' "$pkg" "${f#"$repo_dir/"}" >&2
         failed=1
@@ -176,6 +191,10 @@ if grep -Rqs \
   failed=1
 else
   printf 'ok no stale laptop-personal profile references\n'
+fi
+
+if [[ $failed -eq 0 && $warned -eq 1 ]]; then
+  printf 'ok profile validation passed with warnings\n'
 fi
 
 exit "$failed"

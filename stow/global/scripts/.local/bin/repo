@@ -243,10 +243,12 @@ cmd_omarchy_todo() {
     "")
       ensure_omarchy_todo
       if command -v omarchy-todo >/dev/null 2>&1 && [ -n "${HYPRLAND_INSTANCE_SIGNATURE:-}" ]; then
-        omarchy-todo open
-      else
-        open_file "$OMARCHY_TODO_FILE"
+        if omarchy-todo open; then
+          return 0
+        fi
+        printf 'Could not open Omarchy todo drawer; falling back to %s.\n' "$(editor_cmd)" >&2
       fi
+      open_file "$OMARCHY_TODO_FILE"
       ;;
     -h|--help|help)
       printf 'Usage:\n  repo omarchy-todo\n  repo omarchy-todo add <task text>\n'

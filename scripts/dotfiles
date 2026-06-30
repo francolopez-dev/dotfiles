@@ -31,6 +31,9 @@ Usage:
   dotfiles apply             Re-stow layers only (after editing configs).
   dotfiles apply --dry-run   Show what stow would do, change nothing.
   dotfiles doctor            Lightweight bootstrap health checks.
+  dotfiles commands list     List discoverable shortcuts, aliases, layouts, commands.
+  dotfiles commands search   Search discoverable dotfiles entries.
+  dotfiles commands doctor   Validate the discovery registry.
   dotfiles git setup-ssh     Guided GitHub SSH setup; prompts before changes.
   dotfiles autostart status  Audit login/startup items.
   dotfiles autostart help    Show autostart subcommands.
@@ -553,6 +556,98 @@ cmd_git() {
   esac
 }
 
+commands_registry_file() {
+  local repo_file="$DOTFILES_DIR/stow/global/discovery/.config/dotfiles/commands.tsv"
+  local home_file="${XDG_CONFIG_HOME:-$HOME/.config}/dotfiles/commands.tsv"
+  if [[ -f "$repo_file" ]]; then
+    printf '%s\n' "$repo_file"
+  else
+    printf '%s\n' "$home_file"
+  fi
+}
+
+cmd_commands() {
+  local subcmd="${1:-list}"
+  [[ $# -gt 0 ]] && shift || true
+  case "$subcmd" in
+    list) commands_list "$@" ;;
+    search) commands_search "$@" ;;
+    doctor) commands_doctor ;;
+    help|-h|--help)
+      printf 'Usage:\n  dotfiles commands list [--menu]\n  dotfiles commands search <query>\n  dotfiles commands doctor\n'
+      ;;
+    *) err "unknown commands subcommand: $subcmd"; return 1 ;;
+  esac
+}
+
+commands_list() {
+  local registry menu=0
+  registry="$(commands_registry_file)"
+  [[ "${1:-}" == "--menu" ]] && menu=1
+  [[ -f "$registry" ]] || { err "commands registry not found: $registry"; return 1; }
+  if [[ $menu -eq 1 ]]; then
+    awk -F '\t' 'NR > 1 && NF >= 9 { printf "%-34s %-24s %s\n", $4, $5, $7 }' "$registry"
+  else
+    awk -F '\t' '
+      NR == 1 { next }
+      NF >= 9 {
+        printf "%s\n  %s\n  %s\n", $4, ($5 != "" ? $5 : $6), $7
+      }' "$registry"
+  fi
+}
+
+commands_search() {
+  local registry query
+  registry="$(commands_registry_file)"
+  query="$*"
+  [[ -n "$query" ]] || { err "usage: dotfiles commands search <query>"; return 2; }
+  [[ -f "$registry" ]] || { err "commands registry not found: $registry"; return 1; }
+  awk -F '\t' -v query="$query" '
+    BEGIN { q = tolower(query); found = 0 }
+    NR == 1 { next }
+    NF >= 9 {
+      haystack = tolower($1 " " $2 " " $3 " " $4 " " $5 " " $6 " " $7 " " $8)
+      if (index(haystack, q) > 0) {
+        printf "%s\n  %s\n  %s\n", $4, ($5 != "" ? $5 : $6), $7
+        found = 1
+      }
+    }
+    END { exit found ? 0 : 1 }' "$registry"
+}
+
+commands_doctor() {
+  local registry failed=0 expected_header source id duplicate
+  registry="$(commands_registry_file)"
+  expected_header=$'id\tscope\ttype\ttitle\ttrigger\tcommand\tdescription\tkeywords\tsource'
+  info "Commands registry"
+  [[ -f "$registry" ]] || { err "commands registry not found: $registry"; return 1; }
+  if [[ "$(sed -n '1p' "$registry")" == "$expected_header" ]]; then
+    ok "header valid"
+  else
+    warn "header does not match expected TSV schema"
+    failed=1
+  fi
+  if awk -F '\t' 'NR > 1 && NF != 9 { printf "line %d has %d fields\n", NR, NF; bad = 1 } END { exit bad ? 1 : 0 }' "$registry"; then
+    ok "field counts valid"
+  else
+    failed=1
+  fi
+  duplicate="$(awk -F '\t' 'NR > 1 { count[$1]++ } END { for (id in count) if (count[id] > 1) print id }' "$registry")"
+  if [[ -z "$duplicate" ]]; then
+    ok "ids unique"
+  else
+    warn "duplicate ids: $duplicate"
+    failed=1
+  fi
+  while IFS=$'\t' read -r id _scope _type _title _trigger _command _description _keywords source; do
+    [[ "$id" == "id" ]] && continue
+    [[ -n "$source" ]] || { warn "missing source for $id"; failed=1; continue; }
+    [[ -e "$DOTFILES_DIR/$source" ]] || { warn "missing source for $id: $source"; failed=1; }
+  done <"$registry"
+  [[ $failed -eq 0 ]] && ok "source paths valid"
+  return "$failed"
+}
+
 _command_status() {
   local cmd="$1"
   command -v "$cmd" >/dev/null 2>&1 && printf '  %s: installed\n' "$cmd" || printf '  %s: missing\n' "$cmd"
@@ -670,6 +765,7 @@ main() {
     update) cmd_update "$@" ;;
     apply)  cmd_apply "$@" ;;
     doctor) cmd_doctor "$@" ;;
+    commands) cmd_commands "$@" ;;
     git) cmd_git "$@" ;;
     autostart) cmd_autostart "$@" ;;
     help|-h|--help) usage ;;

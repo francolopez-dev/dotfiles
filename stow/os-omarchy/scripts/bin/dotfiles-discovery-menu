@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+height=300
+if command -v hyprctl >/dev/null 2>&1 && command -v jq >/dev/null 2>&1; then
+  monitor_height="$(hyprctl monitors -j 2>/dev/null | jq -r '.[] | select(.focused == true) | .height' 2>/dev/null || true)"
+  if [[ "$monitor_height" =~ ^[0-9]+$ && "$monitor_height" -gt 0 ]]; then
+    height=$((monitor_height * 45 / 100))
+  fi
+fi
+
+{
+  if command -v omarchy-menu-keybindings >/dev/null 2>&1; then
+    omarchy-menu-keybindings --print || true
+  fi
+  printf '\n'
+  if command -v dotfiles >/dev/null 2>&1; then
+    dotfiles commands list --menu || true
+  fi
+} | walker --dmenu -p 'Keybindings and Dotfiles' --width 900 --height "$height"

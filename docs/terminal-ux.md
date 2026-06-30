@@ -49,6 +49,9 @@ servers.
 
 ## Tmux AI Layouts
 
+Discovery entries live in `stow/global/discovery/.config/dotfiles/commands.tsv`.
+Search them with `dotfiles commands search tdl` or `Super+K` on Omarchy.
+
 Shared functions live in `stow/global/shell/.config/shell/tmux-layouts.sh` and
 work anywhere tmux plus the requested agent command are installed. Agent short
 names are resolved before tmux sessions are created: `c` and `oc` use

@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Dotfiles Commands
+Comment=Search dotfiles keybindings, aliases, tmux layouts, and commands
+Exec=xdg-terminal-exec -e dotfiles commands list
+Terminal=false
+Categories=Utility;Documentation;
+Keywords=dotfiles;commands;keybindings;aliases;tmux;tdl;tdlm;tsl;opencode;claude;codex;copy;paste;workspace;screenshot;terminal;quake;notes;todo;recovery;sync;update;status;ghostty;firefox;tailscale;atuin;

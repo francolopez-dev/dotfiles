@@ -1,0 +1,69 @@
+id	scope	type	title	trigger	command	description	keywords	source
+tdl-opencode	global	tmux	Tmux layout: OpenCode	tdl c	tdl c	Editor left, OpenCode right, shell bottom	tdl tmux layout ai opencode c oc editor shell	stow/global/shell/.config/shell/tmux-layouts.sh
+tdl-claude	global	tmux	Tmux layout: Claude	tdl cx	tdl cx	Editor left, Claude right, shell bottom	tdl tmux layout ai claude cx editor shell	stow/global/shell/.config/shell/tmux-layouts.sh
+tdl-opencode-claude	global	tmux	Tmux layout: OpenCode + Claude	tdl c cx	tdl c cx	Editor left, OpenCode and Claude stacked right, shell bottom	tdl tmux layout ai opencode claude c cx editor shell	stow/global/shell/.config/shell/tmux-layouts.sh
+tdlm-opencode	global	tmux	Tmux multi-project layout	tdlm c	tdlm c	One tmux window per immediate subdirectory with OpenCode	tdlm tmux project directory opencode ai	stow/global/shell/.config/shell/tmux-layouts.sh
+tsl-opencode	global	tmux	Tmux swarm layout	tsl 4 c	tsl 4 c	Four tiled OpenCode panes in one tmux session	tsl tmux panes swarm opencode ai codex claude	stow/global/shell/.config/shell/tmux-layouts.sh
+tmux-prefix	global	tmux	Tmux prefix key	Ctrl+B	Ctrl+B	Start a tmux command/keybinding sequence while inside a tdl session	tmux tdl prefix help keybindings panes windows	stow/global/tmux/.tmux.conf
+tmux-pane-left	global	tmux	Tmux pane: move left	Ctrl+B h	Ctrl+B then h	Move focus to the pane on the left inside a tdl layout	tmux tdl pane move focus navigate left vim	stow/global/tmux/.tmux.conf
+tmux-pane-down	global	tmux	Tmux pane: move down	Ctrl+B j	Ctrl+B then j	Move focus to the pane below inside a tdl layout	tmux tdl pane move focus navigate down vim	stow/global/tmux/.tmux.conf
+tmux-pane-up	global	tmux	Tmux pane: move up	Ctrl+B k	Ctrl+B then k	Move focus to the pane above inside a tdl layout	tmux tdl pane move focus navigate up vim	stow/global/tmux/.tmux.conf
+tmux-pane-right	global	tmux	Tmux pane: move right	Ctrl+B l	Ctrl+B then l	Move focus to the pane on the right inside a tdl layout	tmux tdl pane move focus navigate right vim	stow/global/tmux/.tmux.conf
+tmux-window-next	global	tmux	Tmux window: next	Ctrl+B n	Ctrl+B then n	Move to the next tmux window; useful after tdlm creates one window per project	tmux tdl tdlm window next project navigate	stow/global/tmux/.tmux.conf
+tmux-window-prev	global	tmux	Tmux window: previous	Ctrl+B p	Ctrl+B then p	Move to the previous tmux window; useful after tdlm creates one window per project	tmux tdl tdlm window previous project navigate	stow/global/tmux/.tmux.conf
+tmux-window-list	global	tmux	Tmux window: list windows	Ctrl+B w	Ctrl+B then w	Show and choose tmux windows; useful for tdlm project layouts	tmux tdl tdlm window list choose project navigate	stow/global/tmux/.tmux.conf
+tmux-detach	global	tmux	Tmux detach session	Ctrl+B d	Ctrl+B then d	Detach from the current tdl tmux session without closing it	tmux tdl detach leave session background	stow/global/tmux/.tmux.conf
+tmux-split-horizontal	global	tmux	Tmux split: horizontal	Ctrl+B |	Ctrl+B then |	Split the current tmux pane left/right	tmux tdl split pane horizontal vertical bar	stow/global/tmux/.tmux.conf
+tmux-split-vertical	global	tmux	Tmux split: vertical	Ctrl+B -	Ctrl+B then -	Split the current tmux pane top/bottom	tmux tdl split pane vertical dash	stow/global/tmux/.tmux.conf
+tmux-reload	global	tmux	Tmux reload config	Ctrl+B r	Ctrl+B then r	Reload ~/.tmux.conf and show a confirmation message	tmux tdl reload config source	stow/global/tmux/.tmux.conf
+agent-opencode	global	tmux	AI agent alias: OpenCode	c / oc	opencode	Agent names c and oc resolve to opencode	agent mapping ai opencode tdl tdlm tsl	stow/global/shell/.config/shell/tmux-layouts.sh
+agent-claude	global	tmux	AI agent alias: Claude	cx	claude	Agent name cx resolves to claude	agent mapping ai claude tdl tdlm tsl	stow/global/shell/.config/shell/tmux-layouts.sh
+agent-codex	global	tmux	AI agent alias: Codex	codex	codex	Agent name codex resolves to codex	agent mapping ai codex tdl tdlm tsl	stow/global/shell/.config/shell/tmux-layouts.sh
+alias-parent	global	alias	Shell alias: parent directory	..	cd ..	Go up one directory	alias shell directory cd parent	stow/global/shell/.config/shell/aliases.sh
+alias-git-status	global	alias	Shell alias: git status	gs	git status	Show current repository status	alias git status repo	stow/global/shell/.config/shell/aliases.sh
+alias-git-pull	global	alias	Shell alias: git pull	gp	git pull	Pull the current branch	alias git pull update repo	stow/global/shell/.config/shell/aliases.sh
+alias-docker-ps	global	alias	Shell alias: docker ps	dps	docker ps	List running Docker containers	alias docker containers	stow/global/shell/.config/shell/aliases.sh
+alias-docker-up	global	alias	Shell alias: compose up	dcu	docker compose up -d	Start Docker Compose stack in the background	alias docker compose up	stow/global/shell/.config/shell/aliases.sh
+alias-docker-down	global	alias	Shell alias: compose down	dcd	docker compose down	Stop Docker Compose stack	alias docker compose down	stow/global/shell/.config/shell/aliases.sh
+alias-fastfetch	global	alias	Shell alias: fastfetch	ff	fastfetch 2>/dev/null || true	Show system summary without shell noise	alias fastfetch system summary	stow/global/shell/.config/shell/aliases.sh
+alias-editor	global	alias	Shell alias: Neovim	v	nvim	Open Neovim	alias editor nvim neovim	stow/global/shell/.config/shell/aliases.sh
+alias-yazi	global	alias	Shell alias: Yazi	y	yazi	Open Yazi file manager	alias file manager yazi	stow/global/shell/.config/shell/aliases.sh
+alias-list	global	alias	Shell function: list files	l	l	Styled long file listing with eza or ls fallback	alias list files eza ls ll la	stow/global/shell/.config/shell/aliases.sh
+alias-tree	global	alias	Shell alias: tree view	lt	lt	Small directory tree view with eza or ls fallback	alias tree files eza lt	stow/global/shell/.config/shell/aliases.sh
+alias-clear	global	alias	Shell alias: clear scrollback	cls	cls	Clear visible terminal and scrollback	alias clear terminal scrollback	stow/global/shell/.config/shell/aliases.sh
+copy	omarchy	keybind	Copy	Super+C	omarchy-terminal-shortcut copy	Copy from terminal-aware focused app	copy clipboard terminal shortcut super c	stow/os-omarchy/hyprland/.config/hypr/conf.d/99-omarchy-keymap.conf
+paste	omarchy	keybind	Paste	Super+V	omarchy-terminal-shortcut paste	Paste into terminal-aware focused app	copy paste clipboard terminal shortcut super v	stow/os-omarchy/hyprland/.config/hypr/conf.d/99-omarchy-keymap.conf
+select-all	omarchy	keybind	Select all	Super+A	omarchy-terminal-shortcut select-all	Select all in terminal-aware focused app	copy select all terminal shortcut super a	stow/os-omarchy/hyprland/.config/hypr/conf.d/99-omarchy-keymap.conf
+terminal	omarchy	keybind	Open terminal	Super+Return / Alt+Return	xdg-terminal-exec	Open the default terminal in the active terminal cwd	terminal ghostty shell return	stow/os-omarchy/hyprland/.config/hypr/conf.d/99-omarchy-keymap.conf
+ghostty	omarchy	keybind	Open Ghostty	Alt+Shift+Return	ghostty	Open Ghostty in the active terminal cwd	terminal ghostty alt shift return	stow/os-omarchy/hyprland/.config/hypr/conf.d/99-omarchy-keymap.conf
+alacritty	omarchy	keybind	Open Alacritty	Super+Shift+Return	alacritty	Open Alacritty in the active terminal cwd	terminal alacritty super shift return	stow/os-omarchy/hyprland/.config/hypr/conf.d/99-omarchy-keymap.conf
+close-window	omarchy	keybind	Close window or tab	Super+W	omarchy-close-window	Close browser tab when appropriate, otherwise close the window	close window tab browser	stow/os-omarchy/hyprland/.config/hypr/conf.d/99-omarchy-keymap.conf
+quit-app	omarchy	keybind	Quit app	Super+Q	omarchy-quit-app	Quit the focused application	quit app close super q	stow/os-omarchy/hyprland/.config/hypr/conf.d/99-omarchy-keymap.conf
+workspace-switch	omarchy	keybind	Switch workspace	Ctrl+1..9	hyprctl workspace 1..9	Switch directly to workspace 1 through 9	workspace desktop aerospace ctrl 1 2 3 4 5 6 7 8 9	stow/os-omarchy/hyprland/.config/hypr/conf.d/99-omarchy-keymap.conf
+workspace-move	omarchy	keybind	Move window to workspace	Ctrl+Shift+1..9	hyprctl dispatch movetoworkspace	Move focused window to workspace 1 through 9 and follow it	workspace move window desktop aerospace ctrl shift	stow/os-omarchy/hyprland/.config/hypr/conf.d/99-omarchy-keymap.conf
+screenshot-region	omarchy	keybind	Region screenshot	Super+Shift+4	omarchy-capture-screenshot region	Capture a selected screen region	screenshot capture region satty super shift 4	stow/os-omarchy/hyprland/.config/hypr/conf.d/99-omarchy-keymap.conf
+quake	omarchy	keybind	Quake terminal	Ctrl+`	omarchy-quake toggle	Toggle the pinned quake terminal drawer	quake terminal drawer ctrl backtick ghostty tmux	stow/os-omarchy/hyprland/.config/hypr/conf.d/99-omarchy-keymap.conf
+quick-notes	omarchy	keybind	Quick notes	Ctrl+Shift+`	omarchy-notes toggle	Toggle the quick notes drawer	notes quick drawer markdown ctrl shift backtick	stow/os-omarchy/hyprland/.config/hypr/conf.d/99-omarchy-keymap.conf
+todo-drawer	omarchy	keybind	Todo drawer	Ctrl+Alt+`	omarchy-todo toggle	Toggle the todo drawer	todo tasks notes drawer ctrl alt backtick	stow/os-omarchy/hyprland/.config/hypr/conf.d/99-omarchy-keymap.conf
+quick-capture	omarchy	keybind	Quick capture	Super+Shift+N	omarchy-notes-capture	Append a quick timestamped note	quick capture notes inbox markdown	stow/os-omarchy/hyprland/.config/hypr/conf.d/99-omarchy-keymap.conf
+waybar-toggle	omarchy	keybind	Toggle Waybar	Ctrl+Shift+B	omarchy toggle waybar	Toggle the top bar	waybar bar toggle desktop	stow/os-omarchy/hyprland/.config/hypr/conf.d/99-omarchy-keymap.conf
+firefox	omarchy	keybind	Open Firefox	Alt+Shift+B	firefox	Launch Firefox	browser firefox web alt shift b	stow/os-omarchy/hyprland/.config/hypr/conf.d/99-omarchy-keymap.conf
+vivaldi	omarchy	keybind	Open Vivaldi	Alt+B	vivaldi	Launch Vivaldi	browser vivaldi web alt b	stow/os-omarchy/hyprland/.config/hypr/conf.d/99-omarchy-keymap.conf
+chatgpt	omarchy	keybind	Open ChatGPT	Alt+G	chatgpt	Launch ChatGPT desktop app or web app	chatgpt ai browser alt g	stow/os-omarchy/hyprland/.config/hypr/conf.d/99-omarchy-keymap.conf
+thunderbird	omarchy	keybind	Open Thunderbird	Alt+E	thunderbird	Launch Thunderbird email	mail email thunderbird alt e	stow/os-omarchy/hyprland/.config/hypr/conf.d/99-omarchy-keymap.conf
+input-reset	profile-fornax-omarchy	keybind	Reset input stack	Super+Shift+Esc	voxtype cancel; hyprctl dispatch submap reset; restart fcitx5	Emergency recovery for session-level input stalls	input recovery keyboard escape fcitx voxtype	stow/profile-fornax-omarchy/hyprland/.config/hypr/conf.d/35-input-recovery.conf
+notes-inbox	omarchy	desktop	Open Notes Inbox	Open Notes Inbox	omarchy-notes-inbox	Open ~/Documents/Notes/inbox.md in quick notes	notes inbox launcher markdown	stow/os-omarchy/scripts/.local/share/applications/dotfiles-notes-inbox.desktop
+notes-daily	omarchy	desktop	Open Daily Note	Open Daily Note	omarchy-notes-daily	Open today's markdown note	notes daily journal launcher markdown	stow/os-omarchy/scripts/.local/share/applications/dotfiles-notes-daily.desktop
+notes-projects	omarchy	desktop	Open Notes Projects	Open Notes Projects	omarchy-notes-projects	Open ~/Documents/Notes/projects in Yazi	notes projects yazi launcher	stow/os-omarchy/scripts/.local/share/applications/dotfiles-notes-projects.desktop
+todo-open	omarchy	desktop	Open Todo	Open Todo	omarchy-todo open	Open ~/Documents/Notes/todo.txt in the todo drawer	todo tasks notes launcher	stow/os-omarchy/scripts/.local/share/applications/dotfiles-notes-todo.desktop
+dotfiles-status	global	cli	Dotfiles status	dotfiles status	dotfiles status	Show machine, layers, package drift, sync tools, stow state, and recovery pack	status dotfiles stow sync recovery package drift	scripts/dotfiles
+dotfiles-update	global	cli	Dotfiles update	dotfiles update	dotfiles update	Pull latest config, install missing packages, and re-stow layers	update dotfiles git stow packages sync	scripts/dotfiles
+dotfiles-apply	global	cli	Dotfiles apply	dotfiles apply	dotfiles apply	Re-stow active layers after editing configs	apply dotfiles stow config	scripts/dotfiles
+dotfiles-doctor	global	cli	Dotfiles doctor	dotfiles doctor	dotfiles doctor	Run lightweight bootstrap and desktop health checks	doctor health validate dotfiles stow hyprland	scripts/dotfiles
+dotfiles-autostart	global	cli	Dotfiles autostart audit	dotfiles autostart status	dotfiles autostart status	Audit login and startup items with adoption commands	autostart login startup xdg systemd hypr dotfiles	scripts/lib/autostart.sh
+dotfiles-commands-list	global	cli	Dotfiles command registry	dotfiles commands list	dotfiles commands list	List registry-backed shortcuts, aliases, tmux layouts, and commands	discovery commands list launcher search	scripts/dotfiles
+dotfiles-commands-search	global	cli	Search dotfiles commands	dotfiles commands search <query>	dotfiles commands search <query>	Search registry-backed dotfiles shortcuts and commands	discovery commands search launcher registry	scripts/dotfiles
+dotfiles-commands-doctor	global	cli	Validate dotfiles registry	dotfiles commands doctor	dotfiles commands doctor	Validate the discovery registry format and referenced source paths	discovery commands doctor validate registry	scripts/dotfiles
+tailscale-login	global	cli	Tailscale login	sudo tailscale up	sudo tailscale up	Connect this machine to Tailscale after install	tailscale vpn sync network login	scripts/dotfiles
+atuin-sync	global	cli	Atuin sync	atuin login && atuin sync	atuin login && atuin sync	Log in and sync shell history with Atuin	atuin shell history sync login	scripts/dotfiles
+recovery-pack	global	cli	Recovery pack	build recovery pack	build recovery pack	Build the encrypted recovery pack when ready	recovery pack encrypted keys backup secrets	CLAUDE.md

@@ -25,13 +25,7 @@ ensure_notes() {
   [ -f "$TODO_FILE" ] || cat >"$TODO_FILE" <<'EOF'
 # TODO
 
-## Current
-
 ## Inbox
-
-## Next
-
-## Done
 EOF
 }
 

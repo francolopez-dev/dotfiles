@@ -51,13 +51,7 @@ write_todo_template() {
   cat >"$file" <<'EOF'
 # TODO
 
-## Current
-
 ## Inbox
-
-## Next
-
-## Done
 EOF
 }
 

@@ -25,13 +25,7 @@ ensure_notes() {
   [ -f "$NOTES_DIR/todo.txt" ] || cat >"$NOTES_DIR/todo.txt" <<'EOF'
 # TODO
 
-## Current
-
 ## Inbox
-
-## Next
-
-## Done
 EOF
 }
 

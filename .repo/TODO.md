@@ -4,4 +4,26 @@
 
 - [ ] Replace l with a compact listing and move the current behavior to ll for better usability on laptop screens.
 - [ ] Remove all traces of the custom boot unlock/login override from dotfiles. Return to stock Omarchy behavior and perform a complete cleanup.
+- [ ] Fix Super+K command registry:Fix Super+K command registry:
+
+show current custom keybindings
+remove obsolete entries
+include aliases (tdl, repo, etc.)
+keep registry centralized
+- [ ] Add native shortcuts for moving windows across monitors/workspaces.
+Create a custom ASCII identity ("Franco") for:
+
+Fastfetch
+lock screen
+idle screensaver
+terminal branding
+
+- [ ] Add wallpaper management:Git-managed default rotation, Local personal wallpaper folder ...not committed, Automatic merge of both sources
+- [ ] Make Alt/Super swap configurable per machine profile instead of globally.
+- [ ] Investigate the cleanest Windows dual-boot workflow for FORNAX using the second SSD
+- [ ] qemu/kvm, virtmanager
+- [ ] Ollama + LM Studio should be managed by the dotfiles or remain optional profile packages.
+- [ ] Better bootstrap diagnostics.
+- [ ] Recovery Pack wizard.
+- [ ] switch alt w super omarchy docs per profile stow
 

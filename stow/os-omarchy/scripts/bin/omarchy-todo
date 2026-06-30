@@ -22,7 +22,17 @@ BOTTOM_OFFSET="${DOTFILES_QUICK_SURFACE_BOTTOM_OFFSET:-28}"
 ensure_notes() {
   mkdir -p "$NOTES_DIR/inbox" "$NOTES_DIR/archive" "$NOTES_DIR/projects" "$NOTES_DIR/daily" "$STATE_DIR"
   [ -f "$NOTES_DIR/inbox.md" ] || : >"$NOTES_DIR/inbox.md"
-  [ -f "$TODO_FILE" ] || : >"$TODO_FILE"
+  [ -f "$TODO_FILE" ] || cat >"$TODO_FILE" <<'EOF'
+# TODO
+
+## Current
+
+## Inbox
+
+## Next
+
+## Done
+EOF
 }
 
 todo_address() {

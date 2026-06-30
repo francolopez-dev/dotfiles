@@ -4,18 +4,18 @@ tdl-claude	global	tmux	Tmux layout: Claude	tdl cx	tdl cx	Editor left, Claude rig
 tdl-opencode-claude	global	tmux	Tmux layout: OpenCode + Claude	tdl c cx	tdl c cx	Editor left, OpenCode and Claude stacked right, shell bottom	tdl tmux layout ai opencode claude c cx editor shell	stow/global/shell/.config/shell/tmux-layouts.sh
 tdlm-opencode	global	tmux	Tmux multi-project layout	tdlm c	tdlm c	One tmux window per immediate subdirectory with OpenCode	tdlm tmux project directory opencode ai	stow/global/shell/.config/shell/tmux-layouts.sh
 tsl-opencode	global	tmux	Tmux swarm layout	tsl 4 c	tsl 4 c	Four tiled OpenCode panes in one tmux session	tsl tmux panes swarm opencode ai codex claude	stow/global/shell/.config/shell/tmux-layouts.sh
-tmux-prefix	global	tmux	Tmux prefix key	Ctrl+B	Ctrl+B	Start a tmux command/keybinding sequence while inside a tdl session	tmux tdl prefix help keybindings panes windows	stow/global/tmux/.tmux.conf
-tmux-pane-left	global	tmux	Tmux pane: move left	Ctrl+B h	Ctrl+B then h	Move focus to the pane on the left inside a tdl layout	tmux tdl pane move focus navigate left vim	stow/global/tmux/.tmux.conf
-tmux-pane-down	global	tmux	Tmux pane: move down	Ctrl+B j	Ctrl+B then j	Move focus to the pane below inside a tdl layout	tmux tdl pane move focus navigate down vim	stow/global/tmux/.tmux.conf
-tmux-pane-up	global	tmux	Tmux pane: move up	Ctrl+B k	Ctrl+B then k	Move focus to the pane above inside a tdl layout	tmux tdl pane move focus navigate up vim	stow/global/tmux/.tmux.conf
-tmux-pane-right	global	tmux	Tmux pane: move right	Ctrl+B l	Ctrl+B then l	Move focus to the pane on the right inside a tdl layout	tmux tdl pane move focus navigate right vim	stow/global/tmux/.tmux.conf
-tmux-window-next	global	tmux	Tmux window: next	Ctrl+B n	Ctrl+B then n	Move to the next tmux window; useful after tdlm creates one window per project	tmux tdl tdlm window next project navigate	stow/global/tmux/.tmux.conf
-tmux-window-prev	global	tmux	Tmux window: previous	Ctrl+B p	Ctrl+B then p	Move to the previous tmux window; useful after tdlm creates one window per project	tmux tdl tdlm window previous project navigate	stow/global/tmux/.tmux.conf
-tmux-window-list	global	tmux	Tmux window: list windows	Ctrl+B w	Ctrl+B then w	Show and choose tmux windows; useful for tdlm project layouts	tmux tdl tdlm window list choose project navigate	stow/global/tmux/.tmux.conf
-tmux-detach	global	tmux	Tmux detach session	Ctrl+B d	Ctrl+B then d	Detach from the current tdl tmux session without closing it	tmux tdl detach leave session background	stow/global/tmux/.tmux.conf
-tmux-split-horizontal	global	tmux	Tmux split: horizontal	Ctrl+B |	Ctrl+B then |	Split the current tmux pane left/right	tmux tdl split pane horizontal vertical bar	stow/global/tmux/.tmux.conf
-tmux-split-vertical	global	tmux	Tmux split: vertical	Ctrl+B -	Ctrl+B then -	Split the current tmux pane top/bottom	tmux tdl split pane vertical dash	stow/global/tmux/.tmux.conf
-tmux-reload	global	tmux	Tmux reload config	Ctrl+B r	Ctrl+B then r	Reload ~/.tmux.conf and show a confirmation message	tmux tdl reload config source	stow/global/tmux/.tmux.conf
+tmux-prefix	global	tmux	tdl usage: tmux prefix key	Ctrl+B	Ctrl+B	Start a tmux command/keybinding sequence while inside a tdl session	tmux tdl prefix help keybindings panes windows	stow/global/tmux/.tmux.conf
+tmux-pane-left	global	tmux	tdl usage: move pane left	Ctrl+B h	Ctrl+B then h	Move focus to the pane on the left inside a tdl layout	tmux tdl pane move focus navigate left vim	stow/global/tmux/.tmux.conf
+tmux-pane-down	global	tmux	tdl usage: move pane down	Ctrl+B j	Ctrl+B then j	Move focus to the pane below inside a tdl layout	tmux tdl pane move focus navigate down vim	stow/global/tmux/.tmux.conf
+tmux-pane-up	global	tmux	tdl usage: move pane up	Ctrl+B k	Ctrl+B then k	Move focus to the pane above inside a tdl layout	tmux tdl pane move focus navigate up vim	stow/global/tmux/.tmux.conf
+tmux-pane-right	global	tmux	tdl usage: move pane right	Ctrl+B l	Ctrl+B then l	Move focus to the pane on the right inside a tdl layout	tmux tdl pane move focus navigate right vim	stow/global/tmux/.tmux.conf
+tmux-window-next	global	tmux	tdl usage: next window	Ctrl+B n	Ctrl+B then n	Move to the next tmux window; useful after tdlm creates one window per project	tmux tdl tdlm window next project navigate	stow/global/tmux/.tmux.conf
+tmux-window-prev	global	tmux	tdl usage: previous window	Ctrl+B p	Ctrl+B then p	Move to the previous tmux window; useful after tdlm creates one window per project	tmux tdl tdlm window previous project navigate	stow/global/tmux/.tmux.conf
+tmux-window-list	global	tmux	tdl usage: list windows	Ctrl+B w	Ctrl+B then w	Show and choose tmux windows; useful for tdlm project layouts	tmux tdl tdlm window list choose project navigate	stow/global/tmux/.tmux.conf
+tmux-detach	global	tmux	tdl usage: detach session	Ctrl+B d	Ctrl+B then d	Detach from the current tdl tmux session without closing it	tmux tdl detach leave session background	stow/global/tmux/.tmux.conf
+tmux-split-horizontal	global	tmux	tdl usage: split pane left/right	Ctrl+B |	Ctrl+B then |	Split the current tmux pane left/right	tmux tdl split pane horizontal vertical bar	stow/global/tmux/.tmux.conf
+tmux-split-vertical	global	tmux	tdl usage: split pane top/bottom	Ctrl+B -	Ctrl+B then -	Split the current tmux pane top/bottom	tmux tdl split pane vertical dash	stow/global/tmux/.tmux.conf
+tmux-reload	global	tmux	tdl usage: reload tmux config	Ctrl+B r	Ctrl+B then r	Reload ~/.tmux.conf and show a confirmation message	tmux tdl reload config source	stow/global/tmux/.tmux.conf
 agent-opencode	global	tmux	AI agent alias: OpenCode	c / oc	opencode	Agent names c and oc resolve to opencode	agent mapping ai opencode tdl tdlm tsl	stow/global/shell/.config/shell/tmux-layouts.sh
 agent-claude	global	tmux	AI agent alias: Claude	cx	claude	Agent name cx resolves to claude	agent mapping ai claude tdl tdlm tsl	stow/global/shell/.config/shell/tmux-layouts.sh
 agent-codex	global	tmux	AI agent alias: Codex	codex	codex	Agent name codex resolves to codex	agent mapping ai codex tdl tdlm tsl	stow/global/shell/.config/shell/tmux-layouts.sh
@@ -56,6 +56,13 @@ notes-inbox	omarchy	desktop	Open Notes Inbox	Open Notes Inbox	omarchy-notes-inbo
 notes-daily	omarchy	desktop	Open Daily Note	Open Daily Note	omarchy-notes-daily	Open today's markdown note	notes daily journal launcher markdown	stow/os-omarchy/scripts/.local/share/applications/dotfiles-notes-daily.desktop
 notes-projects	omarchy	desktop	Open Notes Projects	Open Notes Projects	omarchy-notes-projects	Open ~/Documents/Notes/projects in Yazi	notes projects yazi launcher	stow/os-omarchy/scripts/.local/share/applications/dotfiles-notes-projects.desktop
 todo-open	omarchy	desktop	Open Todo	Open Todo	omarchy-todo open	Open ~/Documents/Notes/todo.txt in the todo drawer	todo tasks notes launcher	stow/os-omarchy/scripts/.local/share/applications/dotfiles-notes-todo.desktop
+repo-todo	global	cli	Repo todo	repo todo	repo todo	Open .repo/TODO.md for the current Git repository	repo todo tasks scratchpad project git	stow/global/scripts/.local/bin/repo
+repo-todo-add	global	cli	Add repo todo	repo todo add <task>	repo todo add <task>	Append a task to .repo/TODO.md for the current Git repository	repo todo add task inbox project git	stow/global/scripts/.local/bin/repo
+repo-notes	global	cli	Repo notes	repo notes	repo notes	Open .repo/NOTES.md for the current Git repository	repo notes scratchpad project git	stow/global/scripts/.local/bin/repo
+repo-decisions	global	cli	Repo decisions	repo decisions	repo decisions	Open .repo/DECISIONS.md for the current Git repository	repo decisions adr log project git	stow/global/scripts/.local/bin/repo
+repo-status	global	cli	Repo status	repo status	repo status	Show repository branch, clean state, sync state, and open tasks	repo status git todo tasks project	stow/global/scripts/.local/bin/repo
+repo-omarchy-todo	global	cli	Omarchy global todo	repo omarchy-todo	repo omarchy-todo	Open the shared Omarchy todo file at ~/Documents/Notes/todo.txt	repo omarchy todo global notes syncthing tasks	stow/global/scripts/.local/bin/repo
+repo-omarchy-todo-add	global	cli	Add Omarchy todo	repo omarchy-todo add <task>	repo omarchy-todo add <task>	Append a task to the shared Omarchy todo file	repo omarchy todo add global notes syncthing tasks	stow/global/scripts/.local/bin/repo
 dotfiles-status	global	cli	Dotfiles status	dotfiles status	dotfiles status	Show machine, layers, package drift, sync tools, stow state, and recovery pack	status dotfiles stow sync recovery package drift	scripts/dotfiles
 dotfiles-update	global	cli	Dotfiles update	dotfiles update	dotfiles update	Pull latest config, install missing packages, and re-stow layers	update dotfiles git stow packages sync	scripts/dotfiles
 dotfiles-apply	global	cli	Dotfiles apply	dotfiles apply	dotfiles apply	Re-stow active layers after editing configs	apply dotfiles stow config	scripts/dotfiles

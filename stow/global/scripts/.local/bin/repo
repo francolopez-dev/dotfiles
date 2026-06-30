@@ -1,0 +1,282 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+REPO_DIR_NAME=".repo"
+TODO_FILE="TODO.md"
+NOTES_FILE="NOTES.md"
+DECISIONS_FILE="DECISIONS.md"
+OMARCHY_NOTES_DIR="$HOME/Documents/Notes"
+OMARCHY_TODO_FILE="$OMARCHY_NOTES_DIR/todo.txt"
+
+usage() {
+  cat <<'EOF'
+Usage:
+  repo init
+  repo todo
+  repo todo add <task text>
+  repo notes
+  repo decisions
+  repo status
+  repo omarchy-todo
+  repo omarchy-todo add <task text>
+EOF
+}
+
+not_in_repo() {
+  cat <<'EOF' >&2
+Not inside a Git repository.
+Use 'repo init' inside a project, or use 'repo omarchy-todo' for global Omarchy notes.
+EOF
+}
+
+repo_root() {
+  git rev-parse --show-toplevel 2>/dev/null || return 1
+}
+
+editor_cmd() {
+  printf '%s\n' "${EDITOR:-nvim}"
+}
+
+open_file() {
+  local file="$1" editor
+  local -a editor_args
+  editor="$(editor_cmd)"
+  read -r -a editor_args <<<"$editor"
+  "${editor_args[@]}" "$file"
+}
+
+write_todo_template() {
+  local file="$1"
+  [ -e "$file" ] && return 0
+  cat >"$file" <<'EOF'
+# TODO
+
+## Current
+
+## Inbox
+
+## Next
+
+## Done
+EOF
+}
+
+write_notes_template() {
+  local file="$1"
+  [ -e "$file" ] && return 0
+  cat >"$file" <<'EOF'
+# Notes
+
+## Scratch
+EOF
+}
+
+write_decisions_template() {
+  local file="$1"
+  [ -e "$file" ] && return 0
+  cat >"$file" <<'EOF'
+# Decisions
+
+## Log
+EOF
+}
+
+ensure_repo_files() {
+  local root="$1" repo_dir
+  repo_dir="$root/$REPO_DIR_NAME"
+  mkdir -p "$repo_dir"
+  write_todo_template "$repo_dir/$TODO_FILE"
+  write_notes_template "$repo_dir/$NOTES_FILE"
+  write_decisions_template "$repo_dir/$DECISIONS_FILE"
+}
+
+ensure_repo_todo() {
+  local root="$1" repo_dir
+  repo_dir="$root/$REPO_DIR_NAME"
+  mkdir -p "$repo_dir"
+  write_todo_template "$repo_dir/$TODO_FILE"
+}
+
+ensure_repo_notes() {
+  local root="$1" repo_dir
+  repo_dir="$root/$REPO_DIR_NAME"
+  mkdir -p "$repo_dir"
+  write_notes_template "$repo_dir/$NOTES_FILE"
+}
+
+ensure_repo_decisions() {
+  local root="$1" repo_dir
+  repo_dir="$root/$REPO_DIR_NAME"
+  mkdir -p "$repo_dir"
+  write_decisions_template "$repo_dir/$DECISIONS_FILE"
+}
+
+append_task() {
+  local file="$1" task="$2" tmp
+  tmp="$(mktemp)"
+  awk -v task="$task" '
+    function flush_task() {
+      if (inserted == 1) return
+      if (content_seen == 0 || pending_blank == 0) print ""
+      print "- [ ] " task
+      print ""
+      inserted = 1
+      pending_blank = 0
+    }
+    function flush_blanks() {
+      if (pending_blank > 0) print ""
+      pending_blank = 0
+    }
+    BEGIN { inserted = 0; in_inbox = 0; pending_blank = 0; content_seen = 0 }
+    /^## Inbox[[:space:]]*$/ && inserted == 0 { print; in_inbox = 1; next }
+    in_inbox == 1 && /^## / { flush_task(); in_inbox = 0; print; next }
+    in_inbox == 1 && /^[[:space:]]*$/ { pending_blank = 1; next }
+    in_inbox == 1 { flush_blanks(); content_seen = 1; print; next }
+    { print }
+    END {
+      if (in_inbox == 1) flush_task()
+      else if (inserted == 0) print "\n## Inbox\n\n- [ ] " task
+    }
+  ' "$file" >"$tmp"
+  mv "$tmp" "$file"
+}
+
+cmd_init() {
+  local root
+  root="$(repo_root)" || { not_in_repo; return 1; }
+  ensure_repo_files "$root"
+  printf 'Initialized %s\n' "$root/$REPO_DIR_NAME"
+}
+
+cmd_todo() {
+  local root task
+  root="$(repo_root)" || { not_in_repo; return 1; }
+  case "${1:-}" in
+    add)
+      shift || true
+      task="$*"
+      [ -n "$task" ] || { printf 'Usage: repo todo add <task text>\n' >&2; return 2; }
+      ensure_repo_todo "$root"
+      append_task "$root/$REPO_DIR_NAME/$TODO_FILE" "$task"
+      ;;
+    "")
+      ensure_repo_todo "$root"
+      open_file "$root/$REPO_DIR_NAME/$TODO_FILE"
+      ;;
+    -h|--help|help)
+      printf 'Usage:\n  repo todo\n  repo todo add <task text>\n'
+      ;;
+    *)
+      printf 'Usage: repo todo [add <task text>]\n' >&2
+      return 2
+      ;;
+  esac
+}
+
+cmd_notes() {
+  local root
+  root="$(repo_root)" || { not_in_repo; return 1; }
+  ensure_repo_notes "$root"
+  open_file "$root/$REPO_DIR_NAME/$NOTES_FILE"
+}
+
+cmd_decisions() {
+  local root
+  root="$(repo_root)" || { not_in_repo; return 1; }
+  ensure_repo_decisions "$root"
+  open_file "$root/$REPO_DIR_NAME/$DECISIONS_FILE"
+}
+
+open_tasks() {
+  local file="$1"
+  [ -f "$file" ] || return 0
+  awk '
+    /^[[:space:]]*-[[:space:]]*\[[ xX]\][[:space:]]*/ {
+      line = $0
+      sub(/^[[:space:]]*-[[:space:]]*\[[ xX]\][[:space:]]*/, "", line)
+      if ($0 ~ /^[[:space:]]*-[[:space:]]*\[[ ]\]/) print line
+    }
+  ' "$file"
+}
+
+cmd_status() {
+  local root name branch dirty ahead behind counts todo_file task n=0
+  root="$(repo_root)" || { not_in_repo; return 1; }
+  name="$(basename "$root")"
+  branch="$(git -C "$root" symbolic-ref --quiet --short HEAD 2>/dev/null || git -C "$root" rev-parse --short HEAD 2>/dev/null || printf 'unknown')"
+  dirty="$(git -C "$root" status --porcelain)"
+
+  printf 'Repository: %s\n' "$name"
+  printf 'Branch: %s\n' "$branch"
+  if [ -z "$dirty" ]; then
+    printf 'Git: clean'
+  else
+    printf 'Git: dirty'
+  fi
+  if counts="$(git -C "$root" rev-list --left-right --count '@{upstream}...HEAD' 2>/dev/null)"; then
+    read -r behind ahead <<<"$counts"
+    if [ "$ahead" != "0" ] || [ "$behind" != "0" ]; then
+      printf ' (ahead %s, behind %s)' "$ahead" "$behind"
+    fi
+  fi
+  printf '\n\n'
+
+  todo_file="$root/$REPO_DIR_NAME/$TODO_FILE"
+  printf 'Open tasks:\n'
+  while IFS= read -r task; do
+    n=$((n + 1))
+    [ "$n" -le 5 ] || break
+    printf '  %s. %s\n' "$n" "$task"
+  done < <(open_tasks "$todo_file")
+  [ "$n" -gt 0 ] || printf '  none\n'
+}
+
+ensure_omarchy_todo() {
+  mkdir -p "$OMARCHY_NOTES_DIR"
+  write_todo_template "$OMARCHY_TODO_FILE"
+}
+
+cmd_omarchy_todo() {
+  local task
+  case "${1:-}" in
+    add)
+      shift || true
+      task="$*"
+      [ -n "$task" ] || { printf 'Usage: repo omarchy-todo add <task text>\n' >&2; return 2; }
+      ensure_omarchy_todo
+      append_task "$OMARCHY_TODO_FILE" "$task"
+      ;;
+    "")
+      ensure_omarchy_todo
+      if command -v omarchy-todo >/dev/null 2>&1 && [ -n "${HYPRLAND_INSTANCE_SIGNATURE:-}" ]; then
+        omarchy-todo open
+      else
+        open_file "$OMARCHY_TODO_FILE"
+      fi
+      ;;
+    -h|--help|help)
+      printf 'Usage:\n  repo omarchy-todo\n  repo omarchy-todo add <task text>\n'
+      ;;
+    *)
+      printf 'Usage: repo omarchy-todo [add <task text>]\n' >&2
+      return 2
+      ;;
+  esac
+}
+
+main() {
+  local cmd="${1:-help}"
+  [ $# -gt 0 ] && shift || true
+  case "$cmd" in
+    init) cmd_init "$@" ;;
+    todo) cmd_todo "$@" ;;
+    notes) cmd_notes "$@" ;;
+    decisions) cmd_decisions "$@" ;;
+    status) cmd_status "$@" ;;
+    omarchy-todo|omarchy-todo.txt) cmd_omarchy_todo "$@" ;;
+    help|-h|--help) usage ;;
+    *) usage >&2; return 2 ;;
+  esac
+}
+
+main "$@"

@@ -53,23 +53,7 @@ cmd_apply() {
   else
     apply_all_layers
   fi
-  if [[ ${#extra[@]} -eq 0 ]]; then
-    apply_omarchy_system_overrides
-  fi
   [[ ${#extra[@]} -eq 0 ]] && ok "layers applied"
-}
-
-apply_omarchy_system_overrides() {
-  [[ "$(detect_os)" == "omarchy" ]] || return 0
-  if [[ "${DOTFILES_ENABLE_LOGIN_THEME:-0}" != "1" ]]; then
-    info "Omarchy boot unlock override skipped; set DOTFILES_ENABLE_LOGIN_THEME=1 to apply"
-    return 0
-  fi
-  [[ -x "$HOME/bin/dotfiles-apply-plymouth-theme" ]] || return 0
-  info "Applying Omarchy boot unlock override"
-  if ! "$HOME/bin/dotfiles-apply-plymouth-theme"; then
-    warn "could not apply Plymouth boot unlock override; stowed config remains available"
-  fi
 }
 
 install_missing_packages() {
@@ -166,7 +150,6 @@ cmd_update() {
   info "Update plan for $(detect_hostname) ($(detect_os)); profile: $(active_profile):"
   if [[ "$(detect_os)" == "omarchy" ]]; then
     printf '  1. git pull --ff-only\n  2. install pacman profile packages\n  3. install AUR profile packages\n  4. re-stow layers (conflict wizard; never silently overwritten)\n'
-    printf '  login theme: %s\n' "$([[ "${DOTFILES_ENABLE_LOGIN_THEME:-0}" == "1" ]] && printf enabled || printf skipped)"
   else
     printf '  1. git pull --ff-only\n  2. install missing packages\n  3. re-stow layers (conflict wizard; never silently overwritten)\n'
   fi
@@ -202,7 +185,6 @@ cmd_update() {
       stow_failed=1
       warn "stow reported conflicts; package check will still run"
     fi
-    apply_omarchy_system_overrides
   fi
 
   if [[ $stow_failed -eq 1 ]]; then

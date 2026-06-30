@@ -49,8 +49,6 @@ quick-capture	omarchy	keybind	Quick capture	Super+Shift+N	omarchy-notes-capture	
 waybar-toggle	omarchy	keybind	Toggle Waybar	Ctrl+Shift+B	omarchy toggle waybar	Toggle the top bar	waybar bar toggle desktop	stow/os-omarchy/hyprland/.config/hypr/conf.d/99-omarchy-keymap.conf
 firefox	omarchy	keybind	Open Firefox	Alt+Shift+B	firefox	Launch Firefox	browser firefox web alt shift b	stow/os-omarchy/hyprland/.config/hypr/conf.d/99-omarchy-keymap.conf
 vivaldi	omarchy	keybind	Open Vivaldi	Alt+B	vivaldi	Launch Vivaldi	browser vivaldi web alt b	stow/os-omarchy/hyprland/.config/hypr/conf.d/99-omarchy-keymap.conf
-chatgpt	omarchy	keybind	Open ChatGPT	Alt+G	chatgpt	Launch ChatGPT desktop app or web app	chatgpt ai browser alt g	stow/os-omarchy/hyprland/.config/hypr/conf.d/99-omarchy-keymap.conf
-thunderbird	omarchy	keybind	Open Thunderbird	Alt+E	thunderbird	Launch Thunderbird email	mail email thunderbird alt e	stow/os-omarchy/hyprland/.config/hypr/conf.d/99-omarchy-keymap.conf
 input-reset	profile-fornax-omarchy	keybind	Reset input stack	Super+Shift+Esc	voxtype cancel; hyprctl dispatch submap reset; restart fcitx5	Emergency recovery for session-level input stalls	input recovery keyboard escape fcitx voxtype	stow/profile-fornax-omarchy/hyprland/.config/hypr/conf.d/35-input-recovery.conf
 notes-inbox	omarchy	desktop	Open Notes Inbox	Open Notes Inbox	omarchy-notes-inbox	Open ~/Documents/Notes/inbox.md in quick notes	notes inbox launcher markdown	stow/os-omarchy/scripts/.local/share/applications/dotfiles-notes-inbox.desktop
 notes-daily	omarchy	desktop	Open Daily Note	Open Daily Note	omarchy-notes-daily	Open today's markdown note	notes daily journal launcher markdown	stow/os-omarchy/scripts/.local/share/applications/dotfiles-notes-daily.desktop
@@ -73,4 +71,4 @@ dotfiles-commands-search	global	cli	Search dotfiles commands	dotfiles commands s
 dotfiles-commands-doctor	global	cli	Validate dotfiles registry	dotfiles commands doctor	dotfiles commands doctor	Validate the discovery registry format and referenced source paths	discovery commands doctor validate registry	scripts/dotfiles
 tailscale-login	global	cli	Tailscale login	sudo tailscale up	sudo tailscale up	Connect this machine to Tailscale after install	tailscale vpn sync network login	scripts/dotfiles
 atuin-sync	global	cli	Atuin sync	atuin login && atuin sync	atuin login && atuin sync	Log in and sync shell history with Atuin	atuin shell history sync login	scripts/dotfiles
-recovery-pack	global	cli	Recovery pack	build recovery pack	build recovery pack	Build the encrypted recovery pack when ready	recovery pack encrypted keys backup secrets	CLAUDE.md
+recovery-pack	global	cli	Recovery pack status	dotfiles status	dotfiles status	Show whether the encrypted recovery pack exists and what to do next	recovery pack encrypted keys backup secrets	CLAUDE.md

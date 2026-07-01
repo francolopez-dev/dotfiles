@@ -1,1 +1,2 @@
-# Omarchy (Arch) packages installed via yay after pacman packages.
+# Omarchy (Arch) AUR packages installed via paru after pacman packages.
+zen-browser-bin

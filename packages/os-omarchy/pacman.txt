@@ -19,6 +19,3 @@ satty
 socat
 restic
 age
-# Omarchy/Arch official repo package; keep out of AUR even if a host's pacman
-# database does not expose the repo during validation.
-zen-browser-bin

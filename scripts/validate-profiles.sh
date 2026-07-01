@@ -9,6 +9,41 @@ package_items() {
   sed -e 's/#.*//' -e 's/[[:space:]]*$//' "$@" | awk 'NF'
 }
 
+known_aur_package() {
+  case "$1" in
+    zen-browser-bin) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+known_pacman_package() {
+  case "$1" in
+    git|stow|tmux|fzf|ripgrep|jq|bat|eza|fastfetch|btop|htop|neovim|zsh|curl|bash|wget|nano|ca-certificates|shellcheck|atuin|networkmanager|tailscale|playerctl|pamixer|power-profiles-daemon|iw|ghostty|alacritty|vivaldi|firefox|gsimplecal|zoxide|yazi|satty|socat|restic|age|pacman|base-devel) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+aur_packages_declared() {
+  local f
+  for f in "$repo_dir"/packages/*/aur.txt; do
+    [[ -f "$f" ]] || continue
+    if [[ -n "$(package_items "$f")" ]]; then
+      return 0
+    fi
+  done
+  return 1
+}
+
+is_arch_validation_host() {
+  [[ -f /etc/os-release ]] || return 1
+  # shellcheck disable=SC1091
+  . /etc/os-release
+  case "${ID-}:${ID_LIKE-}" in
+    arch:*|*:*arch*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
 check_profile() {
   local profile="$1"
   if [[ -d "$repo_dir/stow/$profile" ]]; then
@@ -30,12 +65,12 @@ check_forbidden_aur_packages() {
   for f in "$repo_dir"/packages/*/aur.txt; do
     [[ -f "$f" ]] || continue
     while read -r pkg; do
-      case "$pkg" in
-        git|stow|zsh|curl|bash|ca-certificates|pacman|base-devel|zen-browser-bin)
-          printf 'fail: forbidden AUR package declaration\nfile: %s\npackage: %s\nfix: move to the matching pacman.txt\n' "${f#"$repo_dir/"}" "$pkg" >&2
-          failed=1
-          ;;
-      esac
+      if known_aur_package "$pkg"; then
+        continue
+      elif known_pacman_package "$pkg"; then
+        printf 'fail: forbidden AUR package declaration\nfile: %s\npackage: %s\nfix: move to the matching pacman.txt\n' "${f#"$repo_dir/"}" "$pkg" >&2
+        failed=1
+      fi
       if command -v pacman >/dev/null 2>&1 && pacman -Si "$pkg" >/dev/null 2>&1; then
         printf 'fail: forbidden AUR package declaration\nfile: %s\npackage: %s\nfix: move to the matching pacman.txt; package exists in official repos\n' "${f#"$repo_dir/"}" "$pkg" >&2
         failed=1
@@ -95,19 +130,35 @@ check_pacman_aur_overlap() {
 
 check_pacman_declarations() {
   local pkg f
-  command -v pacman >/dev/null 2>&1 || return 0
   for f in "$repo_dir"/packages/*/pacman.txt; do
     [[ -f "$f" ]] || continue
     while read -r pkg; do
-      case "$pkg" in
-        zen-browser-bin) continue ;;
-      esac
-      if ! pacman -Si "$pkg" >/dev/null 2>&1; then
+      if known_aur_package "$pkg"; then
+        printf 'fail: known AUR package declared as pacman\nfile: %s\npackage: %s\nfix: move it to the matching aur.txt\n' "${f#"$repo_dir/"}" "$pkg" >&2
+        failed=1
+      elif command -v pacman >/dev/null 2>&1 && ! pacman -Si "$pkg" >/dev/null 2>&1; then
         printf 'bad pacman declaration: %s in %s not found in official repos\n' "$pkg" "${f#"$repo_dir/"}" >&2
         failed=1
       fi
     done < <(package_items "$f")
   done
+}
+
+check_aur_helper() {
+  if ! aur_packages_declared; then
+    printf 'ok no AUR packages declared\n'
+    return 0
+  fi
+  if is_arch_validation_host; then
+    if command -v paru >/dev/null 2>&1; then
+      printf 'ok paru AUR helper present\n'
+    else
+      printf 'fail: AUR packages are declared but paru is missing\n' >&2
+      failed=1
+    fi
+  else
+    printf 'ok AUR helper runtime check skipped on non-Arch validation host\n'
+  fi
 }
 
 check_bootstrap_prereqs_declared() {
@@ -166,6 +217,7 @@ check_forbidden_aur_packages
 check_package_duplicates
 check_pacman_aur_overlap
 check_pacman_declarations
+check_aur_helper
 check_bootstrap_prereqs_declared
 
 check_hypridle_timeouts profile-nox-omarchy 240,600,660,1800

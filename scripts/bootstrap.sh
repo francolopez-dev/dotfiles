@@ -337,6 +337,49 @@ install_powerlevel10k() {
   return 0
 }
 
+apply_bootstrap_shell_config() {
+  local pkg failed=0
+
+  remove_zshrc_guard
+  say "Applying managed shell config"
+  if [[ ! -r "$DOTFILES_DIR/scripts/lib/common.sh" || ! -r "$DOTFILES_DIR/scripts/lib/stow.sh" ]]; then
+    if [[ $DRY_RUN -eq 1 ]]; then
+      warn "dry-run: repo checkout is not present, so shell config stow cannot be simulated"
+      return 0
+    fi
+    die \
+      "Cannot find dotfiles stow helpers in $DOTFILES_DIR." \
+      "Fix the checkout, then rerun bootstrap."
+  fi
+  if ! command -v stow >/dev/null 2>&1; then
+    if [[ $DRY_RUN -eq 1 ]]; then
+      warn "dry-run: stow is not available, so shell config stow cannot be simulated"
+      return 0
+    fi
+    die \
+      "stow is required before applying managed shell config." \
+      "Fix bootstrap prerequisites, then rerun bootstrap."
+  fi
+
+  export DOTFILES_STOW_CONFLICTS="${DOTFILES_STOW_CONFLICTS:-backup}"
+  (
+    info() { say "$*"; }
+    have_tty() { [[ -r /dev/tty && -w /dev/tty ]] && { : </dev/tty >/dev/tty; } 2>/dev/null; }
+    # shellcheck source=scripts/lib/stow.sh
+    . "$DOTFILES_DIR/scripts/lib/stow.sh"
+    for pkg in bash shell zsh scripts; do
+      [[ -d "$DOTFILES_DIR/stow/global/$pkg" ]] || continue
+      info "stow bootstrap package: global/$pkg"
+      if [[ $DRY_RUN -eq 1 ]]; then
+        stow_one_package global "$pkg" --no --verbose || failed=1
+      else
+        stow_one_package global "$pkg" || failed=1
+      fi
+    done
+    exit "$failed"
+  )
+}
+
 # 1. clone or update
 run_bootstrap_repo_flow() {
 if [[ -d "$DOTFILES_DIR/.git" ]]; then
@@ -401,19 +444,15 @@ case ":$PATH:" in
   *) export PATH="$BIN_DIR:$PATH" ;;
 esac
 
-# 4. Stow managed shell config before the longer package/update phase so a new
-# terminal cannot fall into zsh-newuser-install on fresh installs.
-remove_zshrc_guard
-say "Applying managed shell config"
-if [[ $DRY_RUN -eq 1 ]]; then
-  if [[ -x "$DOTFILES_DIR/scripts/dotfiles" ]]; then
-    "$DOTFILES_DIR/scripts/dotfiles" apply --dry-run || warn "dry-run: managed shell config pre-apply reported conflicts; continuing"
-  else
-    warn "dry-run: repo checkout is not present, so stow cannot be simulated"
-  fi
-else
-  DOTFILES_STOW_CONFLICTS="${DOTFILES_STOW_CONFLICTS:-backup}" "$DOTFILES_DIR/scripts/dotfiles" apply
-fi
+install_oh_my_zsh
+install_oh_my_zsh_plugin zsh-autosuggestions https://github.com/zsh-users/zsh-autosuggestions.git
+install_oh_my_zsh_plugin zsh-syntax-highlighting https://github.com/zsh-users/zsh-syntax-highlighting.git
+install_powerlevel10k
+
+# 4. Stow only shell/CLI config before the longer package/update phase so a new
+# terminal cannot fall into zsh-newuser-install on fresh installs. Full layer
+# stow happens after pacman and AUR packages are handled by `dotfiles update`.
+apply_bootstrap_shell_config
 
 # 5. Install declared packages, then re-apply layers with conflict wizard.
 say "Running dotfiles update"
@@ -457,10 +496,6 @@ bootstrap_summary() {
 main() {
   install_bootstrap_prereqs
   install_zshrc_guard
-  install_oh_my_zsh
-  install_oh_my_zsh_plugin zsh-autosuggestions https://github.com/zsh-users/zsh-autosuggestions.git
-  install_oh_my_zsh_plugin zsh-syntax-highlighting https://github.com/zsh-users/zsh-syntax-highlighting.git
-  install_powerlevel10k
   run_bootstrap_repo_flow
   bootstrap_summary
 }

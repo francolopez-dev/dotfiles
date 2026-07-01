@@ -78,6 +78,22 @@ set -euo pipefail
 exit 0
 EOF
 
+cat >"$tmp_dir/bin/paru" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+state_dir="${PACMAN_MOCK_STATE:?}"
+case "${1:-}" in
+  -S)
+    shift
+    for arg in "$@"; do
+      [[ "$arg" == --* ]] && continue
+      touch "$state_dir/$arg"
+    done
+    ;;
+  *) exit 0 ;;
+esac
+EOF
+
 cat >"$tmp_dir/bin/git" <<EOF
 #!/usr/bin/env bash
 set -euo pipefail
@@ -107,7 +123,8 @@ fi
 exec "\$real_git" "\$@"
 EOF
 
-chmod +x "$tmp_dir/bin/sudo" "$tmp_dir/bin/pacman" "$tmp_dir/bin/stow" "$tmp_dir/bin/git"
+chmod +x "$tmp_dir/bin/sudo" "$tmp_dir/bin/pacman" "$tmp_dir/bin/stow" "$tmp_dir/bin/paru" "$tmp_dir/bin/git"
+touch "$tmp_dir/pacman-state/zen-browser-bin"
 
 for run in 1 2; do
   output_file="$tmp_dir/bootstrap-run-$run.out"
@@ -144,6 +161,7 @@ for run in 1 2; do
 done
 
 mkdir -p "$tmp_dir/success-home" "$tmp_dir/pacman-success-state"
+touch "$tmp_dir/pacman-success-state/zen-browser-bin"
 success_output="$tmp_dir/bootstrap-success.out"
 printf '==> bootstrap first-run fixture pass pacman-success\n'
 if ! PATH="$tmp_dir/bin:$PATH" \

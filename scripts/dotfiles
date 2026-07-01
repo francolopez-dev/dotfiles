@@ -89,9 +89,9 @@ install_missing_native_packages() {
 }
 
 install_missing_omarchy_packages() {
-  local dry="$1" missing_pacman=() missing_aur=() p aur_mgr
+  local dry="$1" missing_pacman=() declared_aur=() missing_aur=() p aur_mgr
 
-  validate_aur_package_names || return 1
+  validate_package_declarations || return 1
 
   info "Checking pacman profile packages"
   while read -r p; do
@@ -105,11 +105,18 @@ install_missing_omarchy_packages() {
     if [[ "$dry" -eq 1 ]]; then
       dim "  would run: sudo pacman -S --needed ${missing_pacman[*]}"
     elif confirm "Install ${#missing_pacman[@]} missing pacman package(s)?"; then
+      info "Installing pacman packages: ${missing_pacman[*]}"
       if have_tty; then
         # shellcheck disable=SC2024
-        sudo pacman -S --needed "${missing_pacman[@]}" </dev/tty
+        if ! sudo pacman -S --needed "${missing_pacman[@]}" </dev/tty; then
+          warn "pacman failed installing profile packages: ${missing_pacman[*]}"
+          return 1
+        fi
       else
-        sudo pacman -S --needed "${missing_pacman[@]}"
+        if ! sudo pacman -S --needed "${missing_pacman[@]}"; then
+          warn "pacman failed installing profile packages: ${missing_pacman[*]}"
+          return 1
+        fi
       fi
     fi
   fi
@@ -117,27 +124,39 @@ install_missing_omarchy_packages() {
   info "Checking AUR profile packages"
   while read -r p; do
     [[ -z "$p" ]] && continue
+    declared_aur+=("$p")
     _pkg_installed "$p" || missing_aur+=("$p")
   done < <(desired_aur_packages)
+  if [[ ${#declared_aur[@]} -eq 0 ]]; then
+    ok "no AUR profile packages declared"
+    return 0
+  fi
+
+  ensure_paru_available "$dry" || return 1
   if [[ ${#missing_aur[@]} -eq 0 ]]; then
     ok "all AUR profile packages installed"
     return 0
   fi
 
   aur_mgr="$(aur_pkg_manager)"
+  [[ "$dry" -eq 1 && -z "$aur_mgr" ]] && aur_mgr="paru -S --needed"
   if [[ -z "$aur_mgr" ]]; then
-    warn "AUR packages are declared but yay is not installed: ${missing_aur[*]}"
+    warn "AUR packages are declared but paru is not installed: ${missing_aur[*]}"
     return 1
   fi
   printf '  missing AUR: %s\n' "${missing_aur[*]}"
   if [[ "$dry" -eq 1 ]]; then
     dim "  would run: $aur_mgr ${missing_aur[*]}"
   elif ! have_tty; then
-    warn "AUR installs require a TTY so yay cannot silently choose provider defaults"
+    warn "AUR installs require a TTY so paru cannot silently choose provider defaults"
     return 1
   elif confirm "Install ${#missing_aur[@]} missing AUR package(s)?"; then
+    info "Installing AUR packages with paru: ${missing_aur[*]}"
     # shellcheck disable=SC2086
-    $aur_mgr "${missing_aur[@]}" </dev/tty
+    if ! $aur_mgr "${missing_aur[@]}" </dev/tty; then
+      warn "paru failed installing AUR packages: ${missing_aur[*]}"
+      return 1
+    fi
   fi
 }
 
@@ -149,7 +168,7 @@ cmd_update() {
 
   info "Update plan for $(detect_hostname) ($(detect_os)); profile: $(active_profile):"
   if [[ "$(detect_os)" == "omarchy" ]]; then
-    printf '  1. git pull --ff-only\n  2. install pacman profile packages\n  3. install AUR profile packages\n  4. re-stow layers (conflict wizard; never silently overwritten)\n'
+    printf '  1. git pull --ff-only\n  2. install pacman profile packages\n  3. install paru/AUR profile packages\n  4. re-stow layers (conflict wizard; never silently overwritten)\n'
   else
     printf '  1. git pull --ff-only\n  2. install missing packages\n  3. re-stow layers (conflict wizard; never silently overwritten)\n'
   fi
@@ -360,6 +379,15 @@ cmd_doctor() {
   esac
 
   info "Declared package health"
+  validate_package_declarations || failed=1
+  if [[ "$os" == "omarchy" ]] && aur_packages_declared; then
+    if command -v paru >/dev/null 2>&1; then
+      ok "paru AUR helper installed"
+    else
+      warn "AUR packages are declared but paru is missing"
+      failed=1
+    fi
+  fi
   missing=0
   while read -r p; do
     [[ -z "$p" ]] && continue

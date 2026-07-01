@@ -65,7 +65,7 @@ packages/profile-<hostname>-<os>/<source>.txt
 ```
 
 For Omarchy, `pacman.txt` installs first with pacman and `aur.txt` installs
-second with yay. Do not put official repo packages in `aur.txt`. For
+second with paru. Do not put official repo packages in `aur.txt`. For
 Debian/Ubuntu, use `apt.txt`. One package per line. Comments and blank lines
 are allowed.
 

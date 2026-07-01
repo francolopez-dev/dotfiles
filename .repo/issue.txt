@@ -1,7 +1,7 @@
 
 ~ ❯ curl -fsSL https://raw.githubusercontent.com/jfrancolopez/dotfiles/refs/heads/main/scripts/bootstrap.sh | bash
 ==> Installing bootstrap prerequisites with pacman: stow zsh
-Place your right index finger on the fingerprint reader
+[sudo] password for jfranco:
 resolving dependencies...
 looking for conflicting packages...
 
@@ -15,9 +15,9 @@ Total Installed Size:  7.21 MiB
 
 :: Proceed with installation? [Y/n] y
 :: Retrieving packages...
- zsh-5.9-6-x86_64                                                          2.2 MiB  12.5 MiB/s 00:00 [-----------------------------------------------------------] 100%
- stow-2.4.1-1-any                                                        132.0 KiB   670 KiB/s 00:00 [-----------------------------------------------------------] 100%
- Total (2/2)                                                               2.3 MiB  8.88 MiB/s 00:00 [-----------------------------------------------------------] 100%
+ stow-2.4.1-1-any                                                        132.0 KiB  1281 KiB/s 00:00 [-----------------------------------------------------------] 100%
+ zsh-5.9-6-x86_64                                                          2.2 MiB  10.9 MiB/s 00:00 [-----------------------------------------------------------] 100%
+ Total (2/2)                                                               2.3 MiB  10.3 MiB/s 00:00 [-----------------------------------------------------------] 100%
 (2/2) checking keys in keyring                                                                       [-----------------------------------------------------------] 100%
 (2/2) checking package integrity                                                                     [-----------------------------------------------------------] 100%
 (2/2) loading package files                                                                          [-----------------------------------------------------------] 100%
@@ -43,13 +43,27 @@ Optional dependencies for zsh
 ==> pacman prerequisite install returned: 0
 ==> bootstrap prerequisites present after pacman
 ==> Installing temporary zsh first-run guard
+==> Cloning https://github.com/jfrancolopez/dotfiles.git -> /home/jfranco/dotfiles
+Cloning into '/home/jfranco/dotfiles'...
+remote: Enumerating objects: 2055, done.
+remote: Counting objects: 100% (222/222), done.
+remote: Compressing objects: 100% (131/131), done.
+remote: Total 2055 (delta 103), reused 155 (delta 59), pack-reused 1833 (from 1)
+Receiving objects: 100% (2055/2055), 521.48 KiB | 3.75 MiB/s, done.
+Resolving deltas: 100% (850/850), done.
+Already on 'main'
+Your branch is up to date with 'origin/main'.
+From https://github.com/jfrancolopez/dotfiles
+ * branch            main       -> FETCH_HEAD
+Already up to date.
+==> Linked dotfiles -> /home/jfranco/.local/bin/dotfiles
 ==> Installing Oh My Zsh
 Cloning into '/home/jfranco/.oh-my-zsh'...
 remote: Enumerating objects: 1478, done.
 remote: Counting objects: 100% (1478/1478), done.
 remote: Compressing objects: 100% (1412/1412), done.
-remote: Total 1478 (delta 45), reused 1345 (delta 36), pack-reused 0 (from 0)
-Receiving objects: 100% (1478/1478), 3.32 MiB | 13.77 MiB/s, done.
+remote: Total 1478 (delta 45), reused 1358 (delta 36), pack-reused 0 (from 0)
+Receiving objects: 100% (1478/1478), 3.32 MiB | 13.50 MiB/s, done.
 Resolving deltas: 100% (45/45), done.
 ==> Installing Oh My Zsh plugin: zsh-autosuggestions
 Cloning into '/home/jfranco/.oh-my-zsh/custom/plugins/zsh-autosuggestions'...
@@ -57,7 +71,7 @@ remote: Enumerating objects: 73, done.
 remote: Counting objects: 100% (73/73), done.
 remote: Compressing objects: 100% (64/64), done.
 remote: Total 73 (delta 9), reused 35 (delta 3), pack-reused 0 (from 0)
-Receiving objects: 100% (73/73), 36.41 KiB | 2.14 MiB/s, done.
+Receiving objects: 100% (73/73), 36.41 KiB | 1.46 MiB/s, done.
 Resolving deltas: 100% (9/9), done.
 ==> Installing Oh My Zsh plugin: zsh-syntax-highlighting
 Cloning into '/home/jfranco/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting'...
@@ -65,7 +79,7 @@ remote: Enumerating objects: 369, done.
 remote: Counting objects: 100% (369/369), done.
 remote: Compressing objects: 100% (300/300), done.
 remote: Total 369 (delta 299), reused 100 (delta 55), pack-reused 0 (from 0)
-Receiving objects: 100% (369/369), 182.09 KiB | 2.49 MiB/s, done.
+Receiving objects: 100% (369/369), 182.09 KiB | 2.30 MiB/s, done.
 Resolving deltas: 100% (299/299), done.
 ==> Installing Powerlevel10k
 Cloning into '/home/jfranco/.oh-my-zsh/custom/themes/powerlevel10k'...
@@ -73,136 +87,1121 @@ remote: Enumerating objects: 92, done.
 remote: Counting objects: 100% (92/92), done.
 remote: Compressing objects: 100% (75/75), done.
 remote: Total 92 (delta 18), reused 58 (delta 13), pack-reused 0 (from 0)
-Receiving objects: 100% (92/92), 350.47 KiB | 3.07 MiB/s, done.
+Receiving objects: 100% (92/92), 350.47 KiB | 4.27 MiB/s, done.
 Resolving deltas: 100% (18/18), done.
-==> Cloning https://github.com/jfrancolopez/dotfiles.git -> /home/jfranco/dotfiles
-Cloning into '/home/jfranco/dotfiles'...
-remote: Enumerating objects: 2035, done.
-remote: Counting objects: 100% (202/202), done.
-remote: Compressing objects: 100% (119/119), done.
-remote: Total 2035 (delta 93), reused 140 (delta 51), pack-reused 1833 (from 1)
-Receiving objects: 100% (2035/2035), 510.36 KiB | 3.67 MiB/s, done.
-Resolving deltas: 100% (840/840), done.
-Already on 'main'
-Your branch is up to date with 'origin/main'.
-From https://github.com/jfrancolopez/dotfiles
- * branch            main       -> FETCH_HEAD
-Already up to date.
-==> Linked dotfiles -> /home/jfranco/.local/bin/dotfiles
 ==> Removing temporary zsh first-run guard
 ==> Applying managed shell config
-==> machine: nox (omarchy); profile: profile-nox-omarchy
-==> stow layer: global
-==> backing up 1 conflict(s) for global/alacritty to /home/jfranco/.dotfiles-backup/2026-06-30-211822
-==> backing up 2 conflict(s) for global/bash to /home/jfranco/.dotfiles-backup/2026-06-30-211822
-==> backing up 1 conflict(s) for global/ghostty to /home/jfranco/.dotfiles-backup/2026-06-30-211822
-==> backing up 1 conflict(s) for global/xdg-terminal-exec to /home/jfranco/.dotfiles-backup/2026-06-30-211822
-==> stow layer: os-omarchy
-==> backing up 1 conflict(s) for os-omarchy/btop to /home/jfranco/.dotfiles-backup/2026-06-30-211823
-==> backing up 2 conflict(s) for os-omarchy/hyprland to /home/jfranco/.dotfiles-backup/2026-06-30-211823
-==> backing up 12 conflict(s) for os-omarchy/neovim to /home/jfranco/.dotfiles-backup/2026-06-30-211823
-==> backing up 2 conflict(s) for os-omarchy/waybar to /home/jfranco/.dotfiles-backup/2026-06-30-211823
-==> stow layer: profile-nox-omarchy
-==> backing up 1 conflict(s) for profile-nox-omarchy/hypridle to /home/jfranco/.dotfiles-backup/2026-06-30-211824
-==> backing up 3 conflict(s) for profile-nox-omarchy/hyprland to /home/jfranco/.dotfiles-backup/2026-06-30-211824
- ok layers applied
+==> stow bootstrap package: global/bash
+==> backing up 2 conflict(s) for global/bash to /home/jfranco/.dotfiles-backup/2026-07-01-163254
+==> stow bootstrap package: global/shell
+==> stow bootstrap package: global/zsh
+==> stow bootstrap package: global/scripts
 ==> Running dotfiles update
 ==> Update plan for nox (omarchy); profile: profile-nox-omarchy:
   1. git pull --ff-only
   2. install pacman profile packages
-  3. install AUR profile packages
+  3. install paru/AUR profile packages
   4. re-stow layers (conflict wizard; never silently overwritten)
 Proceed? [y/N] y
 ==> Pulling repo
 Already up to date.
 ==> Checking profile packages
 ==> Checking pacman profile packages
-  missing pacman: htop wget nano shellcheck atuin networkmanager tailscale ghostty vivaldi firefox gsimplecal yazi restic age zen-browser-bin
-Install 15 missing pacman package(s)? [y/N] y
-error: target not found: zen-browser-bin
-ERROR:
-bootstrap failed at line 430 with exit status 1: DOTFILES_ASSUME_YES=1 DOTFILES_STOW_CONFLICTS="${DOTFILES_STOW_CONFLICTS:-backup}" "$DOTFILES_DIR/scripts/dotfiles" update
-Fix the command above, then rerun bootstrap. It is safe to rerun.
+  missing pacman: htop wget nano shellcheck atuin networkmanager tailscale ghostty vivaldi firefox gsimplecal yazi restic age
+Install 14 missing pacman package(s)? [y/N] y
+==> Installing pacman packages: htop wget nano shellcheck atuin networkmanager tailscale ghostty vivaldi firefox gsimplecal yazi restic age
+resolving dependencies...
+looking for conflicting packages...
 
---- BOOTSTRAP DIAGNOSTICS START ---
-reason: fatal error at line 430
-date: Tue Jun 30 09:18:26 PM EDT 2026
-bash: 5.3.9(1)-release
-user: jfranco
-home: /home/jfranco
-pwd: /home/jfranco
-path: /home/jfranco/.local/share/mise/installs/node/26.2.0/bin:/home/jfranco/.local/share/omarchy/bin:/home/jfranco/.local/share/mise/shims:/usr/bin:/home/jfranco/.local/share/omarchy/bin:/usr/local/sbin:/usr/local/bin:/usr/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl:/home/jfranco/.local/bin:/home/jfranco/.local/bin
-repo_url: https://github.com/jfrancolopez/dotfiles.git
-dotfiles_dir: /home/jfranco/dotfiles
-branch: main
-dry_run: 0
-profile: <auto>
-os_detected: omarchy
+Package (78)                                 New Version    Net Change  Download Size
 
-commands:
-  bash: /usr/bin/bash
-  git: /usr/bin/git
-  curl: /usr/bin/curl
-  sudo: /usr/bin/sudo
-  pacman: /usr/bin/pacman
-  stow: /usr/bin/stow
-  zsh: /usr/bin/zsh
+extra/ghc-libs                               9.6.6-1        125.35 MiB      16.75 MiB
+extra/ghostty-shell-integration              1.3.1-2          0.07 MiB       0.02 MiB
+extra/ghostty-terminfo                       1.3.1-2          0.00 MiB       0.01 MiB
+extra/haskell-aeson                          2.2.2.0-8        8.88 MiB       1.09 MiB
+extra/haskell-ansi-terminal                  1.1-50           0.23 MiB       0.05 MiB
+extra/haskell-ansi-terminal-types            1.1-50           0.45 MiB       0.07 MiB
+extra/haskell-assoc                          1.1.1-40         0.04 MiB       0.01 MiB
+extra/haskell-base-orphans                   0.9.3-135        0.37 MiB       0.08 MiB
+extra/haskell-bifunctors                     5.6.3-21         2.57 MiB       0.38 MiB
+extra/haskell-character-ps                   0.1-1            0.40 MiB       0.06 MiB
+extra/haskell-colour                         2.3.7-16         0.83 MiB       0.15 MiB
+extra/haskell-comonad                        5.0.10-9         0.51 MiB       0.09 MiB
+extra/haskell-contravariant                  1.5.6-1          0.33 MiB       0.06 MiB
+extra/haskell-data-fix                       0.3.4-192        0.17 MiB       0.04 MiB
+extra/haskell-diff                           0.5-59           0.22 MiB       0.05 MiB
+extra/haskell-distributive                   0.6.2.1-476      0.21 MiB       0.04 MiB
+extra/haskell-dlist                          1.0-427          0.23 MiB       0.05 MiB
+extra/haskell-erf                            2.0.0.0-27       0.05 MiB       0.02 MiB
+extra/haskell-fgl                            5.8.3.0-125      1.64 MiB       0.30 MiB
+extra/haskell-generically                    0.1.1-113        0.01 MiB       0.01 MiB
+extra/haskell-hashable                       1.4.7.0-70       0.63 MiB       0.11 MiB
+extra/haskell-indexed-traversable            0.1.4-195        0.72 MiB       0.11 MiB
+extra/haskell-indexed-traversable-instances  0.1.2.1-12       0.08 MiB       0.02 MiB
+extra/haskell-integer-conversion             0.1.1-79         0.04 MiB       0.02 MiB
+extra/haskell-integer-logarithms             1.0.4-193        0.14 MiB       0.03 MiB
+extra/haskell-network-uri                    2.6.4.2-159      0.68 MiB       0.11 MiB
+extra/haskell-onetuple                       0.4.2.1-24       0.02 MiB       0.01 MiB
+extra/haskell-optparse-applicative           0.18.1.0-347     1.36 MiB       0.26 MiB
+extra/haskell-os-string                      2.0.10-36        0.90 MiB       0.16 MiB
+extra/haskell-prettyprinter                  1.7.1-410        1.47 MiB       0.22 MiB
+extra/haskell-prettyprinter-ansi-terminal    1.1.4-14         0.26 MiB       0.06 MiB
+extra/haskell-primitive                      0.9.1.0-162      1.63 MiB       0.25 MiB
+extra/haskell-quickcheck                     2.15.0.1-166     3.30 MiB       0.53 MiB
+extra/haskell-random                         1.2.1.3-252      1.79 MiB       0.22 MiB
+extra/haskell-regex-base                     0.94.0.3-3       0.29 MiB       0.06 MiB
+extra/haskell-regex-tdfa                     1.3.2.5-57       2.95 MiB       0.47 MiB
+extra/haskell-scientific                     0.3.8.1-57       0.49 MiB       0.10 MiB
+extra/haskell-semialign                      1.3.1.1-6        0.69 MiB       0.13 MiB
+extra/haskell-semigroupoids                  6.0.2-27         2.07 MiB       0.31 MiB
+extra/haskell-splitmix                       0.1.3-57         0.16 MiB       0.04 MiB
+extra/haskell-statevar                       1.2.2-5          0.07 MiB       0.02 MiB
+extra/haskell-strict                         0.5.1-85         0.89 MiB       0.16 MiB
+extra/haskell-tagged                         0.8.9-3          0.29 MiB       0.06 MiB
+extra/haskell-tasty                          1.5.2-157        1.42 MiB       0.28 MiB
+extra/haskell-text-iso8601                   0.1.1.1-10       0.46 MiB       0.07 MiB
+extra/haskell-text-short                     0.1.6.1-30       0.33 MiB       0.07 MiB
+extra/haskell-th-abstraction                 0.6.0.0-1        0.80 MiB       0.14 MiB
+extra/haskell-th-compat                      0.1.7-22         0.08 MiB       0.02 MiB
+extra/haskell-these                          1.2.1-295        0.54 MiB       0.10 MiB
+extra/haskell-time-compat                    1.9.9-47         0.54 MiB       0.10 MiB
+extra/haskell-transformers-compat            0.7.2-4          0.56 MiB       0.10 MiB
+extra/haskell-unordered-containers           0.2.20.1-81      1.91 MiB       0.25 MiB
+extra/haskell-uuid-types                     1.0.6.1-5        0.28 MiB       0.06 MiB
+extra/haskell-vector                         0.13.2.0-439    10.83 MiB       1.29 MiB
+extra/haskell-vector-stream                  0.1.0.1-4        0.55 MiB       0.08 MiB
+extra/haskell-witherable                     0.4.2-256        0.83 MiB       0.12 MiB
+extra/libndp                                 1.9-1            0.06 MiB       0.02 MiB
+extra/libnewt                                0.52.25-2        0.28 MiB       0.09 MiB
+extra/libnm                                  1.56.1-1         6.39 MiB       0.91 MiB
+extra/libteam                                1.32-3           0.33 MiB       0.11 MiB
+extra/mobile-broadband-provider-info         20251101-1       0.50 MiB       0.06 MiB
+extra/numactl                                2.0.19-1         0.24 MiB       0.08 MiB
+extra/pcsclite                               2.5.0-1          0.31 MiB       0.10 MiB
+core/wpa_supplicant                          2:2.11-5         6.62 MiB       1.70 MiB
+extra/age                                    1.3.1-1         11.49 MiB       2.29 MiB
+extra/atuin                                  18.16.1-1       20.29 MiB       6.26 MiB
+extra/firefox                                151.0.2-1      284.81 MiB      82.02 MiB
+extra/ghostty                                1.3.1-2         29.43 MiB      15.67 MiB
+extra/gsimplecal                             2.5.2-1          0.05 MiB       0.02 MiB
+extra/htop                                   3.5.1-1          0.39 MiB       0.17 MiB
+core/nano                                    9.0-1            2.76 MiB       0.61 MiB
+extra/networkmanager                         1.56.1-1        15.74 MiB       3.75 MiB
+extra/restic                                 0.18.1-2        40.98 MiB      10.28 MiB
+extra/shellcheck                             0.11.0-108      24.20 MiB       3.20 MiB
+extra/tailscale                              1.98.4-1        48.40 MiB      11.59 MiB
+extra/vivaldi                                8.0.4033.35-1  437.69 MiB     133.76 MiB
+extra/wget                                   1.25.0-5         5.70 MiB       0.69 MiB
+extra/yazi                                   26.5.6-3        23.65 MiB       7.04 MiB
 
-/etc/os-release:
-  NAME="Arch Linux"
-  PRETTY_NAME="Arch Linux"
-  ID=arch
-  BUILD_ID=rolling
-  ANSI_COLOR="38;2;23;147;209"
-  HOME_URL="https://archlinux.org/"
-  DOCUMENTATION_URL="https://wiki.archlinux.org/"
-  SUPPORT_URL="https://bbs.archlinux.org/"
-  BUG_REPORT_URL="https://gitlab.archlinux.org/groups/archlinux/-/issues"
-  PRIVACY_POLICY_URL="https://terms.archlinux.org/docs/privacy-policy/"
-  LOGO=archlinux-logo
+Total Download Size:    305.85 MiB
+Total Installed Size:  1142.94 MiB
 
-pacman packages:
-  git 2.54.0-1
-  stow 2.4.1-1
-  zsh 5.9-6
-  curl 8.20.0-7
-  bash 5.3.9-1
-  ca-certificates 20240618-1
+:: Proceed with installation? [Y/n] y
+:: Retrieving packages...
+ ghostty-1.3.1-2-x86_64                                                   15.7 MiB  4.66 MiB/s 00:03 [-----------------------------------------------------------] 100%
+ tailscale-1.98.4-1-x86_64                                                11.6 MiB  3.21 MiB/s 00:04 [-----------------------------------------------------------] 100%
+ ghc-libs-9.6.6-1-x86_64                                                  16.8 MiB  4.00 MiB/s 00:04 [-----------------------------------------------------------] 100%
+ yazi-26.5.6-3-x86_64                                                      7.0 MiB  2.31 MiB/s 00:03 [-----------------------------------------------------------] 100%
+ atuin-18.16.1-1-x86_64                                                    6.3 MiB  2.30 MiB/s 00:03 [-----------------------------------------------------------] 100%
+ restic-0.18.1-2-x86_64                                                   10.3 MiB  2.68 MiB/s 00:04 [-----------------------------------------------------------] 100%
+ networkmanager-1.56.1-1-x86_64                                            3.7 MiB  2.76 MiB/s 00:01 [-----------------------------------------------------------] 100%
+ age-1.3.1-1-x86_64                                                        2.3 MiB  2.24 MiB/s 00:01 [-----------------------------------------------------------] 100%
+ shellcheck-0.11.0-108-x86_64                                              3.2 MiB  2.54 MiB/s 00:01 [-----------------------------------------------------------] 100%
+ wpa_supplicant-2:2.11-5-x86_64                                         1742.8 KiB  4.12 MiB/s 00:00 [-----------------------------------------------------------] 100%
+ haskell-vector-0.13.2.0-439-x86_64                                     1325.5 KiB  3.05 MiB/s 00:00 [-----------------------------------------------------------] 100%
+ haskell-aeson-2.2.2.0-8-x86_64                                         1115.3 KiB  2.65 MiB/s 00:00 [-----------------------------------------------------------] 100%
+ libnm-1.56.1-1-x86_64                                                   927.9 KiB  4.14 MiB/s 00:00 [-----------------------------------------------------------] 100%
+ wget-1.25.0-5-x86_64                                                    704.8 KiB  3.10 MiB/s 00:00 [-----------------------------------------------------------] 100%
+ nano-9.0-1-x86_64                                                       624.5 KiB  3.06 MiB/s 00:00 [-----------------------------------------------------------] 100%
+ haskell-quickcheck-2.15.0.1-166-x86_64                                  541.7 KiB  3.95 MiB/s 00:00 [-----------------------------------------------------------] 100%
+ haskell-bifunctors-5.6.3-21-x86_64                                      388.0 KiB  2.28 MiB/s 00:00 [-----------------------------------------------------------] 100%
+ haskell-regex-tdfa-1.3.2.5-57-x86_64                                    484.4 KiB  2.75 MiB/s 00:00 [-----------------------------------------------------------] 100%
+ haskell-semigroupoids-6.0.2-27-x86_64                                   318.6 KiB  2.18 MiB/s 00:00 [-----------------------------------------------------------] 100%
+ haskell-optparse-applicative-0.18.1.0-347-x86_64                        261.7 KiB  1792 KiB/s 00:00 [-----------------------------------------------------------] 100%
+ haskell-tasty-1.5.2-157-x86_64                                          286.7 KiB  1759 KiB/s 00:00 [-----------------------------------------------------------] 100%
+ haskell-fgl-5.8.3.0-125-x86_64                                          310.0 KiB  1890 KiB/s 00:00 [-----------------------------------------------------------] 100%
+ haskell-primitive-0.9.1.0-162-x86_64                                    255.2 KiB  1595 KiB/s 00:00 [-----------------------------------------------------------] 100%
+ haskell-unordered-containers-0.2.20.1-81-x86_64                         252.2 KiB   852 KiB/s 00:00 [-----------------------------------------------------------] 100%
+ haskell-random-1.2.1.3-252-x86_64                                       224.4 KiB   761 KiB/s 00:00 [-----------------------------------------------------------] 100%
+ haskell-prettyprinter-1.7.1-410-x86_64                                  220.7 KiB  3.17 MiB/s 00:00 [-----------------------------------------------------------] 100%
+ htop-3.5.1-1-x86_64                                                     170.3 KiB  1957 KiB/s 00:00 [-----------------------------------------------------------] 100%
+ haskell-os-string-2.0.10-36-x86_64                                      166.1 KiB  2.42 MiB/s 00:00 [-----------------------------------------------------------] 100%
+ haskell-colour-2.3.7-16-x86_64                                          157.2 KiB  2.79 MiB/s 00:00 [-----------------------------------------------------------] 100%
+ haskell-strict-0.5.1-85-x86_64                                          161.1 KiB  2.58 MiB/s 00:00 [-----------------------------------------------------------] 100%
+ haskell-th-abstraction-0.6.0.0-1-x86_64                                 145.8 KiB  2.19 MiB/s 00:00 [-----------------------------------------------------------] 100%
+ haskell-witherable-0.4.2-256-x86_64                                     127.0 KiB  1443 KiB/s 00:00 [-----------------------------------------------------------] 100%
+ haskell-semialign-1.3.1.1-6-x86_64                                      129.5 KiB  1455 KiB/s 00:00 [-----------------------------------------------------------] 100%
+ haskell-hashable-1.4.7.0-70-x86_64                                      110.3 KiB  1021 KiB/s 00:00 [-----------------------------------------------------------] 100%
+ libteam-1.32-3-x86_64                                                   109.8 KiB   737 KiB/s 00:00 [-----------------------------------------------------------] 100%
+ haskell-indexed-traversable-0.1.4-195-x86_64                            109.8 KiB   790 KiB/s 00:00 [-----------------------------------------------------------] 100%
+ haskell-network-uri-2.6.4.2-159-x86_64                                  109.4 KiB   977 KiB/s 00:00 [-----------------------------------------------------------] 100%
+ pcsclite-2.5.0-1-x86_64                                                 104.2 KiB  1335 KiB/s 00:00 [-----------------------------------------------------------] 100%
+ haskell-scientific-0.3.8.1-57-x86_64                                    101.5 KiB  1391 KiB/s 00:00 [-----------------------------------------------------------] 100%
+ haskell-time-compat-1.9.9-47-x86_64                                     100.4 KiB  1895 KiB/s 00:00 [-----------------------------------------------------------] 100%
+ haskell-transformers-compat-0.7.2-4-x86_64                               99.5 KiB  2.49 MiB/s 00:00 [-----------------------------------------------------------] 100%
+ haskell-these-1.2.1-295-x86_64                                           99.5 KiB  2.16 MiB/s 00:00 [-----------------------------------------------------------] 100%
+ haskell-comonad-5.0.10-9-x86_64                                          95.7 KiB  1428 KiB/s 00:00 [-----------------------------------------------------------] 100%
+ numactl-2.0.19-1-x86_64                                                  82.8 KiB  1657 KiB/s 00:00 [-----------------------------------------------------------] 100%
+ libnewt-0.52.25-2-x86_64                                                 93.7 KiB  1007 KiB/s 00:00 [-----------------------------------------------------------] 100%
+ haskell-vector-stream-0.1.0.1-4-x86_64                                   82.3 KiB  1584 KiB/s 00:00 [-----------------------------------------------------------] 100%
+ haskell-base-orphans-0.9.3-135-x86_64                                    76.8 KiB  1707 KiB/s 00:00 [-----------------------------------------------------------] 100%
+ haskell-ansi-terminal-types-1.1-50-x86_64                                76.0 KiB  1406 KiB/s 00:00 [-----------------------------------------------------------] 100%
+ haskell-text-iso8601-0.1.1.1-10-x86_64                                   74.3 KiB  1238 KiB/s 00:00 [-----------------------------------------------------------] 100%
+ haskell-text-short-0.1.6.1-30-x86_64                                     74.0 KiB   973 KiB/s 00:00 [-----------------------------------------------------------] 100%
+ haskell-uuid-types-1.0.6.1-5-x86_64                                      64.4 KiB  1370 KiB/s 00:00 [-----------------------------------------------------------] 100%
+ mobile-broadband-provider-info-20251101-1-any                            63.2 KiB  1290 KiB/s 00:00 [-----------------------------------------------------------] 100%
+ haskell-tagged-0.8.9-3-x86_64                                            59.7 KiB  1270 KiB/s 00:00 [-----------------------------------------------------------] 100%
+ haskell-character-ps-0.1-1-x86_64                                        59.4 KiB  1164 KiB/s 00:00 [-----------------------------------------------------------] 100%
+ haskell-regex-base-0.94.0.3-3-x86_64                                     59.1 KiB  1094 KiB/s 00:00 [-----------------------------------------------------------] 100%
+ haskell-contravariant-1.5.6-1-x86_64                                     57.7 KiB  1179 KiB/s 00:00 [-----------------------------------------------------------] 100%
+ haskell-prettyprinter-ansi-terminal-1.1.4-14-x86_64                      56.6 KiB   976 KiB/s 00:00 [-----------------------------------------------------------] 100%
+ haskell-diff-0.5-59-x86_64                                               53.0 KiB   883 KiB/s 00:00 [-----------------------------------------------------------] 100%
+ haskell-ansi-terminal-1.1-50-x86_64                                      52.4 KiB  1091 KiB/s 00:00 [-----------------------------------------------------------] 100%
+ haskell-dlist-1.0-427-x86_64                                             49.7 KiB   938 KiB/s 00:00 [-----------------------------------------------------------] 100%
+ haskell-distributive-0.6.2.1-476-x86_64                                  38.0 KiB   550 KiB/s 00:00 [-----------------------------------------------------------] 100%
+ haskell-splitmix-0.1.3-57-x86_64                                         37.4 KiB   693 KiB/s 00:00 [-----------------------------------------------------------] 100%
+ haskell-data-fix-0.3.4-192-x86_64                                        36.5 KiB   651 KiB/s 00:00 [-----------------------------------------------------------] 100%
+ vivaldi-8.0.4033.35-1-x86_64                                            133.8 MiB  11.2 MiB/s 00:12 [-----------------------------------------------------------] 100%
+ haskell-integer-logarithms-1.0.4-193-x86_64                              29.4 KiB   490 KiB/s 00:00 [-----------------------------------------------------------] 100%
+ ghostty-shell-integration-1.3.1-2-x86_64                                 24.7 KiB  1370 KiB/s 00:00 [-----------------------------------------------------------] 100%
+ haskell-indexed-traversable-instances-0.1.2.1-12-x86_64                  22.4 KiB  1245 KiB/s 00:00 [-----------------------------------------------------------] 100%
+ haskell-th-compat-0.1.7-22-x86_64                                        22.0 KiB  1050 KiB/s 00:00 [-----------------------------------------------------------] 100%
+ gsimplecal-2.5.2-1-x86_64                                                22.6 KiB   403 KiB/s 00:00 [-----------------------------------------------------------] 100%
+ haskell-statevar-1.2.2-5-x86_64                                          19.9 KiB   904 KiB/s 00:00 [-----------------------------------------------------------] 100%
+ haskell-integer-conversion-0.1.1-79-x86_64                               16.7 KiB   724 KiB/s 00:00 [-----------------------------------------------------------] 100%
+ haskell-erf-2.0.0.0-27-x86_64                                            15.6 KiB   821 KiB/s 00:00 [-----------------------------------------------------------] 100%
+ libndp-1.9-1-x86_64                                                      19.5 KiB   354 KiB/s 00:00 [-----------------------------------------------------------] 100%
+ haskell-assoc-1.1.1-40-x86_64                                            13.3 KiB   531 KiB/s 00:00 [-----------------------------------------------------------] 100%
+ haskell-onetuple-0.4.2.1-24-x86_64                                        9.4 KiB   523 KiB/s 00:00 [-----------------------------------------------------------] 100%
+ ghostty-terminfo-1.3.1-2-x86_64                                           7.7 KiB   365 KiB/s 00:00 [-----------------------------------------------------------] 100%
+ haskell-generically-0.1.1-113-x86_64                                      7.0 KiB   332 KiB/s 00:00 [-----------------------------------------------------------] 100%
+ firefox-151.0.2-1-x86_64                                                 82.0 MiB  6.26 MiB/s 00:13 [-----------------------------------------------------------] 100%
+ Total (78/78)                                                           305.9 MiB  23.3 MiB/s 00:13 [-----------------------------------------------------------] 100%
+(78/78) checking keys in keyring                                                                     [-----------------------------------------------------------] 100%
+(78/78) checking package integrity                                                                   [-----------------------------------------------------------] 100%
+(78/78) loading package files                                                                        [-----------------------------------------------------------] 100%
+(78/78) checking for file conflicts                                                                  [-----------------------------------------------------------] 100%
+(78/78) checking available disk space                                                                [-----------------------------------------------------------] 100%
+:: Running pre-transaction hooks...
+(1/1) Waiting for limine-snapper-sync to finish...
+:: Processing package changes...
+( 1/78) installing htop                                                                              [-----------------------------------------------------------] 100%
+Optional dependencies for htop
+    lm_sensors: show cpu temperatures [installed]
+    lsof: show files opened by a process
+    strace: attach to a running process
+( 2/78) installing wget                                                                              [-----------------------------------------------------------] 100%
+Optional dependencies for wget
+    ca-certificates: HTTPS downloads [installed]
+( 3/78) installing nano                                                                              [-----------------------------------------------------------] 100%
+( 4/78) installing numactl                                                                           [-----------------------------------------------------------] 100%
+( 5/78) installing ghc-libs                                                                          [-----------------------------------------------------------] 100%
+( 6/78) installing haskell-character-ps                                                              [-----------------------------------------------------------] 100%
+( 7/78) installing haskell-os-string                                                                 [-----------------------------------------------------------] 100%
+( 8/78) installing haskell-hashable                                                                  [-----------------------------------------------------------] 100%
+( 9/78) installing haskell-data-fix                                                                  [-----------------------------------------------------------] 100%
+(10/78) installing haskell-dlist                                                                     [-----------------------------------------------------------] 100%
+(11/78) installing haskell-base-orphans                                                              [-----------------------------------------------------------] 100%
+(12/78) installing haskell-generically                                                               [-----------------------------------------------------------] 100%
+(13/78) installing haskell-indexed-traversable                                                       [-----------------------------------------------------------] 100%
+(14/78) installing haskell-primitive                                                                 [-----------------------------------------------------------] 100%
+(15/78) installing haskell-integer-conversion                                                        [-----------------------------------------------------------] 100%
+(16/78) installing haskell-integer-logarithms                                                        [-----------------------------------------------------------] 100%
+(17/78) installing haskell-th-compat                                                                 [-----------------------------------------------------------] 100%
+(18/78) installing haskell-network-uri                                                               [-----------------------------------------------------------] 100%
+(19/78) installing haskell-onetuple                                                                  [-----------------------------------------------------------] 100%
+(20/78) installing haskell-erf                                                                       [-----------------------------------------------------------] 100%
+(21/78) installing haskell-splitmix                                                                  [-----------------------------------------------------------] 100%
+(22/78) installing haskell-random                                                                    [-----------------------------------------------------------] 100%
+(23/78) installing haskell-quickcheck                                                                [-----------------------------------------------------------] 100%
+(24/78) installing haskell-scientific                                                                [-----------------------------------------------------------] 100%
+(25/78) installing haskell-tagged                                                                    [-----------------------------------------------------------] 100%
+(26/78) installing haskell-unordered-containers                                                      [-----------------------------------------------------------] 100%
+(27/78) installing haskell-colour                                                                    [-----------------------------------------------------------] 100%
+(28/78) installing haskell-ansi-terminal-types                                                       [-----------------------------------------------------------] 100%
+(29/78) installing haskell-ansi-terminal                                                             [-----------------------------------------------------------] 100%
+(30/78) installing haskell-prettyprinter                                                             [-----------------------------------------------------------] 100%
+(31/78) installing haskell-prettyprinter-ansi-terminal                                               [-----------------------------------------------------------] 100%
+(32/78) installing haskell-transformers-compat                                                       [-----------------------------------------------------------] 100%
+(33/78) installing haskell-optparse-applicative                                                      [-----------------------------------------------------------] 100%
+(34/78) installing haskell-tasty                                                                     [-----------------------------------------------------------] 100%
+(35/78) installing haskell-vector-stream                                                             [-----------------------------------------------------------] 100%
+(36/78) installing haskell-vector                                                                    [-----------------------------------------------------------] 100%
+(37/78) installing haskell-indexed-traversable-instances                                             [-----------------------------------------------------------] 100%
+(38/78) installing haskell-assoc                                                                     [-----------------------------------------------------------] 100%
+(39/78) installing haskell-distributive                                                              [-----------------------------------------------------------] 100%
+(40/78) installing haskell-comonad                                                                   [-----------------------------------------------------------] 100%
+(41/78) installing haskell-th-abstraction                                                            [-----------------------------------------------------------] 100%
+(42/78) installing haskell-bifunctors                                                                [-----------------------------------------------------------] 100%
+(43/78) installing haskell-statevar                                                                  [-----------------------------------------------------------] 100%
+(44/78) installing haskell-contravariant                                                             [-----------------------------------------------------------] 100%
+(45/78) installing haskell-semigroupoids                                                             [-----------------------------------------------------------] 100%
+(46/78) installing haskell-these                                                                     [-----------------------------------------------------------] 100%
+(47/78) installing haskell-semialign                                                                 [-----------------------------------------------------------] 100%
+(48/78) installing haskell-strict                                                                    [-----------------------------------------------------------] 100%
+(49/78) installing haskell-time-compat                                                               [-----------------------------------------------------------] 100%
+(50/78) installing haskell-text-iso8601                                                              [-----------------------------------------------------------] 100%
+(51/78) installing haskell-text-short                                                                [-----------------------------------------------------------] 100%
+(52/78) installing haskell-uuid-types                                                                [-----------------------------------------------------------] 100%
+(53/78) installing haskell-witherable                                                                [-----------------------------------------------------------] 100%
+(54/78) installing haskell-aeson                                                                     [-----------------------------------------------------------] 100%
+(55/78) installing haskell-diff                                                                      [-----------------------------------------------------------] 100%
+(56/78) installing haskell-fgl                                                                       [-----------------------------------------------------------] 100%
+(57/78) installing haskell-regex-base                                                                [-----------------------------------------------------------] 100%
+(58/78) installing haskell-regex-tdfa                                                                [-----------------------------------------------------------] 100%
+(59/78) installing shellcheck                                                                        [-----------------------------------------------------------] 100%
+(60/78) installing atuin                                                                             [-----------------------------------------------------------] 100%
+Optional dependencies for atuin
+    atuin-server: sync server
+    bash-preexec: bash integration
+(61/78) installing libndp                                                                            [-----------------------------------------------------------] 100%
+(62/78) installing libnewt                                                                           [-----------------------------------------------------------] 100%
+Optional dependencies for libnewt
+    python: libnewt support with the _snack module [installed]
+    tcl: whiptcl support
+(63/78) installing libnm                                                                             [-----------------------------------------------------------] 100%
+(64/78) installing libteam                                                                           [-----------------------------------------------------------] 100%
+(65/78) installing mobile-broadband-provider-info                                                    [-----------------------------------------------------------] 100%
+(66/78) installing pcsclite                                                                          [-----------------------------------------------------------] 100%
+Optional dependencies for pcsclite
+    python: API call trace logging with the pcsc-spy [installed]
+    ccid: USB Chip/Smart Card Interface Devices driver
+(67/78) installing wpa_supplicant                                                                    [-----------------------------------------------------------] 100%
+(68/78) installing networkmanager                                                                    [-----------------------------------------------------------] 100%
+Optional dependencies for networkmanager
+    bluez: Bluetooth support [installed]
+    dhcpcd: alternative DHCP client
+    dnsmasq: connection sharing
+    firewalld: firewall support
+    iptables: connection sharing [installed]
+    iwd: wpa_supplicant alternative [installed]
+    libnvme: NBFT support [installed]
+    modemmanager: cellular network support
+    nftables: connection sharing [installed]
+    openresolv: alternative resolv.conf manager
+    pacrunner: PAC proxy support
+    polkit: let non-root users control networking [installed]
+    ppp: dialup connection support
+(69/78) installing tailscale                                                                         [-----------------------------------------------------------] 100%
+(70/78) installing ghostty-shell-integration                                                         [-----------------------------------------------------------] 100%
+(71/78) installing ghostty-terminfo                                                                  [-----------------------------------------------------------] 100%
+(72/78) installing ghostty                                                                           [-----------------------------------------------------------] 100%
+Optional dependencies for ghostty
+    ghostty-nautilus: Open in Ghostty context menu in GNOME Files
+(73/78) installing vivaldi                                                                           [-----------------------------------------------------------] 100%
+Optional dependencies for vivaldi
+    vivaldi-ffmpeg-codecs: playback of proprietary video/audio
+    org.freedesktop.secrets: better secret storage in gnome-keyring or kwallet [installed]
+    libnotify: native notifications [installed]
+    pipewire: WebRTC desktop sharing under Wayland [installed]
+    gtk3: gtk3 integration [installed]
+    gtk4: for use with --gtk-version=4 [installed]
+    qt5-base: qt5 integration [installed]
+    qt6-base: qt6 integration [installed]
+    upower: Battery Status API support [installed]
+(74/78) installing firefox                                                                           [-----------------------------------------------------------] 100%
+Optional dependencies for firefox
+    hunspell-en_US: Spell checking, American English
+    libnotify: Notification integration [installed]
+    networkmanager: Location detection via available WiFi networks [installed]
+    onnxruntime: Local machine learning features such as smart tab groups
+    speech-dispatcher: Text-to-Speech
+    xdg-desktop-portal: Screensharing with Wayland [installed]
+(75/78) installing gsimplecal                                                                        [-----------------------------------------------------------] 100%
+(76/78) installing yazi                                                                              [-----------------------------------------------------------] 100%
+Optional dependencies for yazi
+    ffmpeg: for video thumbnails [installed]
+    7zip: for archive extraction and preview
+    jq: for JSON preview [installed]
+    poppler: for PDF preview [installed]
+    fd: for file searching [installed]
+    ripgrep: for file content searching [installed]
+    fzf: for quick file subtree navigation [installed]
+    zoxide: for historical directories navigation [installed]
+    resvg: for SVG preview
+    imagemagick: for image and font preview [installed]
+    xclip: for X11 clipboard support
+    xsel: for X11 clipboard support
+    wl-clipboard: for Wayland clipboard support [installed]
+    chafa: for ASCII image preview as fallback
+    git: for Yazi package management [installed]
+(77/78) installing restic                                                                            [-----------------------------------------------------------] 100%
+Optional dependencies for restic
+    fuse2: mount archive
+(78/78) installing age                                                                               [-----------------------------------------------------------] 100%
+:: Running post-transaction hooks...
+( 1/10) Creating system user accounts...
+Creating group 'pcscd' with GID 960.
+Creating user 'pcscd' (PC/SC Smart Card Daemon) with UID 960 and GID 960.
+( 2/10) Reloading system manager configuration...
+( 3/10) Reloading user manager configuration...
+( 4/10) Reloading device manager configuration...
+( 5/10) Arming ConditionNeedsUpdate...
+( 6/10) Reloading system bus configuration...
+( 7/10) Registering Haskell modules...
+( 8/10) Updating icon theme caches...
+( 9/10) Updating the info directory file...
+(10/10) Updating the desktop file MIME type cache...
+==> Checking AUR profile packages
+Bootstrap paru from AUR with git and makepkg? [y/N] y
+==> Bootstrapping paru from AUR with git and makepkg
+==> Installing AUR build prerequisites with pacman: base-devel
+warning: base-devel-1-2 is up to date -- skipping
+ there is nothing to do
+Cloning into '/tmp/tmp.i0prGXbKC9/paru'...
+remote: Enumerating objects: 196, done.
+remote: Counting objects: 100% (196/196), done.
+remote: Compressing objects: 100% (140/140), done.
+remote: Total 196 (delta 57), reused 195 (delta 56), pack-reused 0 (from 0)
+Receiving objects: 100% (196/196), 63.94 KiB | 31.97 MiB/s, done.
+Resolving deltas: 100% (57/57), done.
+==> Making package: paru 2.1.0-2 (Wed 01 Jul 2026 04:33:31 PM EDT)
+==> Checking runtime dependencies...
+==> Checking buildtime dependencies...
+==> Retrieving sources...
+  -> Downloading paru-2.1.0.tar.gz...
+  % Total    % Received % Xferd  Average Speed  Time    Time    Time   Current
+                                 Dload  Upload  Total   Spent   Left   Speed
+  0      0   0      0   0      0      0      0                              0
+100  7.89M   0  7.89M   0      0  1.12M      0           00:06          1.25M
+==> Validating source files with sha256sums...
+    paru-2.1.0.tar.gz ... Passed
+==> Extracting sources...
+  -> Extracting paru-2.1.0.tar.gz with bsdtar
+==> Starting prepare()...
+    Updating crates.io index
+     Locking 2 packages to latest compatible versions
+    Updating alpm v4.0.3 -> v4.0.4 (available: v5.0.2)
+    Updating alpm-sys v4.0.3 -> v4.0.5
+note: pass `--verbose` to see 165 unchanged dependencies behind latest
+  Downloaded smallvec v1.15.1
+  Downloaded crossbeam-deque v0.8.6
+  Downloaded url v2.5.4
+  Downloaded icu_properties v2.0.1
+  Downloaded itoa v1.0.15
+  Downloaded byteorder v1.5.0
+  Downloaded utf-8 v0.7.6
+  Downloaded yoke v0.8.0
+  Downloaded idna_adapter v1.2.1
+  Downloaded equivalent v1.0.2
+  Downloaded form_urlencoded v1.2.1
+  Downloaded temp-dir v0.1.16
+  Downloaded serde_spanned v0.6.9
+  Downloaded zerovec-derive v0.11.1
+  Downloaded utf8_iter v1.0.4
+  Downloaded lazy_static v1.5.0
+  Downloaded smart-default v0.7.1
+  Downloaded tokio-macros v2.5.0
+  Downloaded siphasher v1.0.1
+  Downloaded zerofrom-derive v0.1.6
+  Downloaded quote v1.0.40
+  Downloaded fxhash v0.2.1
+  Downloaded toml_write v0.1.2
+  Downloaded yoke-derive v0.8.0
+  Downloaded percent-encoding v2.3.1
+  Downloaded futf v0.1.5
+  Downloaded phf_codegen v0.11.3
+  Downloaded terminal_size v0.4.2
+  Downloaded phf_generator v0.11.3
+  Downloaded tinystr v0.8.1
+  Downloaded fastrand v2.3.0
+  Downloaded potential_utf v0.1.2
+  Downloaded lock_api v0.4.13
+  Downloaded stable_deref_trait v1.2.0
+  Downloaded phf v0.11.3
+  Downloaded cexpr v0.6.0
+  Downloaded signal-hook-registry v1.4.5
+  Downloaded mac v0.1.1
+  Downloaded proc-macro2 v1.0.95
+  Downloaded env_filter v0.1.3
+  Downloaded cfg_aliases v0.2.1
+  Downloaded toml_datetime v0.6.11
+  Downloaded shlex v1.3.0
+  Downloaded servo_arc v0.4.1
+  Downloaded zerofrom v0.1.6
+  Downloaded log v0.4.27
+  Downloaded srcinfo v1.3.1
+  Downloaded once_cell v1.21.3
+  Downloaded rand v0.8.5
+  Downloaded is_terminal_polyfill v1.70.1
+  Downloaded toml v0.8.23
+  Downloaded icu_normalizer v2.0.0
+  Downloaded getrandom v0.3.3
+  Downloaded serde_derive v1.0.219
+  Downloaded console v0.16.0
+  Downloaded icu_provider v2.0.0
+  Downloaded sync_wrapper v0.1.2
+  Downloaded string_cache_codegen v0.5.4
+  Downloaded signal-hook v0.3.18
+  Downloaded bytes v1.10.1
+  Downloaded zerovec v0.11.2
+  Downloaded precomputed-hash v0.1.1
+  Downloaded memchr v2.7.5
+  Downloaded selectors v0.26.0
+  Downloaded phf_shared v0.11.3
+  Downloaded errno v0.3.13
+  Downloaded cfg-if v1.0.1
+  Downloaded scraper v0.23.1
+  Downloaded displaydoc v0.2.5
+  Downloaded pin-project-lite v0.2.16
+  Downloaded anstyle-parse v0.2.7
+  Downloaded futures-io v0.3.31
+  Downloaded futures-sink v0.3.31
+  Downloaded foreign-types v0.3.2
+  Downloaded dtoa-short v0.3.5
+  Downloaded litemap v0.8.0
+  Downloaded gettext-rs v0.7.2
+  Downloaded hyper-tls v0.5.0
+  Downloaded locale_config v0.3.0
+  Downloaded rustc-hash v1.1.0
+  Downloaded fnv v1.0.7
+  Downloaded foreign-types-shared v0.1.1
+  Downloaded writeable v0.6.1
+  Downloaded tendril v0.4.3
+  Downloaded bitflags v2.9.1
+  Downloaded phf_macros v0.11.3
+  Downloaded ryu v1.0.20
+  Downloaded anstyle v1.0.11
+  Downloaded indexmap v2.10.0
+  Downloaded alpm-sys v4.0.5
+  Downloaded utf8parse v0.2.2
+  Downloaded dirs-sys v0.5.0
+  Downloaded unit-prefix v0.5.1
+  Downloaded synstructure v0.13.2
+  Downloaded openssl-macros v0.1.1
+  Downloaded tempfile v3.20.0
+  Downloaded mio v1.0.4
+  Downloaded num-traits v0.2.19
+  Downloaded env_logger v0.11.8
+  Downloaded iana-time-zone v0.1.63
+  Downloaded raur v7.0.0
+  Downloaded httpdate v1.0.3
+  Downloaded pin-utils v0.1.0
+  Downloaded zerotrie v0.2.2
+  Downloaded anstream v0.6.19
+  Downloaded option-ext v0.2.0
+  Downloaded futures-executor v0.3.31
+  Downloaded globset v0.4.16
+  Downloaded serde_urlencoded v0.7.1
+  Downloaded colorchoice v1.0.4
+  Downloaded rand_core v0.6.4
+  Downloaded crossbeam v0.8.4
+  Downloaded futures-task v0.3.31
+  Downloaded aur-fetch v0.11.3
+  Downloaded serde v1.0.219
+  Downloaded anstyle-query v1.1.3
+  Downloaded tower-service v0.3.3
+  Downloaded unicode-ident v1.0.18
+  Downloaded icu_collections v2.0.0
+  Downloaded futures v0.3.31
+  Downloaded serde_json v1.0.140
+  Downloaded openssl-probe v0.1.6
+  Downloaded icu_normalizer_data v2.0.0
+  Downloaded icu_properties_data v2.0.1
+  Downloaded futures-core v0.3.31
+  Downloaded icu_locale_core v2.0.0
+  Downloaded alpm-utils v4.0.1
+  Downloaded try-lock v0.2.5
+  Downloaded winnow v0.7.11
+  Downloaded indicatif v0.18.0
+  Downloaded dirs v6.0.0
+  Downloaded regex v1.11.1
+  Downloaded adler2 v2.0.1
+  Downloaded pacmanconf v3.0.0
+  Downloaded idna v1.0.3
+  Downloaded want v0.3.1
+  Downloaded mime v0.3.17
+  Downloaded crossbeam-queue v0.3.12
+  Downloaded hashbrown v0.15.4
+  Downloaded match_token v0.1.0
+  Downloaded aho-corasick v1.1.3
+  Downloaded cc v1.2.29
+  Downloaded new_debug_unreachable v1.0.6
+  Downloaded socket2 v0.5.10
+  Downloaded toml_edit v0.22.27
+  Downloaded unicode-width v0.2.1
+  Downloaded syn v2.0.104
+  Downloaded string_cache v0.8.9
+  Downloaded tr v0.1.11
+  Downloaded thiserror v1.0.69
+  Downloaded portable-atomic v1.11.1
+  Downloaded rustls-pemfile v1.0.4
+  Downloaded tokio-native-tls v0.3.1
+  Downloaded regex-syntax v0.8.5
+  Downloaded chrono v0.4.41
+  Downloaded cssparser-macros v0.6.1
+  Downloaded http-body v0.4.6
+  Downloaded futures-macro v0.3.31
+  Downloaded bstr v1.12.0
+  Downloaded cini v1.0.0
+  Downloaded slab v0.4.10
+  Downloaded rustix v1.0.7
+  Downloaded tokio-socks v0.5.2
+  Downloaded regex-automata v0.4.9
+  Downloaded ipnet v2.11.0
+  Downloaded ego-tree v0.10.0
+  Downloaded scopeguard v1.2.0
+  Downloaded getopts v0.2.23
+  Downloaded glob v0.3.2
+  Downloaded thiserror-impl v1.0.69
+  Downloaded either v1.15.0
+  Downloaded libc v0.2.174
+  Downloaded ansiterm v0.12.2
+  Downloaded crossbeam-epoch v0.9.18
+  Downloaded jiff v0.2.15
+  Downloaded crc32fast v1.4.2
+  Downloaded pkg-config v0.3.32
+  Downloaded tokio v1.46.1
+  Downloaded aur-depends v4.0.3
+  Downloaded native-tls v0.2.14
+  Downloaded futures-channel v0.3.31
+  Downloaded alpm v4.0.4
+  Downloaded markup5ever v0.14.1
+  Downloaded parking_lot_core v0.9.11
+  Downloaded rustc-demangle v0.1.25
+  Downloaded libloading v0.8.8
+  Downloaded clang-sys v1.8.1
+  Downloaded crossbeam-utils v0.8.21
+  Downloaded async-trait v0.1.88
+  Downloaded dtoa v1.0.10
+  Downloaded autocfg v1.5.0
+  Downloaded linux-raw-sys v0.9.4
+  Downloaded httparse v1.10.1
+  Downloaded parking_lot v0.12.4
+  Downloaded derive_more v0.99.20
+  Downloaded addr2line v0.24.2
+  Downloaded cssparser v0.34.0
+  Downloaded html5ever v0.29.1
+  Downloaded anyhow v1.0.98
+  Downloaded miniz_oxide v0.8.9
+  Downloaded rss v2.0.12
+  Downloaded minimal-lexical v0.2.1
+  Downloaded flate2 v1.1.2
+  Downloaded openssl-sys v0.9.109
+  Downloaded tracing-core v0.1.34
+  Downloaded quick-xml v0.37.5
+  Downloaded htmlescape v0.3.1
+  Downloaded base64 v0.21.7
+  Downloaded backtrace v0.3.75
+  Downloaded tracing v0.1.41
+  Downloaded crossbeam-channel v0.5.15
+  Downloaded http v0.2.12
+  Downloaded nom v7.1.3
+  Downloaded async-compression v0.4.25
+  Downloaded tokio-util v0.7.15
+  Downloaded bindgen v0.70.1
+  Downloaded itertools v0.13.0
+  Downloaded reqwest v0.11.27
+  Downloaded futures-util v0.3.31
+  Downloaded h2 v0.3.26
+  Downloaded hyper v0.14.32
+  Downloaded gettext-sys v0.22.5
+  Downloaded vcpkg v0.2.15
+  Downloaded openssl v0.10.73
+  Downloaded gimli v0.31.1
+  Downloaded object v0.36.7
+  Downloaded nix v0.30.1
+  Downloaded encoding_rs v0.8.35
+  Downloaded 228 crates (27.9MiB) in 1.29s (largest was `gettext-sys` at 9.8MiB)
+==> Starting build()...
+   Compiling proc-macro2 v1.0.95
+   Compiling unicode-ident v1.0.18
+   Compiling libc v0.2.174
+   Compiling memchr v2.7.5
+   Compiling cfg-if v1.0.1
+   Compiling pkg-config v0.3.32
+   Compiling stable_deref_trait v1.2.0
+   Compiling shlex v1.3.0
+   Compiling smallvec v1.15.1
+   Compiling pin-project-lite v0.2.16
+   Compiling serde v1.0.219
+   Compiling siphasher v1.0.1
+   Compiling cc v1.2.29
+   Compiling bitflags v2.9.1
+   Compiling rand_core v0.6.4
+   Compiling phf_shared v0.11.3
+   Compiling rand v0.8.5
+   Compiling once_cell v1.21.3
+   Compiling log v0.4.27
+   Compiling bytes v1.10.1
+   Compiling quote v1.0.40
+   Compiling phf_generator v0.11.3
+   Compiling itoa v1.0.15
+   Compiling futures-core v0.3.31
+   Compiling syn v2.0.104
+   Compiling autocfg v1.5.0
+   Compiling futures-sink v0.3.31
+   Compiling vcpkg v0.2.15
+   Compiling litemap v0.8.0
+   Compiling writeable v0.6.1
+   Compiling futures-channel v0.3.31
+   Compiling futures-task v0.3.31
+   Compiling pin-utils v0.1.0
+   Compiling icu_normalizer_data v2.0.0
+   Compiling icu_properties_data v2.0.1
+   Compiling slab v0.4.10
+   Compiling futures-io v0.3.31
+   Compiling alpm-sys v4.0.5
+   Compiling equivalent v1.0.2
+   Compiling hashbrown v0.15.4
+   Compiling phf_codegen v0.11.3
+   Compiling aho-corasick v1.1.3
+   Compiling signal-hook-registry v1.4.5
+   Compiling socket2 v0.5.10
+   Compiling mio v1.0.4
+   Compiling indexmap v2.10.0
+   Compiling adler2 v2.0.1
+   Compiling openssl v0.10.73
+   Compiling fnv v1.0.7
+   Compiling regex-syntax v0.8.5
+   Compiling foreign-types-shared v0.1.1
+   Compiling openssl-sys v0.9.109
+   Compiling crossbeam-utils v0.8.21
+   Compiling foreign-types v0.3.2
+   Compiling http v0.2.12
+   Compiling miniz_oxide v0.8.9
+   Compiling lock_api v0.4.13
+   Compiling tracing-core v0.1.34
+   Compiling native-tls v0.2.14
+   Compiling parking_lot_core v0.9.11
+   Compiling percent-encoding v2.3.1
+   Compiling new_debug_unreachable v1.0.6
+   Compiling httparse v1.10.1
+   Compiling form_urlencoded v1.2.1
+   Compiling tracing v0.1.41
+   Compiling openssl-probe v0.1.6
+   Compiling thiserror v1.0.69
+   Compiling utf8_iter v1.0.4
+   Compiling try-lock v0.2.5
+   Compiling scopeguard v1.2.0
+   Compiling want v0.3.1
+   Compiling regex-automata v0.4.9
+   Compiling synstructure v0.13.2
+   Compiling http-body v0.4.6
+   Compiling string_cache_codegen v0.5.4
+   Compiling encoding_rs v0.8.35
+   Compiling crc32fast v1.4.2
+   Compiling httpdate v1.0.3
+   Compiling tower-service v0.3.3
+   Compiling temp-dir v0.1.16
+   Compiling mac v0.1.1
+   Compiling ryu v1.0.20
+   Compiling serde_json v1.0.140
+   Compiling precomputed-hash v0.1.1
+   Compiling gettext-sys v0.22.5
+   Compiling futf v0.1.5
+   Compiling markup5ever v0.14.1
+   Compiling flate2 v1.1.2
+   Compiling parking_lot v0.12.4
+   Compiling alpm v4.0.4
+   Compiling object v0.36.7
+   Compiling dtoa v1.0.10
+   Compiling rustix v1.0.7
+   Compiling either v1.15.0
+   Compiling utf-8 v0.7.6
+   Compiling base64 v0.21.7
+   Compiling unicode-width v0.2.1
+   Compiling tendril v0.4.3
+   Compiling rustls-pemfile v1.0.4
+   Compiling dtoa-short v0.3.5
+   Compiling regex v1.11.1
+   Compiling crossbeam-epoch v0.9.18
+   Compiling selectors v0.26.0
+   Compiling num-traits v0.2.19
+   Compiling cfg_aliases v0.2.1
+   Compiling getrandom v0.3.3
+   Compiling byteorder v1.5.0
+   Compiling utf8parse v0.2.2
+   Compiling portable-atomic v1.11.1
+   Compiling mime v0.3.17
+   Compiling gimli v0.31.1
+   Compiling cini v1.0.0
+   Compiling sync_wrapper v0.1.2
+   Compiling linux-raw-sys v0.9.4
+   Compiling lazy_static v1.5.0
+   Compiling ipnet v2.11.0
+   Compiling locale_config v0.3.0
+   Compiling zerofrom-derive v0.1.6
+   Compiling yoke-derive v0.8.0
+   Compiling zerovec-derive v0.11.1
+   Compiling displaydoc v0.2.5
+   Compiling serde_derive v1.0.219
+   Compiling tokio-macros v2.5.0
+   Compiling futures-macro v0.3.31
+   Compiling openssl-macros v0.1.1
+   Compiling phf_macros v0.11.3
+   Compiling tokio v1.46.1
+   Compiling zerofrom v0.1.6
+   Compiling yoke v0.8.0
+   Compiling zerovec v0.11.2
+   Compiling zerotrie v0.2.2
+   Compiling futures-util v0.3.31
+   Compiling phf v0.11.3
+   Compiling thiserror-impl v1.0.69
+   Compiling cssparser-macros v0.6.1
+   Compiling tinystr v0.8.1
+   Compiling potential_utf v0.1.2
+   Compiling icu_collections v2.0.0
+   Compiling icu_locale_core v2.0.0
+   Compiling icu_provider v2.0.0
+   Compiling icu_properties v2.0.1
+   Compiling icu_normalizer v2.0.0
+   Compiling idna_adapter v1.2.1
+   Compiling idna v1.0.3
+   Compiling url v2.5.4
+   Compiling tokio-util v0.7.15
+   Compiling tokio-native-tls v0.3.1
+   Compiling tokio-socks v0.5.2
+   Compiling async-compression v0.4.25
+   Compiling h2 v0.3.26
+   Compiling cssparser v0.34.0
+   Compiling addr2line v0.24.2
+   Compiling derive_more v0.99.20
+   Compiling async-trait v0.1.88
+   Compiling match_token v0.1.0
+   Compiling pacmanconf v3.0.0
+   Compiling fxhash v0.2.1
+   Compiling anstyle-parse v0.2.7
+   Compiling crossbeam-deque v0.8.6
+   Compiling nix v0.30.1
+   Compiling serde_urlencoded v0.7.1
+   Compiling string_cache v0.8.9
+   Compiling serde_spanned v0.6.9
+   Compiling toml_datetime v0.6.11
+   Compiling crossbeam-channel v0.5.15
+   Compiling crossbeam-queue v0.3.12
+   Compiling servo_arc v0.4.1
+   Compiling hyper v0.14.32
+   Compiling anyhow v1.0.98
+   Compiling anstyle v1.0.11
+   Compiling winnow v0.7.11
+   Compiling is_terminal_polyfill v1.70.1
+   Compiling toml_write v0.1.2
+   Compiling colorchoice v1.0.4
+   Compiling option-ext v0.2.0
+   Compiling signal-hook v0.3.18
+   Compiling anstyle-query v1.1.3
+   Compiling rustc-demangle v0.1.25
+   Compiling anstream v0.6.19
+   Compiling dirs-sys v0.5.0
+   Compiling crossbeam v0.8.4
+   Compiling html5ever v0.29.1
+   Compiling alpm-utils v4.0.1
+   Compiling gettext-rs v0.7.2
+   Compiling hyper-tls v0.5.0
+   Compiling reqwest v0.11.27
+   Compiling toml_edit v0.22.27
+   Compiling backtrace v0.3.75
+   Compiling futures-executor v0.3.31
+   Compiling env_filter v0.1.3
+   Compiling console v0.16.0
+   Compiling getopts v0.2.23
+   Compiling quick-xml v0.37.5
+   Compiling raur v7.0.0
+   Compiling bstr v1.12.0
+   Compiling fastrand v2.3.0
+   Compiling ego-tree v0.10.0
+   Compiling iana-time-zone v0.1.63
+   Compiling unit-prefix v0.5.1
+   Compiling srcinfo v1.3.1
+   Compiling jiff v0.2.15
+   Compiling globset v0.4.16
+   Compiling indicatif v0.18.0
+   Compiling aur-depends v4.0.3
+   Compiling chrono v0.4.41
+   Compiling scraper v0.23.1
+   Compiling tempfile v3.20.0
+   Compiling toml v0.8.23
+   Compiling rss v2.0.12
+   Compiling env_logger v0.11.8
+   Compiling futures v0.3.31
+   Compiling tr v0.1.11
+   Compiling aur-fetch v0.11.3
+   Compiling dirs v6.0.0
+   Compiling terminal_size v0.4.2
+   Compiling smart-default v0.7.1
+   Compiling ansiterm v0.12.2
+   Compiling htmlescape v0.3.1
+   Compiling paru v2.1.0 (/tmp/tmp.i0prGXbKC9/paru/src/paru-2.1.0)
+^[[B    Finished `release` profile [optimized] target(s) in 3m 40s
+==> Entering fakeroot environment...
+==> Starting package()...
+==> Tidying install...
+  -> Removing libtool files...
+  -> Purging unreproducible ruby files...
+  -> Removing static library files...
+  -> Purging unwanted files...
+  -> Stripping unneeded symbols from binaries and libraries...
+Error while writing index for `/tmp/tmp.i0prGXbKC9/paru/pkg/paru/usr/bin/paru': No debugging symbols
+gdb-add-index: No index was created for ./usr/bin/paru
+gdb-add-index: [Was there no debuginfo? Was there already an index?]
+  -> Compressing man and info pages...
+==> Checking for packaging issues...
+==> Creating package "paru"...
+  -> Generating .PKGINFO file...
+  -> Generating .BUILDINFO file...
+  -> Generating .MTREE file...
+  -> Compressing package...
+==> Creating package "paru-debug"...
+  -> Generating .PKGINFO file...
+  -> Generating .BUILDINFO file...
+  -> Generating .MTREE file...
+  -> Compressing package...
+==> Leaving fakeroot environment.
+==> Finished making: paru 2.1.0-2 (Wed 01 Jul 2026 04:37:28 PM EDT)
+==> Installing package paru with pacman -U...
+[sudo] password for jfranco:
+loading packages...
+resolving dependencies...
+looking for conflicting packages...
 
-pacman hook/script symlink references:
-  none found
+Package (2)  New Version  Net Change
 
-pacman info hook/script files:
-  /usr/share/libalpm/hooks/texinfo-install.hook
-    [Trigger]
-    Type = Path
-    Operation = Install
-    Operation = Upgrade
-    Target = usr/share/info/*
+paru         2.1.0-2        8.10 MiB
+paru-debug   2.1.0-2        0.99 MiB
 
-    [Action]
-    Description = Updating the info directory file...
-    When = PostTransaction
-    Exec = /bin/sh -c 'while read -r f; do if test -f "$f"; then install-info "$f" /usr/share/info/dir 2> /dev/null; fi; done'
-    NeedsTargets
-  /usr/share/libalpm/hooks/texinfo-remove.hook
-    [Trigger]
-    Type = Path
-    Operation = Remove
-    Target = usr/share/info/*
+Total Installed Size:  9.09 MiB
 
-    [Action]
-    Description = Removing old entries from the info directory file...
-    When = PreTransaction
-    Exec = /bin/sh -c 'while read -r f; do install-info --delete "$f" /usr/share/info/dir 2> /dev/null; done'
-    NeedsTargets
+:: Proceed with installation? [Y/n] y
+(2/2) checking keys in keyring                                                                       [-----------------------------------------------------------] 100%
+(2/2) checking package integrity                                                                     [-----------------------------------------------------------] 100%
+(2/2) loading package files                                                                          [-----------------------------------------------------------] 100%
+(2/2) checking for file conflicts                                                                    [-----------------------------------------------------------] 100%
+(2/2) checking available disk space                                                                  [-----------------------------------------------------------] 100%
+:: Running pre-transaction hooks...
+(1/1) Waiting for limine-snapper-sync to finish...
+:: Processing package changes...
+(1/2) installing paru                                                                                [-----------------------------------------------------------] 100%
+Optional dependencies for paru
+    bat: colored pkgbuild printing [installed]
+    devtools: build in chroot and downloading pkgbuilds
+(2/2) installing paru-debug                                                                          [-----------------------------------------------------------] 100%
+:: Running post-transaction hooks...
+(1/1) Arming ConditionNeedsUpdate...
+  missing AUR: zen-browser-bin
+Install 1 missing AUR package(s)? [y/N] y
+==> Installing AUR packages with paru: zen-browser-bin
+:: Resolving dependencies...
+:: Calculating conflicts...
+:: Calculating inner conflicts...
 
-install-info command:
-  path: /usr/bin/install-info
+Repo (2)             Old Version  New Version    Make Only
+extra/ffmpeg4.4                   4.4.6-5        No
+extra/libmfx                      23.2.2-6       No
 
-dotfiles git status:
-  ## main...origin/main
+Aur (1)              Old Version  New Version    Make Only
+aur/zen-browser-bin               1.21.4b-1      No
 
-dotfiles HEAD:
-  156a21d omarchy: remove login theme customization
---- BOOTSTRAP DIAGNOSTICS END ---
+:: Proceed to review? [Y/n]: y
+
+:: Downloading PKGBUILDs...
+ (1/1) zen-browser-bin-1.21.4b-1                     [----------------------------------------------------------------------------------------------------------------]
+Paging with less. Press 'q' to quit or 'h' for help.
+
+:: zen-browser-bin:
+  .nvchecker.toml:
+    [zen-browser-bin]
+    source = "git"
+    git = "https://github.com/zen-browser/desktop.git"
+
+  PKGBUILD:
+    # Maintainer: Luis Vervaet <luisvervaet@gmail.com>
+    # Contributor: Peter Jung <admin@ptr1337.dev>
+    # Contributor: NextWorks <nextworks@protonmail.com>
+    # Contributor: Alad Wenter <alad@archlinux.org>
+    # Contributor: Luna Jernberg <droidbittin@gmail.com>
+    # Contributor: Hilton Medeiros <medeiros.hilton@gmail.com>
+    # Contributor: Simon Brulhart <simon@brulhart.me>
+    # Contributor: Det <nimetonmaili g-mail>, Achilleas Pipinellis, speed145a, Schnouki, aus
+
+    pkgname=zen-browser-bin
+    _pkgname=zen-browser
+    _desktopname=zen
+    pkgver=1.21.4b
+    pkgrel=1
+    pkgdesc="Performance oriented Firefox-based web browser"
+    arch=('x86_64' 'aarch64')
+    url="https://github.com/zen-browser/desktop"
+    license=(MPL-2.0)
+    depends=(gtk3 libxt mime-types dbus-glib nss ttf-font systemd ffmpeg4.4)
+    optdepends=('networkmanager: Location detection via available WiFi networks'
+                'libnotify: Notification integration'
+                'pulse-native-provider: Audio support'
+                'speech-dispatcher: Text-to-Speech'
+                'hunspell-en_US: Spell checking, American English')
+    options=(!strip)
+    provides=("zen-browser=$pkgver")
+    conflicts=('zen-browser')
+
+    source_x86_64=("zen-browser-$pkgver-$pkgrel-x86_64.tar.xz::https://github.com/zen-browser/desktop/releases/download/$pkgver/zen.linux-x86_64.tar.xz")
+    source_aarch64=("zen-browser-$pkgver-$pkgrel-aarch64.tar.xz::https://github.com/zen-browser/desktop/releases/download/$pkgver/zen.linux-aarch64.tar.xz")
+
+    source=("$_pkgname.sh"
+            "$_desktopname.desktop"
+            "policies.json")
+:: Accept changes? [Y/n]: y
+[sudo] password for jfranco:
+resolving dependencies...
+looking for conflicting packages...
+
+Package (2)      New Version  Net Change  Download Size
+
+extra/ffmpeg4.4  4.4.6-5       23.47 MiB       8.52 MiB
+extra/libmfx     23.2.2-6       0.28 MiB       0.06 MiB
+
+Total Download Size:    8.57 MiB
+Total Installed Size:  23.74 MiB
+
+:: Proceed with installation? [Y/n]
+:: Retrieving packages...
+ libmfx-23.2.2-6-x86_64                                                   56.9 KiB   791 KiB/s 00:00 [-----------------------------------------------------------] 100%
+ ffmpeg4.4-4.4.6-5-x86_64                                                  8.5 MiB  16.0 MiB/s 00:01 [-----------------------------------------------------------] 100%
+ Total (2/2)                                                               8.6 MiB  15.4 MiB/s 00:01 [-----------------------------------------------------------] 100%
+(2/2) checking keys in keyring                                                                       [-----------------------------------------------------------] 100%
+(2/2) checking package integrity                                                                     [-----------------------------------------------------------] 100%
+(2/2) loading package files                                                                          [-----------------------------------------------------------] 100%
+(2/2) checking for file conflicts                                                                    [-----------------------------------------------------------] 100%
+(2/2) checking available disk space                                                                  [-----------------------------------------------------------] 100%
+:: Running pre-transaction hooks...
+(1/1) Waiting for limine-snapper-sync to finish...
+:: Processing package changes...
+(1/2) installing libmfx                                                                              [-----------------------------------------------------------] 100%
+(2/2) installing ffmpeg4.4                                                                           [-----------------------------------------------------------] 100%
+Optional dependencies for ffmpeg4.4
+    avisynthplus: AviSynthPlus support
+    intel-media-sdk: Intel QuickSync support
+    ladspa: LADSPA filters
+    nvidia-utils: Nvidia NVDEC/NVENC support
+:: Running post-transaction hooks...
+(1/1) Arming ConditionNeedsUpdate...
+fetching devel info...
+==> Making package: zen-browser-bin 1.21.4b-1 (Wed 01 Jul 2026 04:38:42 PM EDT)
+==> Retrieving sources...
+  -> Found zen-browser.sh
+  -> Found zen.desktop
+  -> Found policies.json
+  -> Downloading zen-browser-1.21.4b-1-x86_64.tar.xz...
+  % Total    % Received % Xferd  Average Speed  Time    Time    Time   Current
+                                 Dload  Upload  Total   Spent   Left   Speed
+  0      0   0      0   0      0      0      0                              0
+100 86.60M 100 86.60M   0      0 22.02M      0   00:03   00:03         22.86M
+==> Validating source files with sha256sums...
+    zen-browser.sh ... Passed
+    zen.desktop ... Passed
+    policies.json ... Passed
+==> Validating source_x86_64 files with sha256sums...
+    zen-browser-1.21.4b-1-x86_64.tar.xz ... Passed
+==> Making package: zen-browser-bin 1.21.4b-1 (Wed 01 Jul 2026 04:38:47 PM EDT)
+==> Checking runtime dependencies...
+==> Checking buildtime dependencies...
+==> Retrieving sources...
+  -> Found zen-browser.sh
+  -> Found zen.desktop
+  -> Found policies.json
+  -> Found zen-browser-1.21.4b-1-x86_64.tar.xz
+==> Validating source files with sha256sums...
+    zen-browser.sh ... Passed
+    zen.desktop ... Passed
+    policies.json ... Passed
+==> Validating source_x86_64 files with sha256sums...
+    zen-browser-1.21.4b-1-x86_64.tar.xz ... Passed
+==> Removing existing $srcdir/ directory...
+==> Extracting sources...
+  -> Extracting zen-browser-1.21.4b-1-x86_64.tar.xz with bsdtar
+==> Sources are ready.
+zen-browser-bin-1.21.4b-1: parsing pkg list...
+==> Making package: zen-browser-bin 1.21.4b-1 (Wed 01 Jul 2026 04:38:53 PM EDT)
+==> Checking runtime dependencies...
+==> Checking buildtime dependencies...
+==> WARNING: Using existing $srcdir/ tree
+==> Entering fakeroot environment...
+==> Starting package()...
+==> Tidying install...
+  -> Removing libtool files...
+  -> Purging unreproducible ruby files...
+  -> Removing static library files...
+  -> Purging unwanted files...
+  -> Copying source files needed for debug symbols...
+  -> Compressing man and info pages...
+==> Checking for packaging issues...
+==> Creating package "zen-browser-bin"...
+  -> Generating .PKGINFO file...
+  -> Generating .BUILDINFO file...
+  -> Generating .MTREE file...
+  -> Compressing package...
+==> Leaving fakeroot environment.
+==> Finished making: zen-browser-bin 1.21.4b-1 (Wed 01 Jul 2026 04:38:58 PM EDT)
+==> Cleaning up...
+loading packages...
+resolving dependencies...
+looking for conflicting packages...
+
+Package (1)      New Version  Net Change
+
+zen-browser-bin  1.21.4b-1    362.03 MiB
+
+Total Installed Size:  362.03 MiB
+
+:: Proceed with installation? [Y/n]
+(1/1) checking keys in keyring                                                                       [-----------------------------------------------------------] 100%
+(1/1) checking package integrity                                                                     [-----------------------------------------------------------] 100%
+(1/1) loading package files                                                                          [-----------------------------------------------------------] 100%
+(1/1) checking for file conflicts                                                                    [-----------------------------------------------------------] 100%
+(1/1) checking available disk space                                                                  [-----------------------------------------------------------] 100%
+:: Running pre-transaction hooks...
+(1/1) Waiting for limine-snapper-sync to finish...
+:: Processing package changes...
+(1/1) installing zen-browser-bin                                                                     [-----------------------------------------------------------] 100%
+Optional dependencies for zen-browser-bin
+    networkmanager: Location detection via available WiFi networks [installed]
+    libnotify: Notification integration [installed]
+    pulse-native-provider: Audio support [installed]
+    speech-dispatcher: Text-to-Speech
+    hunspell-en_US: Spell checking, American English
+:: Running post-transaction hooks...
+(1/3) Arming ConditionNeedsUpdate...
+(2/3) Updating icon theme caches...
+(3/3) Updating the desktop file MIME type cache...
+==> Re-stowing layers
+==> stow layer: global
+==> backing up 1 conflict(s) for global/alacritty to /home/jfranco/.dotfiles-backup/2026-07-01-163859
+==> backing up 1 conflict(s) for global/ghostty to /home/jfranco/.dotfiles-backup/2026-07-01-163859
+==> backing up 1 conflict(s) for global/xdg-terminal-exec to /home/jfranco/.dotfiles-backup/2026-07-01-163859
+==> stow layer: os-omarchy
+==> backing up 1 conflict(s) for os-omarchy/btop to /home/jfranco/.dotfiles-backup/2026-07-01-163859
+==> backing up 2 conflict(s) for os-omarchy/hyprland to /home/jfranco/.dotfiles-backup/2026-07-01-163900
+==> backing up 12 conflict(s) for os-omarchy/neovim to /home/jfranco/.dotfiles-backup/2026-07-01-163900
+==> backing up 2 conflict(s) for os-omarchy/waybar to /home/jfranco/.dotfiles-backup/2026-07-01-163900
+==> stow layer: profile-nox-omarchy
+==> backing up 1 conflict(s) for profile-nox-omarchy/hypridle to /home/jfranco/.dotfiles-backup/2026-07-01-163900
+==> backing up 3 conflict(s) for profile-nox-omarchy/hyprland to /home/jfranco/.dotfiles-backup/2026-07-01-163900
+Enable and start tailscaled.service? [y/N] y
+Created symlink '/etc/systemd/system/multi-user.target.wants/tailscaled.service' → '/usr/lib/systemd/system/tailscaled.service'.
+ ok update complete
+
+Next steps:
+  Tailscale login: sudo tailscale up
+  GitHub SSH: dotfiles git setup-ssh
+  Recovery pack: build the encrypted recovery pack when ready
+  Atuin: atuin login && atuin sync
+  Shell: open a new terminal or run exec zsh
+
+Bootstrap complete for NOX.
+
+Ready:
+  dotfiles command installed: /home/jfranco/.local/bin/dotfiles
+  managed shell config applied
+  packages checked and stow applied
+
+Needs manual action:
+  Tailscale: run sudo tailscale up
+  GitHub SSH: run dotfiles git setup-ssh
+  Recovery pack: build the encrypted recovery pack when ready
+  Atuin: run atuin login && atuin sync
+
+Recommended:
+  open a new terminal or run exec zsh
+  run dotfiles status && dotfiles doctor
+
+~ ❯

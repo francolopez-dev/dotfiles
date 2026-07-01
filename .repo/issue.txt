@@ -1,0 +1,208 @@
+
+~ ❯ curl -fsSL https://raw.githubusercontent.com/jfrancolopez/dotfiles/refs/heads/main/scripts/bootstrap.sh | bash
+==> Installing bootstrap prerequisites with pacman: stow zsh
+Place your right index finger on the fingerprint reader
+resolving dependencies...
+looking for conflicting packages...
+
+Package (2)  New Version  Net Change  Download Size
+
+extra/stow   2.4.1-1        0.63 MiB       0.13 MiB
+extra/zsh    5.9-6          6.58 MiB       2.21 MiB
+
+Total Download Size:   2.34 MiB
+Total Installed Size:  7.21 MiB
+
+:: Proceed with installation? [Y/n] y
+:: Retrieving packages...
+ zsh-5.9-6-x86_64                                                          2.2 MiB  12.5 MiB/s 00:00 [-----------------------------------------------------------] 100%
+ stow-2.4.1-1-any                                                        132.0 KiB   670 KiB/s 00:00 [-----------------------------------------------------------] 100%
+ Total (2/2)                                                               2.3 MiB  8.88 MiB/s 00:00 [-----------------------------------------------------------] 100%
+(2/2) checking keys in keyring                                                                       [-----------------------------------------------------------] 100%
+(2/2) checking package integrity                                                                     [-----------------------------------------------------------] 100%
+(2/2) loading package files                                                                          [-----------------------------------------------------------] 100%
+(2/2) checking for file conflicts                                                                    [-----------------------------------------------------------] 100%
+(2/2) checking available disk space                                                                  [-----------------------------------------------------------] 100%
+:: Running pre-transaction hooks...
+(1/1) Waiting for limine-snapper-sync to finish...
+:: Processing package changes...
+(1/2) installing stow                                                                                [-----------------------------------------------------------] 100%
+(2/2) installing zsh                                                                                 [-----------------------------------------------------------] 100%
+Optional dependencies for zsh
+    grml-zsh-config: grml's zsh setup
+    zsh-autosuggestions: Fish-like autosuggestions for zsh
+    zsh-completions: Additional completion definitions for Zsh
+    zsh-doc: Info, HTML and PDF format of the ZSH documentation
+    zsh-history-substring-search: ZSH port of Fish history search (up arrow)
+    zsh-lovers: A collection of tips, tricks and examples for the Z shell.
+    zsh-syntax-highlighting: Fish shell like syntax highlighting for Zsh
+    zshdb: A debugger for zsh scripts
+:: Running post-transaction hooks...
+(1/2) Arming ConditionNeedsUpdate...
+(2/2) Updating the info directory file...
+==> pacman prerequisite install returned: 0
+==> bootstrap prerequisites present after pacman
+==> Installing temporary zsh first-run guard
+==> Installing Oh My Zsh
+Cloning into '/home/jfranco/.oh-my-zsh'...
+remote: Enumerating objects: 1478, done.
+remote: Counting objects: 100% (1478/1478), done.
+remote: Compressing objects: 100% (1412/1412), done.
+remote: Total 1478 (delta 45), reused 1345 (delta 36), pack-reused 0 (from 0)
+Receiving objects: 100% (1478/1478), 3.32 MiB | 13.77 MiB/s, done.
+Resolving deltas: 100% (45/45), done.
+==> Installing Oh My Zsh plugin: zsh-autosuggestions
+Cloning into '/home/jfranco/.oh-my-zsh/custom/plugins/zsh-autosuggestions'...
+remote: Enumerating objects: 73, done.
+remote: Counting objects: 100% (73/73), done.
+remote: Compressing objects: 100% (64/64), done.
+remote: Total 73 (delta 9), reused 35 (delta 3), pack-reused 0 (from 0)
+Receiving objects: 100% (73/73), 36.41 KiB | 2.14 MiB/s, done.
+Resolving deltas: 100% (9/9), done.
+==> Installing Oh My Zsh plugin: zsh-syntax-highlighting
+Cloning into '/home/jfranco/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting'...
+remote: Enumerating objects: 369, done.
+remote: Counting objects: 100% (369/369), done.
+remote: Compressing objects: 100% (300/300), done.
+remote: Total 369 (delta 299), reused 100 (delta 55), pack-reused 0 (from 0)
+Receiving objects: 100% (369/369), 182.09 KiB | 2.49 MiB/s, done.
+Resolving deltas: 100% (299/299), done.
+==> Installing Powerlevel10k
+Cloning into '/home/jfranco/.oh-my-zsh/custom/themes/powerlevel10k'...
+remote: Enumerating objects: 92, done.
+remote: Counting objects: 100% (92/92), done.
+remote: Compressing objects: 100% (75/75), done.
+remote: Total 92 (delta 18), reused 58 (delta 13), pack-reused 0 (from 0)
+Receiving objects: 100% (92/92), 350.47 KiB | 3.07 MiB/s, done.
+Resolving deltas: 100% (18/18), done.
+==> Cloning https://github.com/jfrancolopez/dotfiles.git -> /home/jfranco/dotfiles
+Cloning into '/home/jfranco/dotfiles'...
+remote: Enumerating objects: 2035, done.
+remote: Counting objects: 100% (202/202), done.
+remote: Compressing objects: 100% (119/119), done.
+remote: Total 2035 (delta 93), reused 140 (delta 51), pack-reused 1833 (from 1)
+Receiving objects: 100% (2035/2035), 510.36 KiB | 3.67 MiB/s, done.
+Resolving deltas: 100% (840/840), done.
+Already on 'main'
+Your branch is up to date with 'origin/main'.
+From https://github.com/jfrancolopez/dotfiles
+ * branch            main       -> FETCH_HEAD
+Already up to date.
+==> Linked dotfiles -> /home/jfranco/.local/bin/dotfiles
+==> Removing temporary zsh first-run guard
+==> Applying managed shell config
+==> machine: nox (omarchy); profile: profile-nox-omarchy
+==> stow layer: global
+==> backing up 1 conflict(s) for global/alacritty to /home/jfranco/.dotfiles-backup/2026-06-30-211822
+==> backing up 2 conflict(s) for global/bash to /home/jfranco/.dotfiles-backup/2026-06-30-211822
+==> backing up 1 conflict(s) for global/ghostty to /home/jfranco/.dotfiles-backup/2026-06-30-211822
+==> backing up 1 conflict(s) for global/xdg-terminal-exec to /home/jfranco/.dotfiles-backup/2026-06-30-211822
+==> stow layer: os-omarchy
+==> backing up 1 conflict(s) for os-omarchy/btop to /home/jfranco/.dotfiles-backup/2026-06-30-211823
+==> backing up 2 conflict(s) for os-omarchy/hyprland to /home/jfranco/.dotfiles-backup/2026-06-30-211823
+==> backing up 12 conflict(s) for os-omarchy/neovim to /home/jfranco/.dotfiles-backup/2026-06-30-211823
+==> backing up 2 conflict(s) for os-omarchy/waybar to /home/jfranco/.dotfiles-backup/2026-06-30-211823
+==> stow layer: profile-nox-omarchy
+==> backing up 1 conflict(s) for profile-nox-omarchy/hypridle to /home/jfranco/.dotfiles-backup/2026-06-30-211824
+==> backing up 3 conflict(s) for profile-nox-omarchy/hyprland to /home/jfranco/.dotfiles-backup/2026-06-30-211824
+ ok layers applied
+==> Running dotfiles update
+==> Update plan for nox (omarchy); profile: profile-nox-omarchy:
+  1. git pull --ff-only
+  2. install pacman profile packages
+  3. install AUR profile packages
+  4. re-stow layers (conflict wizard; never silently overwritten)
+Proceed? [y/N] y
+==> Pulling repo
+Already up to date.
+==> Checking profile packages
+==> Checking pacman profile packages
+  missing pacman: htop wget nano shellcheck atuin networkmanager tailscale ghostty vivaldi firefox gsimplecal yazi restic age zen-browser-bin
+Install 15 missing pacman package(s)? [y/N] y
+error: target not found: zen-browser-bin
+ERROR:
+bootstrap failed at line 430 with exit status 1: DOTFILES_ASSUME_YES=1 DOTFILES_STOW_CONFLICTS="${DOTFILES_STOW_CONFLICTS:-backup}" "$DOTFILES_DIR/scripts/dotfiles" update
+Fix the command above, then rerun bootstrap. It is safe to rerun.
+
+--- BOOTSTRAP DIAGNOSTICS START ---
+reason: fatal error at line 430
+date: Tue Jun 30 09:18:26 PM EDT 2026
+bash: 5.3.9(1)-release
+user: jfranco
+home: /home/jfranco
+pwd: /home/jfranco
+path: /home/jfranco/.local/share/mise/installs/node/26.2.0/bin:/home/jfranco/.local/share/omarchy/bin:/home/jfranco/.local/share/mise/shims:/usr/bin:/home/jfranco/.local/share/omarchy/bin:/usr/local/sbin:/usr/local/bin:/usr/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl:/home/jfranco/.local/bin:/home/jfranco/.local/bin
+repo_url: https://github.com/jfrancolopez/dotfiles.git
+dotfiles_dir: /home/jfranco/dotfiles
+branch: main
+dry_run: 0
+profile: <auto>
+os_detected: omarchy
+
+commands:
+  bash: /usr/bin/bash
+  git: /usr/bin/git
+  curl: /usr/bin/curl
+  sudo: /usr/bin/sudo
+  pacman: /usr/bin/pacman
+  stow: /usr/bin/stow
+  zsh: /usr/bin/zsh
+
+/etc/os-release:
+  NAME="Arch Linux"
+  PRETTY_NAME="Arch Linux"
+  ID=arch
+  BUILD_ID=rolling
+  ANSI_COLOR="38;2;23;147;209"
+  HOME_URL="https://archlinux.org/"
+  DOCUMENTATION_URL="https://wiki.archlinux.org/"
+  SUPPORT_URL="https://bbs.archlinux.org/"
+  BUG_REPORT_URL="https://gitlab.archlinux.org/groups/archlinux/-/issues"
+  PRIVACY_POLICY_URL="https://terms.archlinux.org/docs/privacy-policy/"
+  LOGO=archlinux-logo
+
+pacman packages:
+  git 2.54.0-1
+  stow 2.4.1-1
+  zsh 5.9-6
+  curl 8.20.0-7
+  bash 5.3.9-1
+  ca-certificates 20240618-1
+
+pacman hook/script symlink references:
+  none found
+
+pacman info hook/script files:
+  /usr/share/libalpm/hooks/texinfo-install.hook
+    [Trigger]
+    Type = Path
+    Operation = Install
+    Operation = Upgrade
+    Target = usr/share/info/*
+
+    [Action]
+    Description = Updating the info directory file...
+    When = PostTransaction
+    Exec = /bin/sh -c 'while read -r f; do if test -f "$f"; then install-info "$f" /usr/share/info/dir 2> /dev/null; fi; done'
+    NeedsTargets
+  /usr/share/libalpm/hooks/texinfo-remove.hook
+    [Trigger]
+    Type = Path
+    Operation = Remove
+    Target = usr/share/info/*
+
+    [Action]
+    Description = Removing old entries from the info directory file...
+    When = PreTransaction
+    Exec = /bin/sh -c 'while read -r f; do install-info --delete "$f" /usr/share/info/dir 2> /dev/null; done'
+    NeedsTargets
+
+install-info command:
+  path: /usr/bin/install-info
+
+dotfiles git status:
+  ## main...origin/main
+
+dotfiles HEAD:
+  156a21d omarchy: remove login theme customization
+--- BOOTSTRAP DIAGNOSTICS END ---

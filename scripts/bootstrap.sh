@@ -183,9 +183,14 @@ install_bootstrap_prereqs() {
         pacman -Qq "$pkg" >/dev/null 2>&1 || missing+=("$pkg")
       done
       [[ ${#missing[@]} -eq 0 ]] && return 0
+      local pacman_install_args=(-S --needed)
+      if ! pacman_sync_databases_exist; then
+        pacman_install_args=(-Syu --needed)
+        say "Pacman sync databases are missing; syncing before installing prerequisites"
+      fi
       say "Installing bootstrap prerequisites with pacman: ${missing[*]}"
       if [[ $DRY_RUN -eq 1 ]]; then
-        warn "dry-run: would install pacman prerequisites: ${missing[*]}"
+        warn "dry-run: would run sudo pacman ${pacman_install_args[*]} ${missing[*]}"
         return 0
       fi
       local pacman_status=0 still_missing=()
@@ -193,9 +198,9 @@ install_bootstrap_prereqs() {
       set +e
       if { : </dev/tty; } 2>/dev/null; then
         # shellcheck disable=SC2024
-        sudo pacman -S --needed "${missing[@]}" </dev/tty
+        sudo pacman "${pacman_install_args[@]}" "${missing[@]}" </dev/tty
       else
-        sudo pacman -S --needed "${missing[@]}"
+        sudo pacman "${pacman_install_args[@]}" "${missing[@]}"
       fi
       pacman_status=$?
       set -e
@@ -239,6 +244,14 @@ install_bootstrap_prereqs() {
       ;;
   esac
   return 0
+}
+
+pacman_sync_databases_exist() {
+  local sync_dir="${DOTFILES_PACMAN_SYNC_DIR:-/var/lib/pacman/sync}" db
+  for db in "$sync_dir"/*.db; do
+    [[ -e "$db" ]] && return 0
+  done
+  return 1
 }
 
 install_zshrc_guard() {

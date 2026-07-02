@@ -33,7 +33,7 @@ if ! git -C "$source_repo" diff --cached --quiet; then
     commit -m 'test fixture source snapshot' >/dev/null
 fi
 
-mkdir -p "$tmp_dir/bin" "$tmp_dir/home" "$tmp_dir/pacman-state"
+mkdir -p "$tmp_dir/bin" "$tmp_dir/home" "$tmp_dir/pacman-state" "$tmp_dir/pacman-sync"
 
 cat >"$tmp_dir/bin/sudo" <<'EOF'
 #!/usr/bin/env bash
@@ -56,7 +56,11 @@ case "${1:-}" in
       exit 1
     fi
     ;;
-  -S)
+  -S|-Syu)
+    if [[ "${1:-}" == "-Syu" && -n "${PACMAN_MOCK_SYNC_DIR:-}" ]]; then
+      mkdir -p "$PACMAN_MOCK_SYNC_DIR"
+      touch "$PACMAN_MOCK_SYNC_DIR/core.db"
+    fi
     shift
     for arg in "$@"; do
       [[ "$arg" == --* ]] && continue
@@ -131,9 +135,11 @@ for run in 1 2; do
   printf '==> bootstrap first-run fixture pass %s\n' "$run"
   if ! PATH="$tmp_dir/bin:$PATH" \
     PACMAN_MOCK_STATE="$tmp_dir/pacman-state" \
+    PACMAN_MOCK_SYNC_DIR="$tmp_dir/pacman-sync" \
     PACMAN_MOCK_FAIL_ONCE=1 \
     HOME="$tmp_dir/home" \
     DOTFILES_DIR="$tmp_dir/home/dotfiles" \
+    DOTFILES_PACMAN_SYNC_DIR="$tmp_dir/pacman-sync" \
     DOTFILES_REPO_URL="file://$source_repo" \
     DOTFILES_BOOTSTRAP_OS=omarchy \
     DOTFILES_BRANCH="$current_branch" \
@@ -148,6 +154,7 @@ for run in 1 2; do
 
   if [[ $run -eq 1 ]]; then
     grep -Fq 'pacman prerequisite install returned: 1' "$output_file" || fail 'missing pacman nonzero checkpoint'
+    grep -Fq 'Pacman sync databases are missing; syncing before installing prerequisites' "$output_file" || fail 'missing pacman sync database checkpoint'
     grep -Fq 'bootstrap prerequisites present after pacman' "$output_file" || fail 'missing pacman package verification checkpoint'
     grep -Fq 'mock pacman: intentional nonzero after installing requested packages' "$output_file" || fail 'missing intentional pacman mock failure checkpoint'
     if grep -Fq 'bash: line 143: symlink: No such file or directory' "$output_file"; then
@@ -160,15 +167,17 @@ for run in 1 2; do
   [[ -r "$tmp_dir/home/.oh-my-zsh/oh-my-zsh.sh" ]] || fail 'Oh My Zsh was not installed'
 done
 
-mkdir -p "$tmp_dir/success-home" "$tmp_dir/pacman-success-state"
+mkdir -p "$tmp_dir/success-home" "$tmp_dir/pacman-success-state" "$tmp_dir/pacman-success-sync"
 touch "$tmp_dir/pacman-success-state/zen-browser-bin"
 success_output="$tmp_dir/bootstrap-success.out"
 printf '==> bootstrap first-run fixture pass pacman-success\n'
 if ! PATH="$tmp_dir/bin:$PATH" \
   PACMAN_MOCK_STATE="$tmp_dir/pacman-success-state" \
+  PACMAN_MOCK_SYNC_DIR="$tmp_dir/pacman-success-sync" \
   PACMAN_MOCK_FAIL_ONCE=0 \
   HOME="$tmp_dir/success-home" \
   DOTFILES_DIR="$tmp_dir/success-home/dotfiles" \
+  DOTFILES_PACMAN_SYNC_DIR="$tmp_dir/pacman-success-sync" \
   DOTFILES_REPO_URL="file://$source_repo" \
   DOTFILES_BOOTSTRAP_OS=omarchy \
   DOTFILES_BRANCH="$current_branch" \
@@ -181,6 +190,7 @@ if [[ "${DOTFILES_FIXTURE_VERBOSE:-0}" == "1" ]]; then
   sed 's/^/  /' "$success_output"
 fi
 grep -Fq 'pacman prerequisite install returned: 0' "$success_output" || fail 'missing pacman success checkpoint'
+grep -Fq 'Pacman sync databases are missing; syncing before installing prerequisites' "$success_output" || fail 'missing pacman success sync database checkpoint'
 grep -Fq 'bootstrap prerequisites present after pacman' "$success_output" || fail 'missing pacman success verification checkpoint'
 [[ -d "$tmp_dir/success-home/dotfiles/.git" ]] || fail 'dotfiles repo was not cloned after pacman success'
 
@@ -197,8 +207,10 @@ git -C "$tmp_dir/success-home/dotfiles" checkout --detach >/dev/null 2>&1
 detached_output="$tmp_dir/detached-update.out"
 if ! PATH="$tmp_dir/bin:$PATH" \
   PACMAN_MOCK_STATE="$tmp_dir/pacman-success-state" \
+  PACMAN_MOCK_SYNC_DIR="$tmp_dir/pacman-success-sync" \
   HOME="$tmp_dir/success-home" \
   DOTFILES_DIR="$tmp_dir/success-home/dotfiles" \
+  DOTFILES_PACMAN_SYNC_DIR="$tmp_dir/pacman-success-sync" \
   DOTFILES_ASSUME_YES=1 \
   DOTFILES_STOW_CONFLICTS=backup \
     "$tmp_dir/success-home/dotfiles/scripts/dotfiles" update >"$detached_output" 2>&1; then

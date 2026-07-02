@@ -54,18 +54,24 @@ _dotfiles_box_table() {
       return value ~ /^(second|seconds|minute|minutes|hour|hours|day|days|week|weeks|month|months|year|years)$/
     }
 
-    function compact_relative_time(number, unit, plain_unit) {
+    function compact_relative_time(number, unit, plain_unit, label, colored_unit, value) {
       plain_unit = tolower(plain_text(unit))
 
-      if (plain_unit ~ /^second/) return number " sec"
-      if (plain_unit ~ /^minute/) return number " min"
-      if (plain_unit ~ /^hour/) return number " hr"
-      if (plain_unit ~ /^day/) return number " d"
-      if (plain_unit ~ /^week/) return number " wk"
-      if (plain_unit ~ /^month/) return number " mo"
-      if (plain_unit ~ /^year/) return number " yr"
+      if (plain_unit ~ /^second/) label = "sec"
+      else if (plain_unit ~ /^minute/) label = "min"
+      else if (plain_unit ~ /^hour/) label = "hr"
+      else if (plain_unit ~ /^day/) label = "d"
+      else if (plain_unit ~ /^week/) label = "wk"
+      else if (plain_unit ~ /^month/) label = "mo"
+      else if (plain_unit ~ /^year/) label = "yr"
+      else label = plain_unit
 
-      return number " " unit
+      colored_unit = unit
+      gsub(plain_unit, label, colored_unit)
+      value = number " " colored_unit
+
+      if (value ~ /\033\[/ && value !~ /\033\[0m/) value = value "\033[0m"
+      return value
     }
 
     function is_git_status(value) {
@@ -110,7 +116,7 @@ _dotfiles_box_table() {
         value = base
       }
 
-      return table_mode == "compact" ? compact_file_type(value) : value
+      return compact_file_type(value)
     }
 
     function border(left, middle, right, line, i, j) {
@@ -130,7 +136,7 @@ _dotfiles_box_table() {
         if ($0 ~ /Date Created/) date_heading = "Created"
         if ($0 ~ /Date Accessed/) date_heading = "Accessed"
         if ($0 ~ /Date Changed/) date_heading = "Changed"
-        if (table_mode == "compact") date_heading = "Mod"
+        date_heading = "Mod"
         has_git = plain_text($0) ~ /(^|[[:space:]])Git([[:space:]]|$)/
 
         set_cell(rows, 1, "#")
@@ -148,7 +154,7 @@ _dotfiles_box_table() {
 
       if (has_git) {
         if (is_git_status($6)) {
-          modified = table_mode == "compact" ? compact_relative_time($4, $5) : $4 " " $5
+          modified = compact_relative_time($4, $5)
           git = $6
           name = rest(7)
         } else {
@@ -159,7 +165,7 @@ _dotfiles_box_table() {
       } else {
         git = ""
         if (is_relative_time_unit($5)) {
-          modified = table_mode == "compact" ? compact_relative_time($4, $5) : $4 " " $5
+          modified = compact_relative_time($4, $5)
           name = rest(6)
         } else {
           modified = $4

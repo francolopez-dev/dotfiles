@@ -87,7 +87,7 @@ oh-my-zsh defaults cannot conflict with the managed `l()` function.
 | `v` | `nvim` | Open Neovim |
 | `y` | `yazi` | Open yazi |
 | `l` | shell function around `eza --long ...` or `ls -lh` fallback | Compact Omerxx-inspired listing with column separators and outer borders |
-| `ll` | shell function around `eza --long ...` or `ls -lha` fallback | Full Omerxx-inspired listing with Git, user, and permissions columns |
+| `ll` | shell function around `eza --long ...` or `ls -lha` fallback | Full Omerxx-inspired listing with compact metadata plus Git, user, and permissions columns |
 | `la` | `l` with eza, `ll` without eza | Hidden files are already shown by default when eza is available |
 | `lt` | `eza --tree --level=2 ...` or `ls -lah` fallback | Small tree view |
 | `cls` | `clear && printf "\e[3J"` | Clear visible screen and scrollback |
@@ -109,7 +109,8 @@ l --sort=modified
 
 Hidden files are shown by default when eza is available. The compact `l` table
 is tuned for laptop screens with `#`, name, type, size, and mod columns. The
-full `ll` table keeps Git, user, and permissions columns. If you want arbitrary
+full `ll` table keeps Git, user, and permissions columns. Both styled tables use
+compact type labels and compact relative modified times. If you want arbitrary
 extra metadata columns, use raw mode:
 
 ```bash
@@ -128,7 +129,7 @@ Current compact styled table columns are:
 Current full styled table columns are:
 
 ```text
-# | Name | Type | Size | Modified/Created/Accessed/Changed | Git | User | Permissions
+# | Name | Type | Size | Mod | Git | User | Permissions
 ```
 
 To add more columns without changing the table renderer, use `l --raw` with any

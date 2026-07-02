@@ -107,14 +107,16 @@ install_missing_omarchy_packages() {
       dim "  would run: sudo pacman -S --needed ${missing_pacman[*]}"
     elif confirm "Install ${#missing_pacman[@]} missing pacman package(s)?"; then
       info "Installing pacman packages: ${missing_pacman[*]}"
+      local pacman_args=(-S --needed)
+      [[ "${DOTFILES_ASSUME_YES:-0}" == "1" ]] && pacman_args+=(--noconfirm)
       if have_tty; then
         # shellcheck disable=SC2024
-        if ! sudo pacman -S --needed "${missing_pacman[@]}" </dev/tty; then
+        if ! sudo pacman "${pacman_args[@]}" "${missing_pacman[@]}" </dev/tty; then
           warn "pacman failed installing profile packages: ${missing_pacman[*]}"
           return 1
         fi
       else
-        if ! sudo pacman -S --needed "${missing_pacman[@]}"; then
+        if ! sudo pacman "${pacman_args[@]}" "${missing_pacman[@]}"; then
           warn "pacman failed installing profile packages: ${missing_pacman[*]}"
           return 1
         fi
@@ -153,11 +155,22 @@ install_missing_omarchy_packages() {
     return 1
   else
     info "Installing AUR packages with paru: ${missing_aur[*]}"
+    if [[ "${DOTFILES_ASSUME_YES:-0}" == "1" ]]; then
+      info "Using non-interactive trusted profile mode: --noconfirm --skipreview"
+    fi
     # shellcheck disable=SC2086
     if ! $aur_mgr "${missing_aur[@]}" </dev/tty; then
       warn "paru failed installing AUR packages: ${missing_aur[*]}"
       return 1
     fi
+    for p in "${missing_aur[@]}"; do
+      if _pkg_installed "$p"; then
+        ok "installed AUR package: $p"
+      else
+        warn "AUR package install completed but package is still missing: $p"
+        return 1
+      fi
+    done
   fi
 }
 

@@ -34,6 +34,12 @@ packages first, then official binary packages, then maintained AUR `*-bin`
 packages. Source-built AUR packages, including `*-git`, are last-resort only and
 must be explicitly allowed in validation.
 
+Some binary AUR packages can still be incompatible with current Arch libraries.
+For example, bootstrap tries `paru-bin` first, but falls back to source-built
+`paru` when the binary helper is linked to an unavailable pacman/libalpm version.
+Declared repo AUR packages are trusted bootstrap inputs and install with paru
+`--noconfirm --skipreview` when `DOTFILES_ASSUME_YES=1` is active.
+
 If Stow finds existing Omarchy config, choose the recommended backup option.
 Backups go under `~/.dotfiles-backup/YYYY-MM-DD-HHMMSS/`.
 

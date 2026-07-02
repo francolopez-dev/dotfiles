@@ -78,6 +78,14 @@ in `aur.txt`. Do not declare `foo-git` or other source-built AUR packages unless
 there is no maintained binary equivalent and the exception is documented in the
 validation allowlist.
 
+Binary AUR helpers can still be incompatible with current Arch libraries. For
+example, `paru-bin` may lag pacman/libalpm and require an older `libalpm.so`.
+In that case, bootstrap must report the incompatibility honestly and build
+source `paru` as the fallback; never symlink libalpm, downgrade pacman, or switch
+to yay. AUR packages declared in this repo's active package lists are trusted
+inputs and may be installed non-interactively during bootstrap with paru
+`--noconfirm --skipreview`. Do not use that trusted mode for arbitrary user input.
+
 ## Commands
 
 Useful checks after edits:

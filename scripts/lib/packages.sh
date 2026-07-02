@@ -36,7 +36,98 @@ pkg_manager() {
 }
 
 aur_pkg_manager() {
-  paru_health_status >/dev/null 2>&1 && echo "paru -S --needed" || echo ""
+  paru_health_status >/dev/null 2>&1 || { echo ""; return 0; }
+  if [[ "${DOTFILES_ASSUME_YES:-0}" == "1" ]]; then
+    echo "paru -S --needed --noconfirm --skipreview"
+  else
+    echo "paru -S --needed"
+  fi
+}
+
+current_libalpm_major() {
+  local lib_file base major max=""
+  for lib_file in /usr/lib/libalpm.so.[0-9]*; do
+    [[ -e "$lib_file" ]] || continue
+    base="${lib_file##*/}"
+    major="$(printf '%s\n' "$base" | sed -n 's/^libalpm\.so\.\([0-9][0-9]*\).*/\1/p')"
+    [[ "$major" =~ ^[0-9]+$ ]] || continue
+    if [[ -z "$max" || "$major" -gt "$max" ]]; then
+      max="$major"
+    fi
+  done
+  printf '%s\n' "$max"
+}
+
+has_libalpm_major() {
+  local wanted="$1" lib_file base major
+  for lib_file in /usr/lib/libalpm.so.[0-9]*; do
+    [[ -e "$lib_file" ]] || continue
+    base="${lib_file##*/}"
+    major="$(printf '%s\n' "$base" | sed -n 's/^libalpm\.so\.\([0-9][0-9]*\).*/\1/p')"
+    [[ "$major" == "$wanted" ]] && return 0
+  done
+  return 1
+}
+
+paru_bin_known_incompatible() {
+  local major
+  major="$(current_libalpm_major)"
+  [[ -n "$major" ]] || return 1
+  [[ "$major" -ge 16 ]] && ! has_libalpm_major 15
+}
+
+paru_cache_dir() {
+  printf '%s\n' "${XDG_CACHE_HOME:-$HOME/.cache}/dotfiles/aur/paru"
+}
+
+aur_srcinfo_version() {
+  local srcinfo="$1" pkgver pkgrel
+  pkgver="$(sed -n 's/^[[:space:]]*pkgver = //p' "$srcinfo" 2>/dev/null | sed -n '1p')"
+  pkgrel="$(sed -n 's/^[[:space:]]*pkgrel = //p' "$srcinfo" 2>/dev/null | sed -n '1p')"
+  [[ -n "$pkgver" && -n "$pkgrel" ]] || return 1
+  printf '%s-%s\n' "$pkgver" "$pkgrel"
+}
+
+install_cached_paru_package() {
+  local expected_version="$1" libalpm_major="$2" cache_dir pkg_file cached_version cached_libalpm
+  cache_dir="$(paru_cache_dir)"
+  [[ -d "$cache_dir" ]] || return 1
+  cached_version="$(sed -n '1p' "$cache_dir/version" 2>/dev/null || true)"
+  cached_libalpm="$(sed -n '1p' "$cache_dir/libalpm-major" 2>/dev/null || true)"
+  [[ "$cached_version" == "$expected_version" && "$cached_libalpm" == "$libalpm_major" ]] || return 1
+  for pkg_file in "$cache_dir"/paru-*.pkg.tar.*; do
+    [[ -e "$pkg_file" ]] || continue
+    case "$(basename "$pkg_file")" in
+      paru-debug-*|*.sig) continue ;;
+    esac
+    info "Installing cached source-built paru package"
+    local pacman_args=(-U --needed)
+    [[ "${DOTFILES_ASSUME_YES:-0}" == "1" ]] && pacman_args+=(--noconfirm)
+    # shellcheck disable=SC2024
+    if ! sudo pacman "${pacman_args[@]}" "$pkg_file" </dev/tty; then
+      warn "cached paru package failed to install; discarding cache"
+      rm -rf "$cache_dir"
+      return 1
+    fi
+    paru_health_status >/dev/null 2>&1 && return 0
+    warn "cached paru package failed validation; discarding cache"
+    rm -rf "$cache_dir"
+    return 1
+  done
+  return 1
+}
+
+cache_paru_package() {
+  local version="$1" libalpm_major="$2" cache_dir pkg_file
+  shift 2
+  cache_dir="$(paru_cache_dir)"
+  rm -rf "$cache_dir"
+  mkdir -p "$cache_dir"
+  printf '%s\n' "$version" >"$cache_dir/version"
+  printf '%s\n' "$libalpm_major" >"$cache_dir/libalpm-major"
+  for pkg_file in "$@"; do
+    cp -f "$pkg_file" "$cache_dir/"
+  done
 }
 
 paru_health_status() {
@@ -179,7 +270,7 @@ validate_package_declarations() {
 }
 
 install_paru_from_aur() {
-  local build_root pkg_file
+  local build_root pkg_file version libalpm_major
   local pkg_files=()
 
   if ! command -v pacman >/dev/null 2>&1; then
@@ -196,8 +287,10 @@ install_paru_from_aur() {
   fi
 
   info "Installing AUR build prerequisites with pacman: base-devel"
+  local pacman_sync_args=(-S --needed)
+  [[ "${DOTFILES_ASSUME_YES:-0}" == "1" ]] && pacman_sync_args+=(--noconfirm)
   # shellcheck disable=SC2024
-  if ! sudo pacman -S --needed base-devel </dev/tty; then
+  if ! sudo pacman "${pacman_sync_args[@]}" base-devel </dev/tty; then
     warn "failed to install AUR build prerequisites: base-devel"
     return 1
   fi
@@ -213,9 +306,20 @@ install_paru_from_aur() {
     return 1
   fi
 
+  version="$(aur_srcinfo_version "$build_root/paru/.SRCINFO" || true)"
+  libalpm_major="$(current_libalpm_major)"
+  if [[ -n "$version" && -n "$libalpm_major" ]]; then
+    if install_cached_paru_package "$version" "$libalpm_major"; then
+      rm -rf "$build_root"
+      return 0
+    fi
+  fi
+
   if ! (
     cd "$build_root/paru" || exit 1
-    makepkg -s </dev/tty
+    makepkg_args=(-s)
+    [[ "${DOTFILES_ASSUME_YES:-0}" == "1" ]] && makepkg_args+=(--noconfirm)
+    makepkg "${makepkg_args[@]}" </dev/tty
   ); then
     rm -rf "$build_root"
     warn "paru AUR build failed"
@@ -235,9 +339,15 @@ install_paru_from_aur() {
     return 1
   fi
 
+  if [[ -n "$version" && -n "$libalpm_major" ]]; then
+    cache_paru_package "$version" "$libalpm_major" "${pkg_files[@]}"
+  fi
+
   info "Installing built paru package with pacman"
+  local pacman_install_args=(-U --needed)
+  [[ "${DOTFILES_ASSUME_YES:-0}" == "1" ]] && pacman_install_args+=(--noconfirm)
   # shellcheck disable=SC2024
-  if ! sudo pacman -U --needed "${pkg_files[@]}" </dev/tty; then
+  if ! sudo pacman "${pacman_install_args[@]}" "${pkg_files[@]}" </dev/tty; then
     rm -rf "$build_root"
     warn "failed to install built paru package"
     return 1
@@ -263,8 +373,10 @@ install_paru_bin_from_aur() {
   fi
   if ! command -v makepkg >/dev/null 2>&1; then
     info "Installing AUR packaging prerequisites with pacman: base-devel"
+    local pacman_sync_args=(-S --needed)
+    [[ "${DOTFILES_ASSUME_YES:-0}" == "1" ]] && pacman_sync_args+=(--noconfirm)
     # shellcheck disable=SC2024
-    if ! sudo pacman -S --needed base-devel </dev/tty; then
+    if ! sudo pacman "${pacman_sync_args[@]}" base-devel </dev/tty; then
       warn "failed to install AUR packaging prerequisites: base-devel"
       return 1
     fi
@@ -283,7 +395,9 @@ install_paru_bin_from_aur() {
 
   if ! (
     cd "$build_root/paru-bin" || exit 1
-    makepkg -s </dev/tty
+    makepkg_args=(-s)
+    [[ "${DOTFILES_ASSUME_YES:-0}" == "1" ]] && makepkg_args+=(--noconfirm)
+    makepkg "${makepkg_args[@]}" </dev/tty
   ); then
     rm -rf "$build_root"
     warn "paru-bin package build failed"
@@ -304,8 +418,10 @@ install_paru_bin_from_aur() {
   fi
 
   info "Installing paru-bin package with pacman"
+  local pacman_install_args=(-U --needed)
+  [[ "${DOTFILES_ASSUME_YES:-0}" == "1" ]] && pacman_install_args+=(--noconfirm)
   # shellcheck disable=SC2024
-  if ! sudo pacman -U --needed "${pkg_files[@]}" </dev/tty; then
+  if ! sudo pacman "${pacman_install_args[@]}" "${pkg_files[@]}" </dev/tty; then
     rm -rf "$build_root"
     warn "failed to install paru-bin package"
     return 1
@@ -349,8 +465,10 @@ ensure_paru_available() {
     fi
   elif command -v pacman >/dev/null 2>&1 && pacman -Si paru >/dev/null 2>&1; then
     info "Installing paru with pacman"
+    local pacman_install_args=(-S --needed)
+    [[ "${DOTFILES_ASSUME_YES:-0}" == "1" ]] && pacman_install_args+=(--noconfirm)
     # shellcheck disable=SC2024
-    if ! sudo pacman -S --needed paru </dev/tty; then
+    if ! sudo pacman "${pacman_install_args[@]}" paru </dev/tty; then
       warn "failed to install paru with pacman"
       return 1
     fi
@@ -361,8 +479,12 @@ ensure_paru_available() {
       return 1
     fi
   else
-    info "pacman does not provide paru; bootstrapping paru-bin from AUR"
-    if install_paru_bin_from_aur; then
+    if paru_bin_known_incompatible; then
+      warn "Prebuilt paru-bin is incompatible with current pacman/libalpm. Building paru from source is required this time."
+      install_paru_from_aur || return 1
+    else
+      info "pacman does not provide paru; bootstrapping paru-bin from AUR"
+      if install_paru_bin_from_aur; then
       health="$(paru_health_status 2>/dev/null || true)"
       if [[ "$health" != "ready" ]]; then
         warn "paru-bin installed but failed validation: ${health#broken: }"
@@ -374,11 +496,12 @@ ensure_paru_available() {
         remove_broken_paru_bin || return 1
         install_paru_from_aur || return 1
       fi
-    else
-      warn "paru-bin bootstrap failed; falling back to source-built paru as a last resort"
-      info "This can take several minutes."
-      info "Bootstrapping paru from AUR with git and makepkg"
-      install_paru_from_aur || return 1
+      else
+        warn "paru-bin bootstrap failed; falling back to source-built paru as a last resort"
+        info "This can take several minutes."
+        info "Bootstrapping paru from AUR with git and makepkg"
+        install_paru_from_aur || return 1
+      fi
     fi
   fi
 

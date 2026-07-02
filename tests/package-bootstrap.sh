@@ -33,6 +33,13 @@ assert_no_line() {
 }
 
 assert_not_contains '--batchinstall' "$repo_dir/scripts/lib/packages.sh"
+assert_not_contains 'Install paru with pacman?' "$repo_dir/scripts/lib/packages.sh"
+assert_not_contains 'Bootstrap paru from AUR with git and makepkg?' "$repo_dir/scripts/lib/packages.sh"
+assert_not_contains 'missing AUR package(s)?' "$repo_dir/scripts/dotfiles"
+assert_not_contains 'makepkg -si' "$repo_dir/scripts/lib/packages.sh"
+assert_contains 'This can take several minutes.' "$repo_dir/scripts/lib/packages.sh"
+assert_contains 'sudo pacman -U --needed' "$repo_dir/scripts/lib/packages.sh"
+assert_contains 'paru-debug-*|*.sig) continue' "$repo_dir/scripts/lib/packages.sh"
 assert_not_contains '--noconfirm' "$repo_dir/scripts/bootstrap.sh"
 assert_contains 'sudo pacman -S --needed' "$repo_dir/scripts/bootstrap.sh"
 

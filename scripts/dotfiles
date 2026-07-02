@@ -132,7 +132,7 @@ install_missing_omarchy_packages() {
     return 0
   fi
 
-  ensure_paru_available "$dry" || return 1
+  ensure_paru_available "$dry" "${declared_aur[@]}" || return 1
   if [[ ${#missing_aur[@]} -eq 0 ]]; then
     ok "all AUR profile packages installed"
     return 0
@@ -150,7 +150,7 @@ install_missing_omarchy_packages() {
   elif ! have_tty; then
     warn "AUR installs require a TTY so paru cannot silently choose provider defaults"
     return 1
-  elif confirm "Install ${#missing_aur[@]} missing AUR package(s)?"; then
+  else
     info "Installing AUR packages with paru: ${missing_aur[*]}"
     # shellcheck disable=SC2086
     if ! $aur_mgr "${missing_aur[@]}" </dev/tty; then

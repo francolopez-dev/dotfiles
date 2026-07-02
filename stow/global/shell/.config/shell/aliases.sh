@@ -1,3 +1,5 @@
+# shellcheck shell=bash
+
 alias ..='cd ..'
 alias gs='git status'
 alias gp='git pull'
@@ -15,22 +17,15 @@ alias y='yazi'
 unalias l ll la L lt 2>/dev/null || true
 
 if command -v eza >/dev/null 2>&1; then
-  alias ll='l'
   alias la='l'
   alias lt='eza --tree --level=2 --icons --git --group-directories-first --classify=auto'
 else
-  if ls --color=auto -d . >/dev/null 2>&1; then
-    alias ll='l --all'
-    alias la='l --all'
-  else
-    alias ll='l --all'
-    alias la='l --all'
-  fi
+  alias la='ll'
   alias lt='ls -lah'
 fi
 
 _dotfiles_box_table() {
-  awk '
+  awk -v table_mode="${1:-full}" '
     function visible_length(value, plain) {
       plain = value
       gsub(/\033\[[0-9;?]*[[:alpha:]]/, "", plain)
@@ -59,31 +54,63 @@ _dotfiles_box_table() {
       return value ~ /^(second|seconds|minute|minutes|hour|hours|day|days|week|weeks|month|months|year|years)$/
     }
 
+    function compact_relative_time(number, unit, plain_unit) {
+      plain_unit = tolower(plain_text(unit))
+
+      if (plain_unit ~ /^second/) return number " sec"
+      if (plain_unit ~ /^minute/) return number " min"
+      if (plain_unit ~ /^hour/) return number " hr"
+      if (plain_unit ~ /^day/) return number " d"
+      if (plain_unit ~ /^week/) return number " wk"
+      if (plain_unit ~ /^month/) return number " mo"
+      if (plain_unit ~ /^year/) return number " yr"
+
+      return number " " unit
+    }
+
     function is_git_status(value) {
       value = plain_text(value)
       return value ~ /^[-!?ACDIMNRTU]+$/
     }
 
-    function file_type(permissions, name, plain_permissions, plain_name, base) {
+    function compact_file_type(value) {
+      value = tolower(value)
+
+      if (value ~ /^(dir|directory)$/) return "dir"
+      if (value ~ /^(link|symlink)$/) return "link"
+      if (value ~ /^(exe|exec|app)$/) return "exec"
+      if (value ~ /^(sh|bash|zsh|fish|ksh|csh|bashrc|zshrc|profile|zprofile|bash_profile|bash_logout)$/) return "sh"
+      if (value ~ /^(md|markdown|mdown|mkd)$/) return "md"
+      if (value ~ /^(conf|config|cfg|cnf|ini|toml|yaml|yml|json|env|gitconfig|gitignore|editorconfig|npmrc|curlrc|wgetrc)$/) return "conf"
+      if (value ~ /^(jpg|jpeg|png|gif|webp|svg|heic|bmp|tif|tiff|ico|avif)$/) return "img"
+      if (value ~ /^(zip|tar|gz|tgz|xz|bz2|7z|rar|zst|lz|lzma|dmg|iso)$/) return "arch"
+      if (value ~ /^(xcompose)$/) return "xcmp"
+
+      if (length(value) > 4) return substr(value, 1, 4)
+      return value == "" ? "file" : value
+    }
+
+    function file_type(permissions, name, plain_permissions, plain_name, base, value) {
       plain_permissions = plain_text(permissions)
       plain_name = plain_text(name)
       sub(/^[[:space:]]+/, "", plain_name)
       sub(/[[:space:]]+$/, "", plain_name)
       sub(/^[^[:space:]]+[[:space:]]+/, "", plain_name)
 
-      if (substr(plain_permissions, 1, 1) == "d") return "dir"
-      if (substr(plain_permissions, 1, 1) == "l") return "link"
-      if (plain_name ~ /\/$/) return "dir"
-      if (plain_name ~ /\*$/) return "exe"
+      if (substr(plain_permissions, 1, 1) == "d") value = "dir"
+      else if (substr(plain_permissions, 1, 1) == "l") value = "link"
+      else if (plain_name ~ /\/$/) value = "dir"
+      else if (plain_name ~ /\*$/) value = "exe"
+      else value = "file"
 
       base = plain_name
       sub(/[\/@*|=]$/, "", base)
-      if (base ~ /\.[^.\/]+$/) {
+      if (value == "file" && base ~ /\.[^.\/]+$/) {
         sub(/^.*\./, "", base)
-        return base
+        value = base
       }
 
-      return "file"
+      return table_mode == "compact" ? compact_file_type(value) : value
     }
 
     function border(left, middle, right, line, i, j) {
@@ -103,6 +130,7 @@ _dotfiles_box_table() {
         if ($0 ~ /Date Created/) date_heading = "Created"
         if ($0 ~ /Date Accessed/) date_heading = "Accessed"
         if ($0 ~ /Date Changed/) date_heading = "Changed"
+        if (table_mode == "compact") date_heading = "Mod"
         has_git = plain_text($0) ~ /(^|[[:space:]])Git([[:space:]]|$)/
 
         set_cell(rows, 1, "#")
@@ -110,15 +138,17 @@ _dotfiles_box_table() {
         set_cell(rows, 3, "Type")
         set_cell(rows, 4, "Size")
         set_cell(rows, 5, date_heading)
-        set_cell(rows, 6, "Git")
-        set_cell(rows, 7, "User")
-        set_cell(rows, 8, "Permissions")
+        if (table_mode != "compact") {
+          set_cell(rows, 6, "Git")
+          set_cell(rows, 7, "User")
+          set_cell(rows, 8, "Permissions")
+        }
         next
       }
 
       if (has_git) {
         if (is_git_status($6)) {
-          modified = $4 " " $5
+          modified = table_mode == "compact" ? compact_relative_time($4, $5) : $4 " " $5
           git = $6
           name = rest(7)
         } else {
@@ -129,7 +159,7 @@ _dotfiles_box_table() {
       } else {
         git = ""
         if (is_relative_time_unit($5)) {
-          modified = $4 " " $5
+          modified = table_mode == "compact" ? compact_relative_time($4, $5) : $4 " " $5
           name = rest(6)
         } else {
           modified = $4
@@ -142,14 +172,16 @@ _dotfiles_box_table() {
       set_cell(rows, 3, file_type($1, name))
       set_cell(rows, 4, $2)
       set_cell(rows, 5, modified)
-      set_cell(rows, 6, git)
-      set_cell(rows, 7, $3)
-      set_cell(rows, 8, $1)
+      if (table_mode != "compact") {
+        set_cell(rows, 6, git)
+        set_cell(rows, 7, $3)
+        set_cell(rows, 8, $1)
+      }
     }
 
     END {
       if (rows == 0) exit
-      columns = 8
+      columns = table_mode == "compact" ? 5 : 8
 
       border("┌", "┬", "┐")
       for (i = 1; i <= rows; i++) {
@@ -166,25 +198,55 @@ _dotfiles_box_table() {
   '
 }
 
-l() {
-  if [ "${1:-}" = "--raw" ]; then
-    shift
-    if command -v eza >/dev/null 2>&1; then
-      command eza --long --all --header --icons --git --group-directories-first --time-style=relative --classify=auto --color=always "$@"
-    elif ls --color=auto -d . >/dev/null 2>&1; then
-      command ls -lh --color=always --group-directories-first "$@"
-    else
-      command ls -lh "$@"
-    fi
-    return
-  fi
-
+_dotfiles_list_raw() {
   if command -v eza >/dev/null 2>&1; then
-    command eza --long --all --header --icons --git --group-directories-first --time-style=relative --classify=auto --color=always "$@" | _dotfiles_box_table
+    command eza --long --all --header --icons --git --group-directories-first --time-style=relative --classify=auto --color=always "$@"
   elif ls --color=auto -d . >/dev/null 2>&1; then
     command ls -lh --color=always --group-directories-first "$@"
   else
     command ls -lh "$@"
+  fi
+}
+
+_dotfiles_list_raw_all() {
+  if command -v eza >/dev/null 2>&1; then
+    command eza --long --all --header --icons --git --group-directories-first --time-style=relative --classify=auto --color=always "$@"
+  elif ls --color=auto -d . >/dev/null 2>&1; then
+    command ls -lha --color=always --group-directories-first "$@"
+  else
+    command ls -lha "$@"
+  fi
+}
+
+l() {
+  if [ "${1:-}" = "--raw" ]; then
+    shift
+    _dotfiles_list_raw "$@"
+    return
+  fi
+
+  if command -v eza >/dev/null 2>&1; then
+    command eza --long --all --header --icons --git --group-directories-first --time-style=relative --classify=auto --color=always "$@" | _dotfiles_box_table compact
+  elif ls --color=auto -d . >/dev/null 2>&1; then
+    command ls -lh --color=always --group-directories-first "$@"
+  else
+    command ls -lh "$@"
+  fi
+}
+
+ll() {
+  if [ "${1:-}" = "--raw" ]; then
+    shift
+    _dotfiles_list_raw_all "$@"
+    return
+  fi
+
+  if command -v eza >/dev/null 2>&1; then
+    command eza --long --all --header --icons --git --group-directories-first --time-style=relative --classify=auto --color=always "$@" | _dotfiles_box_table full
+  elif ls --color=auto -d . >/dev/null 2>&1; then
+    command ls -lha --color=always --group-directories-first "$@"
+  else
+    command ls -lha "$@"
   fi
 }
 

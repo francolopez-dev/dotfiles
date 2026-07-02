@@ -28,7 +28,8 @@ alias-docker-down	global	alias	Shell alias: compose down	dcd	docker compose down
 alias-fastfetch	global	alias	Shell alias: fastfetch	ff	fastfetch 2>/dev/null || true	Show system summary without shell noise	alias fastfetch system summary	stow/global/shell/.config/shell/aliases.sh
 alias-editor	global	alias	Shell alias: Neovim	v	nvim	Open Neovim	alias editor nvim neovim	stow/global/shell/.config/shell/aliases.sh
 alias-yazi	global	alias	Shell alias: Yazi	y	yazi	Open Yazi file manager	alias file manager yazi	stow/global/shell/.config/shell/aliases.sh
-alias-list	global	alias	Shell function: list files	l	l	Styled long file listing with eza or ls fallback	alias list files eza ls ll la	stow/global/shell/.config/shell/aliases.sh
+alias-list	global	alias	Shell function: compact list	l	l	Compact styled file listing with eza or ls fallback	alias list files eza ls compact la	stow/global/shell/.config/shell/aliases.sh
+alias-list-full	global	alias	Shell function: full list	ll	ll	Full styled file listing with Git user and permissions columns	alias list files eza ls full long	stow/global/shell/.config/shell/aliases.sh
 alias-tree	global	alias	Shell alias: tree view	lt	lt	Small directory tree view with eza or ls fallback	alias tree files eza lt	stow/global/shell/.config/shell/aliases.sh
 alias-clear	global	alias	Shell alias: clear scrollback	cls	cls	Clear visible terminal and scrollback	alias clear terminal scrollback	stow/global/shell/.config/shell/aliases.sh
 copy	omarchy	keybind	Copy	Super+C	omarchy-terminal-shortcut copy	Copy from terminal-aware focused app	copy clipboard terminal shortcut super c	stow/os-omarchy/hyprland/.config/hypr/conf.d/99-omarchy-keymap.conf

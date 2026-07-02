@@ -36,7 +36,55 @@ pkg_manager() {
 }
 
 aur_pkg_manager() {
-  command -v paru >/dev/null 2>&1 && echo "paru -S --needed" || echo ""
+  paru_health_status >/dev/null 2>&1 && echo "paru -S --needed" || echo ""
+}
+
+paru_health_status() {
+  local path output lib first_line
+  path="$(command -v paru 2>/dev/null || true)"
+  if [[ -z "$path" ]]; then
+    printf 'missing\n'
+    return 1
+  fi
+  if output="$(paru --version 2>&1)"; then
+    printf 'ready\n'
+    return 0
+  fi
+  lib="$(printf '%s\n' "$output" | sed -n 's/.*\(libalpm\.so\.[^: ]*\).*/\1/p' | sed -n '1p')"
+  if [[ -n "$lib" ]]; then
+    printf 'broken: missing %s\n' "$lib"
+  else
+    first_line="$(printf '%s\n' "$output" | sed -n '1p')"
+    printf 'broken: %s\n' "${first_line:-paru --version failed}"
+  fi
+  return 2
+}
+
+paru_is_ready() { [[ "$(paru_health_status 2>/dev/null || true)" == "ready" ]]; }
+
+print_paru_diagnostics() {
+  local path lib_file found_libalpm=0
+  path="$(command -v paru 2>/dev/null || true)"
+  [[ -n "$path" ]] || return 0
+  warn "paru diagnostic: $path"
+  if command -v ldd >/dev/null 2>&1; then
+    ldd "$path" 2>&1 | sed 's/^/  /' >&2 || true
+  fi
+  for lib_file in /usr/lib/libalpm.so*; do
+    [[ -e "$lib_file" ]] || continue
+    found_libalpm=1
+    printf '  %s\n' "$lib_file" >&2
+  done
+  [[ $found_libalpm -eq 1 ]] || printf '  no /usr/lib/libalpm.so* files found\n' >&2
+  pacman -Q pacman 2>&1 | sed 's/^/  /' >&2 || true
+}
+
+remove_broken_paru_bin() {
+  command -v pacman >/dev/null 2>&1 || return 1
+  pacman -Qq paru-bin >/dev/null 2>&1 || return 0
+  info "Removing broken paru-bin before source fallback"
+  # shellcheck disable=SC2024
+  sudo pacman -Rns --noconfirm paru-bin </dev/tty
 }
 
 known_aur_package() {
@@ -268,9 +316,10 @@ install_paru_bin_from_aur() {
 ensure_paru_available() {
   local dry="$1"
   shift || true
-  local declared_aur=("$@")
+  local declared_aur=("$@") health
 
-  if command -v paru >/dev/null 2>&1; then
+  health="$(paru_health_status 2>/dev/null || true)"
+  if [[ "$health" == "ready" ]]; then
     return 0
   fi
   if [[ "$dry" -eq 1 ]]; then
@@ -285,16 +334,47 @@ ensure_paru_available() {
 
   info "This profile requires AUR packages: ${declared_aur[*]}."
   info "paru is required before AUR packages can be installed."
-  if command -v pacman >/dev/null 2>&1 && pacman -Si paru >/dev/null 2>&1; then
+  if [[ "$health" == broken:* ]]; then
+    warn "paru installed but broken: ${health#broken: }"
+    print_paru_diagnostics
+    if pacman -Qq paru-bin >/dev/null 2>&1; then
+      if [[ "$health" == *libalpm.so.* ]]; then
+        warn "paru-bin is installed but incompatible with the current pacman/libalpm. Falling back to source-built paru."
+      fi
+      warn "Prebuilt paru-bin is incompatible with this system. Building paru from source is required this time."
+      remove_broken_paru_bin || return 1
+      install_paru_from_aur || return 1
+    else
+      return 1
+    fi
+  elif command -v pacman >/dev/null 2>&1 && pacman -Si paru >/dev/null 2>&1; then
     info "Installing paru with pacman"
     # shellcheck disable=SC2024
     if ! sudo pacman -S --needed paru </dev/tty; then
       warn "failed to install paru with pacman"
       return 1
     fi
+    health="$(paru_health_status 2>/dev/null || true)"
+    if [[ "$health" != "ready" ]]; then
+      warn "pacman paru installed but failed validation: ${health#broken: }"
+      print_paru_diagnostics
+      return 1
+    fi
   else
     info "pacman does not provide paru; bootstrapping paru-bin from AUR"
-    if ! install_paru_bin_from_aur; then
+    if install_paru_bin_from_aur; then
+      health="$(paru_health_status 2>/dev/null || true)"
+      if [[ "$health" != "ready" ]]; then
+        warn "paru-bin installed but failed validation: ${health#broken: }"
+        print_paru_diagnostics
+        if [[ "$health" == *libalpm.so.* ]]; then
+          warn "paru-bin is installed but incompatible with the current pacman/libalpm. Falling back to source-built paru."
+        fi
+        warn "Prebuilt paru-bin is incompatible with this system. Building paru from source is required this time."
+        remove_broken_paru_bin || return 1
+        install_paru_from_aur || return 1
+      fi
+    else
       warn "paru-bin bootstrap failed; falling back to source-built paru as a last resort"
       info "This can take several minutes."
       info "Bootstrapping paru from AUR with git and makepkg"
@@ -302,8 +382,10 @@ ensure_paru_available() {
     fi
   fi
 
-  if ! command -v paru >/dev/null 2>&1; then
-    warn "paru install completed but paru is still not on PATH"
+  health="$(paru_health_status 2>/dev/null || true)"
+  if [[ "$health" != "ready" ]]; then
+    warn "paru install completed but paru failed validation: ${health#broken: }"
+    print_paru_diagnostics
     return 1
   fi
 }

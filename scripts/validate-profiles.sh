@@ -30,6 +30,27 @@ known_pacman_package() {
   esac
 }
 
+paru_health_status() {
+  local path output lib first_line
+  path="$(command -v paru 2>/dev/null || true)"
+  if [[ -z "$path" ]]; then
+    printf 'missing\n'
+    return 1
+  fi
+  if output="$(paru --version 2>&1)"; then
+    printf 'ready\n'
+    return 0
+  fi
+  lib="$(printf '%s\n' "$output" | sed -n 's/.*\(libalpm\.so\.[^: ]*\).*/\1/p' | sed -n '1p')"
+  if [[ -n "$lib" ]]; then
+    printf 'broken: missing %s\n' "$lib"
+  else
+    first_line="$(printf '%s\n' "$output" | sed -n '1p')"
+    printf 'broken: %s\n' "${first_line:-paru --version failed}"
+  fi
+  return 2
+}
+
 aur_packages_declared() {
   local f
   for f in "$repo_dir"/packages/*/aur.txt; do
@@ -164,12 +185,13 @@ check_aur_helper() {
     return 0
   fi
   if is_arch_validation_host; then
-    if command -v paru >/dev/null 2>&1; then
-      printf 'ok paru AUR helper present\n'
-    else
-      printf 'fail: AUR packages are declared but paru is missing\n' >&2
-      failed=1
-    fi
+    local health
+    health="$(paru_health_status 2>/dev/null || true)"
+    case "$health" in
+      ready) printf 'ok paru AUR helper ready\n' ;;
+      missing) printf 'fail: AUR packages are declared but paru is missing\n' >&2; failed=1 ;;
+      broken:*) printf 'fail: paru installed but broken: %s\n' "${health#broken: }" >&2; failed=1 ;;
+    esac
   else
     printf 'ok AUR helper runtime check skipped on non-Arch validation host\n'
   fi

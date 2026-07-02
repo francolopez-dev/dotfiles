@@ -53,6 +53,7 @@ cmd_apply() {
   else
     apply_all_layers
   fi
+  refresh_after_apply "$([[ ${#extra[@]} -gt 0 ]] && printf 1 || printf 0)"
   [[ ${#extra[@]} -eq 0 ]] && ok "layers applied"
 }
 
@@ -168,9 +169,9 @@ cmd_update() {
 
   info "Update plan for $(detect_hostname) ($(detect_os)); profile: $(active_profile):"
   if [[ "$(detect_os)" == "omarchy" ]]; then
-    printf '  1. git pull --ff-only\n  2. install pacman profile packages\n  3. install paru/AUR profile packages\n  4. re-stow layers (conflict wizard; never silently overwritten)\n'
+    printf '  1. git pull --ff-only\n  2. install pacman profile packages\n  3. install paru/AUR profile packages\n  4. re-stow layers (conflict wizard; never silently overwritten)\n  5. targeted desktop/system refreshes\n'
   else
-    printf '  1. git pull --ff-only\n  2. install missing packages\n  3. re-stow layers (conflict wizard; never silently overwritten)\n'
+    printf '  1. git pull --ff-only\n  2. install missing packages\n  3. re-stow layers (conflict wizard; never silently overwritten)\n  4. targeted system refreshes\n'
   fi
   if [[ $dry -eq 1 ]]; then
     dim "(dry-run: nothing will change)"
@@ -212,9 +213,153 @@ cmd_update() {
   fi
 
   configure_declared_services "$dry"
+  refresh_after_apply "$dry"
 
   [[ $dry -eq 0 ]] && ok "update complete"
   [[ $dry -eq 0 ]] && print_next_steps
+}
+
+refresh_after_apply() {
+  local dry="$1" needs_manual=()
+
+  info "Refreshing changed configuration"
+
+  refresh_systemd_daemons "$dry"
+  refresh_desktop_caches "$dry"
+  refresh_shell_caches "$dry"
+
+  if [[ "$(detect_os)" == "omarchy" ]]; then
+    refresh_omarchy_session "$dry" needs_manual
+  fi
+
+  detect_manual_refreshes needs_manual
+  if [[ ${#needs_manual[@]} -gt 0 ]]; then
+    warn "manual refresh still needed: ${needs_manual[*]}"
+  fi
+}
+
+run_refresh_cmd() {
+  local dry="$1" label="$2"
+  shift 2
+  if [[ "$dry" -eq 1 ]]; then
+    dim "  would run: $*"
+    return 0
+  fi
+  if "$@" >/dev/null 2>&1; then
+    ok "$label"
+  else
+    warn "refresh failed: $label"
+    return 1
+  fi
+}
+
+systemd_user_ready() {
+  command -v systemctl >/dev/null 2>&1 || return 1
+  systemctl --user show-environment >/dev/null 2>&1
+}
+
+systemd_user_unit_exists() {
+  local unit="$1"
+  systemd_user_ready || return 1
+  systemctl --user list-unit-files "$unit" --no-legend 2>/dev/null | grep -q "^$unit"
+}
+
+systemd_user_unit_active() {
+  local unit="$1"
+  systemd_user_ready || return 1
+  systemctl --user is-active --quiet "$unit" 2>/dev/null
+}
+
+refresh_systemd_daemons() {
+  local dry="$1"
+  command -v systemctl >/dev/null 2>&1 || return 0
+
+  if [[ -d "$HOME/.config/systemd/user" ]] && systemd_user_ready; then
+    run_refresh_cmd "$dry" "user systemd daemon reloaded" systemctl --user daemon-reload || true
+  elif [[ -d "$HOME/.config/systemd/user" ]]; then
+    warn "user systemd config exists but user manager is not reachable; log in again if user units do not appear"
+  fi
+}
+
+refresh_desktop_caches() {
+  local dry="$1" icon_dir font_dirs=()
+
+  if command -v fc-cache >/dev/null 2>&1 && [[ -d "$HOME/.local/share/fonts" || -d "$HOME/.fonts" ]]; then
+    [[ -d "$HOME/.local/share/fonts" ]] && font_dirs+=("$HOME/.local/share/fonts")
+    [[ -d "$HOME/.fonts" ]] && font_dirs+=("$HOME/.fonts")
+    run_refresh_cmd "$dry" "font cache refreshed" fc-cache -f "${font_dirs[@]}" || true
+  fi
+  if command -v update-desktop-database >/dev/null 2>&1 && [[ -d "$HOME/.local/share/applications" ]]; then
+    run_refresh_cmd "$dry" "desktop database refreshed" update-desktop-database "$HOME/.local/share/applications" || true
+  fi
+  if command -v update-mime-database >/dev/null 2>&1 && [[ -d "$HOME/.local/share/mime" ]]; then
+    run_refresh_cmd "$dry" "MIME database refreshed" update-mime-database "$HOME/.local/share/mime" || true
+  fi
+  if command -v gtk-update-icon-cache >/dev/null 2>&1 && [[ -d "$HOME/.local/share/icons" ]]; then
+    for icon_dir in "$HOME/.local/share/icons"/*; do
+      [[ -f "$icon_dir/index.theme" ]] || continue
+      run_refresh_cmd "$dry" "icon cache refreshed: $(basename "$icon_dir")" gtk-update-icon-cache -q -t -f "$icon_dir" || true
+    done
+  fi
+}
+
+refresh_shell_caches() {
+  local dry="$1"
+  if command -v zsh >/dev/null 2>&1 && [[ -f "$HOME/.zshrc" ]]; then
+    if [[ "$dry" -eq 1 ]]; then
+      dim "  would refresh zsh completion dump"
+    else
+      rm -f "$HOME"/.zcompdump* 2>/dev/null || true
+      ok "zsh completion cache cleared"
+    fi
+  fi
+}
+
+refresh_omarchy_session() {
+  local dry="$1" needs_manual_ref="$2"
+
+  if command -v hyprctl >/dev/null 2>&1 && [[ -n "${HYPRLAND_INSTANCE_SIGNATURE:-}" ]]; then
+    run_refresh_cmd "$dry" "Hyprland config reloaded" hyprctl reload || true
+    if [[ "$dry" -eq 0 ]]; then
+      hyprctl configerrors || true
+    fi
+  fi
+
+  if systemd_user_unit_active waybar.service; then
+    run_refresh_cmd "$dry" "waybar user service restarted" systemctl --user restart waybar.service || true
+  elif pgrep -x waybar >/dev/null 2>&1; then
+    if command -v omarchy >/dev/null 2>&1; then
+      run_refresh_cmd "$dry" "waybar restarted" omarchy restart waybar || true
+    else
+      warn "waybar is running but no managed restart command was found"
+      eval "$needs_manual_ref+=(waybar)"
+    fi
+  fi
+
+  if systemd_user_unit_active hyprpaper.service; then
+    run_refresh_cmd "$dry" "hyprpaper user service restarted" systemctl --user restart hyprpaper.service || true
+  elif pgrep -x hyprpaper >/dev/null 2>&1; then
+    warn "hyprpaper is running without a known user service; leave it running to avoid disrupting wallpaper state"
+    eval "$needs_manual_ref+=(hyprpaper)"
+  fi
+
+  for unit in xdg-desktop-portal.service xdg-desktop-portal-hyprland.service mako.service swaync.service; do
+    if systemd_user_unit_active "$unit"; then
+      run_refresh_cmd "$dry" "$unit restarted" systemctl --user try-restart "$unit" || true
+    fi
+  done
+
+  if pgrep -x mako >/dev/null 2>&1 && ! systemd_user_unit_exists mako.service; then
+    warn "mako is running without a known user service; not killing notification daemon"
+    eval "$needs_manual_ref+=(mako)"
+  fi
+}
+
+detect_manual_refreshes() {
+  local needs_manual_ref="$1"
+  if [[ -f /run/reboot-required ]]; then
+    eval "$needs_manual_ref+=(reboot)"
+  fi
 }
 
 configure_declared_services() {

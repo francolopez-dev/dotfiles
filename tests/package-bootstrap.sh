@@ -40,6 +40,8 @@ assert_not_contains 'makepkg -si' "$repo_dir/scripts/lib/packages.sh"
 assert_contains 'This can take several minutes.' "$repo_dir/scripts/lib/packages.sh"
 assert_contains 'sudo pacman -U --needed' "$repo_dir/scripts/lib/packages.sh"
 assert_contains 'paru-debug-*|*.sig) continue' "$repo_dir/scripts/lib/packages.sh"
+assert_contains 'https://aur.archlinux.org/paru-bin.git' "$repo_dir/scripts/lib/packages.sh"
+assert_contains "OPTIONS='!debug'" "$repo_dir/scripts/lib/packages.sh"
 assert_not_contains '--noconfirm' "$repo_dir/scripts/bootstrap.sh"
 assert_contains 'sudo pacman -S --needed' "$repo_dir/scripts/bootstrap.sh"
 
@@ -94,6 +96,16 @@ fi
 printf '%s\n' zen-browser-bin >"$tmp/packages/profile-test-omarchy/pacman.txt"
 if validate_pacman_package_names >/dev/null 2>&1; then
   fail 'known AUR package zen-browser-bin was accepted in pacman.txt'
+fi
+
+printf '%s\n' profile-aur-package >"$tmp/packages/profile-test-omarchy/aur.txt"
+if validate_aur_package_names >/dev/null 2>&1; then
+  fail 'non-binary AUR package was accepted without override'
+fi
+
+printf '%s\n' profile-package-git >"$tmp/packages/profile-test-omarchy/aur.txt"
+if validate_aur_package_names >/dev/null 2>&1; then
+  fail 'source AUR package was accepted without override'
 fi
 
 printf 'ok package bootstrap tests\n'

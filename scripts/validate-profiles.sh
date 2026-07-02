@@ -11,7 +11,14 @@ package_items() {
 
 known_aur_package() {
   case "$1" in
-    zen-browser-bin) return 0 ;;
+    paru-bin|zen-browser-bin) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+allowed_source_aur_package() {
+  case "$1" in
+    # Source-built AUR packages must be explicitly justified here.
     *) return 1 ;;
   esac
 }
@@ -65,6 +72,13 @@ check_forbidden_aur_packages() {
   for f in "$repo_dir"/packages/*/aur.txt; do
     [[ -f "$f" ]] || continue
     while read -r pkg; do
+      if [[ "$pkg" == *-git ]] && ! allowed_source_aur_package "$pkg"; then
+        printf 'fail: forbidden source AUR package declaration\nfile: %s\npackage: %s\nfix: prefer official repos, then maintained *-bin packages; source builds require explicit override\n' "${f#"$repo_dir/"}" "$pkg" >&2
+        failed=1
+      elif [[ "$pkg" != *-bin ]] && ! allowed_source_aur_package "$pkg"; then
+        printf 'fail: non-binary AUR package declaration\nfile: %s\npackage: %s\nfix: prefer official repos or a maintained *-bin package unless explicitly overridden\n' "${f#"$repo_dir/"}" "$pkg" >&2
+        failed=1
+      fi
       if known_aur_package "$pkg"; then
         continue
       elif known_pacman_package "$pkg"; then

@@ -69,6 +69,15 @@ second with paru. Do not put official repo packages in `aur.txt`. For
 Debian/Ubuntu, use `apt.txt`. One package per line. Comments and blank lines
 are allowed.
 
+Package policy is project-wide: always prefer prebuilt binaries. Compilation is
+the last resort. Preference order is official pacman repository, official binary
+package, binary AUR package (`*-bin`), then source build only when unavoidable.
+When a package exists as `foo`, `foo-bin`, and `foo-git`, declare `foo` in
+`pacman.txt` if it is in the official repositories; otherwise declare `foo-bin`
+in `aur.txt`. Do not declare `foo-git` or other source-built AUR packages unless
+there is no maintained binary equivalent and the exception is documented in the
+validation allowlist.
+
 ## Commands
 
 Useful checks after edits:

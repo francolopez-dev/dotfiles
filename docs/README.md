@@ -29,6 +29,11 @@ Bootstrap is for first run on a new machine. It clones `~/dotfiles`, installs
 bootstrap prerequisites, installs Oh My Zsh, links `~/.local/bin/dotfiles`, and
 runs `dotfiles update`.
 
+Package policy: always prefer prebuilt binaries. Use official repository
+packages first, then official binary packages, then maintained AUR `*-bin`
+packages. Source-built AUR packages, including `*-git`, are last-resort only and
+must be explicitly allowed in validation.
+
 If Stow finds existing Omarchy config, choose the recommended backup option.
 Backups go under `~/.dotfiles-backup/YYYY-MM-DD-HHMMSS/`.
 

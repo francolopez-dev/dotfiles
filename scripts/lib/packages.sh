@@ -41,7 +41,14 @@ aur_pkg_manager() {
 
 known_aur_package() {
   case "$1" in
-    zen-browser-bin) return 0 ;;
+    paru-bin|zen-browser-bin) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+allowed_source_aur_package() {
+  case "$1" in
+    # Source-built AUR packages must be explicitly justified here.
     *) return 1 ;;
   esac
 }
@@ -93,6 +100,15 @@ validate_aur_package_names() {
   local failed=0 pkg
   while read -r pkg; do
     [[ -z "$pkg" ]] && continue
+    if [[ "$pkg" == *-git ]] && ! allowed_source_aur_package "$pkg"; then
+      warn "forbidden source AUR package declaration: $pkg"
+      warn "prefer official repos, then binary packages, then *-bin; source builds require an explicit override"
+      failed=1
+    elif [[ "$pkg" != *-bin ]] && ! allowed_source_aur_package "$pkg"; then
+      warn "non-binary AUR package declaration requires review: $pkg"
+      warn "prefer an official repo package or maintained *-bin package when available"
+      failed=1
+    fi
     if known_aur_package "$pkg"; then
       continue
     elif known_pacman_package "$pkg"; then
@@ -151,7 +167,7 @@ install_paru_from_aur() {
 
   if ! (
     cd "$build_root/paru" || exit 1
-    makepkg -s </dev/tty
+    makepkg -s -- OPTIONS='!debug' </dev/tty
   ); then
     rm -rf "$build_root"
     warn "paru AUR build failed"
@@ -176,6 +192,74 @@ install_paru_from_aur() {
   if ! sudo pacman -U --needed "${pkg_files[@]}" </dev/tty; then
     rm -rf "$build_root"
     warn "failed to install built paru package"
+    return 1
+  fi
+  rm -rf "$build_root"
+}
+
+install_paru_bin_from_aur() {
+  local build_root pkg_file
+  local pkg_files=()
+
+  if ! command -v pacman >/dev/null 2>&1; then
+    warn "pacman is required to install paru-bin"
+    return 1
+  fi
+  if ! command -v git >/dev/null 2>&1; then
+    warn "git is required to clone paru-bin from AUR"
+    return 1
+  fi
+  if ! have_tty; then
+    warn "paru-bin bootstrap from AUR requires a TTY for makepkg/provider prompts"
+    return 1
+  fi
+  if ! command -v makepkg >/dev/null 2>&1; then
+    info "Installing AUR packaging prerequisites with pacman: base-devel"
+    # shellcheck disable=SC2024
+    if ! sudo pacman -S --needed base-devel </dev/tty; then
+      warn "failed to install AUR packaging prerequisites: base-devel"
+      return 1
+    fi
+  fi
+  if ! command -v makepkg >/dev/null 2>&1; then
+    warn "makepkg is required to package paru-bin but is still missing"
+    return 1
+  fi
+
+  build_root="$(mktemp -d)"
+  if ! git clone https://aur.archlinux.org/paru-bin.git "$build_root/paru-bin"; then
+    rm -rf "$build_root"
+    warn "failed to clone paru-bin AUR package"
+    return 1
+  fi
+
+  if ! (
+    cd "$build_root/paru-bin" || exit 1
+    makepkg -s -- OPTIONS='!debug' </dev/tty
+  ); then
+    rm -rf "$build_root"
+    warn "paru-bin package build failed"
+    return 1
+  fi
+
+  for pkg_file in "$build_root"/paru-bin/paru-bin-*.pkg.tar.*; do
+    [[ -e "$pkg_file" ]] || continue
+    case "$(basename "$pkg_file")" in
+      paru-bin-debug-*|*.sig) continue ;;
+    esac
+    pkg_files+=("$pkg_file")
+  done
+  if [[ ${#pkg_files[@]} -eq 0 ]]; then
+    rm -rf "$build_root"
+    warn "paru-bin build completed but no installable package was found"
+    return 1
+  fi
+
+  info "Installing paru-bin package with pacman"
+  # shellcheck disable=SC2024
+  if ! sudo pacman -U --needed "${pkg_files[@]}" </dev/tty; then
+    rm -rf "$build_root"
+    warn "failed to install paru-bin package"
     return 1
   fi
   rm -rf "$build_root"
@@ -209,10 +293,13 @@ ensure_paru_available() {
       return 1
     fi
   else
-    info "paru is required and must be built once from AUR."
-    info "This can take several minutes."
-    info "Bootstrapping paru from AUR with git and makepkg"
-    install_paru_from_aur || return 1
+    info "pacman does not provide paru; bootstrapping paru-bin from AUR"
+    if ! install_paru_bin_from_aur; then
+      warn "paru-bin bootstrap failed; falling back to source-built paru as a last resort"
+      info "This can take several minutes."
+      info "Bootstrapping paru from AUR with git and makepkg"
+      install_paru_from_aur || return 1
+    fi
   fi
 
   if ! command -v paru >/dev/null 2>&1; then

@@ -41,7 +41,7 @@ assert_contains 'This can take several minutes.' "$repo_dir/scripts/lib/packages
 assert_contains 'sudo pacman -U --needed' "$repo_dir/scripts/lib/packages.sh"
 assert_contains 'paru-debug-*|*.sig) continue' "$repo_dir/scripts/lib/packages.sh"
 assert_contains 'https://aur.archlinux.org/paru-bin.git' "$repo_dir/scripts/lib/packages.sh"
-assert_contains "OPTIONS='!debug'" "$repo_dir/scripts/lib/packages.sh"
+assert_not_contains "OPTIONS='!debug'" "$repo_dir/scripts/lib/packages.sh"
 assert_not_contains '--noconfirm' "$repo_dir/scripts/bootstrap.sh"
 assert_contains 'pacman_install_args=(-S --needed)' "$repo_dir/scripts/bootstrap.sh"
 assert_contains 'pacman_install_args=(-Syu --needed)' "$repo_dir/scripts/bootstrap.sh"

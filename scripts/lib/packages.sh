@@ -167,7 +167,7 @@ install_paru_from_aur() {
 
   if ! (
     cd "$build_root/paru" || exit 1
-    makepkg -s -- OPTIONS='!debug' </dev/tty
+    makepkg -s </dev/tty
   ); then
     rm -rf "$build_root"
     warn "paru AUR build failed"
@@ -235,7 +235,7 @@ install_paru_bin_from_aur() {
 
   if ! (
     cd "$build_root/paru-bin" || exit 1
-    makepkg -s -- OPTIONS='!debug' </dev/tty
+    makepkg -s </dev/tty
   ); then
     rm -rf "$build_root"
     warn "paru-bin package build failed"

@@ -8,3 +8,7 @@ edk2-ovmf
 swtpm
 dnsmasq
 virt-viewer
+
+# Local LLM tooling for FORNAX only.
+ollama-cuda
+lmstudio-bin

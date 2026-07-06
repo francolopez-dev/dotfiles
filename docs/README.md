@@ -159,4 +159,5 @@ configure Walker.
 
 More docs: [first-time-setup.md](first-time-setup.md), [first-time-system.md](first-time-system.md),
 [git-github-cheatsheet.md](git-github-cheatsheet.md), [autostart.md](autostart.md),
-[terminal-ux.md](terminal-ux.md), and [where-to-edit.md](where-to-edit.md).
+[wallpapers.md](wallpapers.md), [terminal-ux.md](terminal-ux.md), and
+[where-to-edit.md](where-to-edit.md).

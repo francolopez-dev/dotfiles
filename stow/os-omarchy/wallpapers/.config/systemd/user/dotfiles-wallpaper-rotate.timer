@@ -1,0 +1,12 @@
+[Unit]
+Description=Run dotfiles Omarchy wallpaper rotation
+Documentation=man:systemd.timer(5)
+
+[Timer]
+OnBootSec=1m
+OnUnitActiveSec=1m
+AccuracySec=30s
+Persistent=true
+
+[Install]
+WantedBy=timers.target

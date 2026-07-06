@@ -1,0 +1,7 @@
+[Unit]
+Description=Rotate Omarchy wallpaper from dotfiles-managed and local images
+Documentation=man:systemd.service(5)
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/dotfiles-wallpaper-rotate rotate

@@ -6,6 +6,7 @@
 #   status   one aggregated dashboard (machine, repo, layers, drift, sync, recovery)
 #   update   pull, re-stow, install missing packages (the daily maintenance verb)
 #   apply    re-stow layers only (after editing configs locally)
+#   wallpaper rotate randomize Omarchy wallpaper from repo/local folders
 #   autostart audit and manage login/startup items
 set -euo pipefail
 
@@ -34,6 +35,8 @@ Usage:
   dotfiles commands list     List discoverable shortcuts, aliases, layouts, commands.
   dotfiles commands search   Search discoverable dotfiles entries.
   dotfiles commands doctor   Validate the discovery registry.
+  dotfiles wallpaper rotate  Rotate Omarchy wallpaper now.
+  dotfiles wallpaper status  Show Omarchy wallpaper rotation state.
   dotfiles git setup-ssh     Guided GitHub SSH setup; prompts before changes.
   dotfiles autostart status  Audit login/startup items.
   dotfiles autostart help    Show autostart subcommands.
@@ -238,6 +241,7 @@ refresh_after_apply() {
   info "Refreshing changed configuration"
 
   refresh_systemd_daemons "$dry"
+  configure_wallpaper_rotation "$dry"
   refresh_desktop_caches "$dry"
   refresh_shell_caches "$dry"
 
@@ -392,6 +396,117 @@ configure_declared_services() {
   else
     warn "tailscaled.service not started; run: sudo systemctl enable --now tailscaled.service"
   fi
+}
+
+wallpaper_config_file() {
+  printf '%s\n' "${XDG_CONFIG_HOME:-$HOME/.config}/dotfiles/wallpapers.conf"
+}
+
+wallpaper_load_config() {
+  WALLPAPER_ROTATION_ENABLED=1
+  WALLPAPER_ROTATION_INTERVAL="15m"
+  WALLPAPER_REPO_DIR="$HOME/.config/omarchy/backgrounds/tokyo-night"
+  WALLPAPER_LOCAL_DIR="$HOME/Pictures/Wallpapers/local"
+  local config
+  config="$(wallpaper_config_file)"
+  if [[ -r "$config" ]]; then
+    # shellcheck disable=SC1090
+    . "$config"
+  fi
+}
+
+wallpaper_count_in() {
+  local dir="$1" count=0 file
+  while IFS= read -r file; do
+    [[ -n "$file" ]] || continue
+    count=$((count + 1))
+  done < <(find -L "$dir" -maxdepth 1 -type f \( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' -o -iname '*.webp' \) -print 2>/dev/null || true)
+  printf '%s\n' "$count"
+}
+
+configure_wallpaper_rotation() {
+  local dry="$1"
+  [[ "$(detect_os)" == "omarchy" ]] || return 0
+  wallpaper_load_config
+
+  if [[ "$dry" -eq 1 ]]; then
+    dim "  would create local wallpaper folder: $WALLPAPER_LOCAL_DIR"
+  else
+    mkdir -p "$WALLPAPER_LOCAL_DIR"
+  fi
+
+  command -v systemctl >/dev/null 2>&1 || return 0
+  if ! systemd_user_ready; then
+    warn "user systemd manager is not reachable; wallpaper timer will be enabled on next update/login"
+    return 0
+  fi
+
+  if [[ "$WALLPAPER_ROTATION_ENABLED" == "1" ]]; then
+    if [[ "$dry" -eq 1 ]]; then
+      dim "  would run: systemctl --user enable --now dotfiles-wallpaper-rotate.timer"
+    else
+      systemctl --user enable --now dotfiles-wallpaper-rotate.timer >/dev/null 2>&1 || warn "failed to enable wallpaper rotation timer"
+    fi
+  else
+    if [[ "$dry" -eq 1 ]]; then
+      dim "  would run: systemctl --user disable --now dotfiles-wallpaper-rotate.timer"
+    else
+      systemctl --user disable --now dotfiles-wallpaper-rotate.timer >/dev/null 2>&1 || true
+    fi
+  fi
+}
+
+wallpaper_status_lines() {
+  local timer="unknown" current="unknown"
+  [[ "$(detect_os)" == "omarchy" ]] || return 0
+  wallpaper_load_config
+  if command -v systemctl >/dev/null 2>&1 && systemd_user_ready; then
+    timer="$(systemctl --user is-active dotfiles-wallpaper-rotate.timer 2>/dev/null || true)"
+    timer="${timer:-unknown}"
+  fi
+  if [[ -L "$HOME/.config/omarchy/current/background" ]]; then
+    current="$(readlink "$HOME/.config/omarchy/current/background")"
+  fi
+  printf '  rotation enabled : %s\n' "$WALLPAPER_ROTATION_ENABLED"
+  printf '  interval         : %s\n' "$WALLPAPER_ROTATION_INTERVAL"
+  printf '  timer            : %s\n' "$timer"
+  printf '  repo wallpapers  : %s (%s)\n' "$(wallpaper_count_in "$WALLPAPER_REPO_DIR")" "$WALLPAPER_REPO_DIR"
+  printf '  local wallpapers : %s (%s)\n' "$(wallpaper_count_in "$WALLPAPER_LOCAL_DIR")" "$WALLPAPER_LOCAL_DIR"
+  printf '  current          : %s\n' "$current"
+}
+
+cmd_wallpaper() {
+  local subcmd="${1:-status}"
+  [[ "$(detect_os)" == "omarchy" ]] || { err "wallpaper commands are Omarchy-only"; return 1; }
+  case "$subcmd" in
+    rotate)
+      if command -v dotfiles-wallpaper-rotate >/dev/null 2>&1; then
+        dotfiles-wallpaper-rotate rotate --force
+      else
+        "$HOME/.local/bin/dotfiles-wallpaper-rotate" rotate --force
+      fi
+      ;;
+    status)
+      if command -v dotfiles-wallpaper-rotate >/dev/null 2>&1; then
+        dotfiles-wallpaper-rotate status
+      else
+        wallpaper_status_lines
+      fi
+      ;;
+    open-local)
+      if command -v dotfiles-wallpaper-rotate >/dev/null 2>&1; then
+        dotfiles-wallpaper-rotate open-local
+      else
+        wallpaper_load_config
+        mkdir -p "$WALLPAPER_LOCAL_DIR"
+        printf '%s\n' "$WALLPAPER_LOCAL_DIR"
+      fi
+      ;;
+    help|-h|--help|"")
+      printf 'Usage:\n  dotfiles wallpaper rotate\n  dotfiles wallpaper status\n  dotfiles wallpaper open-local\n'
+      ;;
+    *) err "unknown wallpaper subcommand: $subcmd"; return 1 ;;
+  esac
 }
 
 print_next_steps() {
@@ -595,6 +710,8 @@ cmd_doctor() {
     else
       warn "hyprctl missing or not available outside Hyprland"
     fi
+    info "Wallpaper rotation"
+    wallpaper_status_lines
   fi
   return "$failed"
 }
@@ -679,6 +796,10 @@ cmd_status() {
   info "Service state"
   _tailscaled_daemon_status
   _waybar_status
+  if [[ "$os" == "omarchy" ]]; then
+    info "Wallpaper rotation"
+    wallpaper_status_lines
+  fi
 
   info "Recovery pack"
   local pack="${RECOVERY_PACK_PATH:-$HOME/recovery/recovery-pack.age}"
@@ -948,6 +1069,7 @@ main() {
     apply)  cmd_apply "$@" ;;
     doctor) cmd_doctor "$@" ;;
     commands) cmd_commands "$@" ;;
+    wallpaper) cmd_wallpaper "$@" ;;
     git) cmd_git "$@" ;;
     autostart) cmd_autostart "$@" ;;
     help|-h|--help) usage ;;

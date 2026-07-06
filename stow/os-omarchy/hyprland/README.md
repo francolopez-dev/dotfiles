@@ -19,3 +19,22 @@ The stowed top-level files source the matching dotfiles fragments in `conf.d/`.
 
 Keep machine-specific monitor and workspace choices out of this layer. Put them
 in `stow/profile-<hostname>-omarchy/hyprland/.config/hypr/conf.d/`.
+
+## Optional input features
+
+Omarchy profiles may opt into optional Omarchy-only stow layers via:
+
+```text
+profiles/profile-<hostname>-omarchy/stow-layers.txt
+```
+
+To make ALT behave as SUPER/Windows for one machine, add this line to that
+machine's manifest:
+
+```text
+os-omarchy-alt-super
+```
+
+Then run `dotfiles update`. The update flow reloads Hyprland with
+`hyprctl reload`; if the key remap does not take effect immediately, log out and
+back in. To disable it, remove or comment that line and rerun `dotfiles update`.

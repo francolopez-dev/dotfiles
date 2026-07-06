@@ -150,11 +150,47 @@ stow_layer() {
   return "$failed"
 }
 
+unstow_layer() {
+  local layer="$1"; shift || true
+  local dir="$DOTFILES_DIR/stow/$layer"
+  local failed=0 p pkg
+  [[ -d "$dir" ]] || return 0
+  for p in "$dir"/*/; do
+    [[ -d "$p" ]] || continue
+    pkg="$(basename "$p")"
+    if ! stow --no-folding --dir="$dir" --target="$HOME" --delete "$@" "$pkg"; then
+      failed=1
+      warn "failed to unstow inactive optional package: $layer/$pkg"
+    fi
+  done
+  return "$failed"
+}
+
+unstow_inactive_optional_layers() {
+  local active_layers=()
+  local known layer active failed=0
+  mapfile -t active_layers < <(resolve_layers)
+  while read -r known; do
+    [[ -z "$known" ]] && continue
+    active=0
+    for layer in "${active_layers[@]}"; do
+      [[ "$layer" == "$known" ]] && active=1
+    done
+    [[ "$active" -eq 1 ]] && continue
+    info "unstow inactive optional layer: $known"
+    if ! unstow_layer "$known" "$@"; then
+      failed=1
+    fi
+  done < <(resolve_known_optional_stow_layers)
+  return "$failed"
+}
+
 # apply_all_layers [extra stow args...]
 # Applies every layer for this machine, in order.
 apply_all_layers() {
   local layer failed=0
   require_stow || return 1
+  unstow_inactive_optional_layers "$@" || failed=1
   while read -r layer; do
     [[ -z "$layer" ]] && continue
     info "stow layer: $layer"

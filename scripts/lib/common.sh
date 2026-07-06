@@ -92,10 +92,45 @@ resolve_layers() {
   local os="${1:-$(detect_os)}" host="${2:-$(detect_hostname)}"
   echo "global"
   [[ -d "$DOTFILES_DIR/stow/os-$os" ]] && echo "os-$os"
+  resolve_optional_stow_layers "$os" "$host"
   local profile
   profile="$(active_profile "$os" "$host")"
   [[ -d "$DOTFILES_DIR/stow/$profile" ]] && echo "$profile"
   return 0
+}
+
+resolve_optional_stow_layers() {
+  local os="${1:-$(detect_os)}" host="${2:-$(detect_hostname)}"
+  local profile manifest layer
+  profile="$(active_profile "$os" "$host")"
+  manifest="$DOTFILES_DIR/profiles/$profile/stow-layers.txt"
+  [[ -f "$manifest" ]] || return 0
+
+  while IFS= read -r layer || [[ -n "$layer" ]]; do
+    layer="${layer%%#*}"
+    layer="${layer#"${layer%%[![:space:]]*}"}"
+    layer="${layer%"${layer##*[![:space:]]}"}"
+    [[ -z "$layer" ]] && continue
+
+    case "$os:$layer" in
+      omarchy:os-omarchy-*) ;;
+      *) warn "optional stow layer '$layer' is not valid for $profile; skipping"; continue ;;
+    esac
+
+    if [[ -d "$DOTFILES_DIR/stow/$layer" ]]; then
+      echo "$layer"
+    else
+      warn "optional stow layer '$layer' declared by $profile does not exist; skipping"
+    fi
+  done <"$manifest"
+}
+
+resolve_known_optional_stow_layers() {
+  local os="${1:-$(detect_os)}" layer_path
+  for layer_path in "$DOTFILES_DIR/stow/os-$os"-*/; do
+    [[ -d "$layer_path" ]] || continue
+    basename "$layer_path"
+  done
 }
 
 # Echoes ordered package declaration files for this machine and package source.

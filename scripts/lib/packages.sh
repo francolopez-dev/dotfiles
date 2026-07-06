@@ -180,7 +180,7 @@ remove_broken_paru_bin() {
 
 known_aur_package() {
   case "$1" in
-    paru-bin|zen-browser-bin) return 0 ;;
+    paru-bin|brave-bin|zen-browser-bin) return 0 ;;
     *) return 1 ;;
   esac
 }

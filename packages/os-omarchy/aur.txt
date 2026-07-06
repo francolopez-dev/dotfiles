@@ -1,2 +1,3 @@
 # Omarchy (Arch) AUR packages installed via paru after pacman packages.
+brave-bin
 zen-browser-bin

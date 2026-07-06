@@ -687,7 +687,7 @@ cmd_doctor() {
   rm -f /tmp/dotfiles-doctor-stow.$$
 
   if [[ "$(detect_os)" == "omarchy" ]]; then
-    for cmd in ghostty firefox atuin zoxide yazi satty tailscale; do
+    for cmd in ghostty brave firefox atuin zoxide yazi satty tailscale; do
       if command -v "$cmd" >/dev/null 2>&1; then
         ok "$cmd installed"
       else
@@ -760,6 +760,7 @@ cmd_status() {
   _command_status zsh
   _command_status dotfiles
   _command_status ghostty
+  _command_status brave
   _command_status firefox
   if [[ -r "$HOME/.oh-my-zsh/oh-my-zsh.sh" ]]; then
     ok "oh-my-zsh installed"

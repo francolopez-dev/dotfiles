@@ -5,6 +5,7 @@ CONFIG_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/dotfiles/wallpapers.conf"
 STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles"
 LAST_FILE="$STATE_DIR/wallpaper-rotate.last"
 PREVIOUS_FILE="$STATE_DIR/wallpaper-rotate.previous"
+CURRENT_BACKGROUND_LINK="$HOME/.config/omarchy/current/background"
 
 WALLPAPER_ROTATION_ENABLED=1
 WALLPAPER_ROTATION_INTERVAL="15m"
@@ -68,9 +69,12 @@ count_wallpapers_in() {
 }
 
 choose_wallpaper() {
-  local previous="" choice_count=0 choice line
+  local previous="" previous_real="" current="" current_real="" choice_count=0 choice line line_real
   local -a choices=()
   [[ -r "$PREVIOUS_FILE" ]] && previous="$(<"$PREVIOUS_FILE")"
+  [[ -n "$previous" ]] && previous_real="$(readlink -f "$previous" 2>/dev/null || true)"
+  [[ -L "$CURRENT_BACKGROUND_LINK" ]] && current="$(readlink "$CURRENT_BACKGROUND_LINK")"
+  [[ -n "$current" ]] && current_real="$(readlink -f "$current" 2>/dev/null || true)"
   mapfile -t choices < <(valid_wallpapers)
   choice_count="${#choices[@]}"
   [[ "$choice_count" -gt 0 ]] || return 1
@@ -81,11 +85,50 @@ choose_wallpaper() {
   fi
 
   while IFS= read -r line; do
-    [[ "$line" != "$previous" ]] || continue
+    line_real="$(readlink -f "$line" 2>/dev/null || true)"
+    [[ -z "$previous_real" || "$line_real" != "$previous_real" ]] || continue
+    [[ -z "$current_real" || "$line_real" != "$current_real" ]] || continue
     choice="$line"
     break
   done < <(printf '%s\n' "${choices[@]}" | shuf)
   printf '%s\n' "${choice:-${choices[0]}}"
+}
+
+start_swaybg() {
+  local background_link="$1"
+  if command -v uwsm-app >/dev/null 2>&1; then
+    setsid uwsm-app -- swaybg -i "$background_link" -m fill >/dev/null 2>&1 &
+  else
+    setsid swaybg -i "$background_link" -m fill >/dev/null 2>&1 &
+  fi
+}
+
+set_wallpaper() {
+  local selected="$1" old_background=""
+  [[ -L "$CURRENT_BACKGROUND_LINK" ]] && old_background="$(readlink "$CURRENT_BACKGROUND_LINK")"
+
+  ln -nsf "$selected" "$CURRENT_BACKGROUND_LINK"
+  pkill -x swaybg >/dev/null 2>&1 || true
+  start_swaybg "$CURRENT_BACKGROUND_LINK"
+  sleep 0.5
+
+  if pgrep -x swaybg >/dev/null 2>&1; then
+    return 0
+  fi
+
+  # Restore the previous wallpaper rather than leaving a black background.
+  if [[ -n "$old_background" && -f "$old_background" ]]; then
+    ln -nsf "$old_background" "$CURRENT_BACKGROUND_LINK"
+    start_swaybg "$CURRENT_BACKGROUND_LINK"
+    sleep 0.5
+  fi
+
+  if pgrep -x swaybg >/dev/null 2>&1; then
+    printf 'Failed to start selected wallpaper, restored previous background: %s\n' "$old_background" >&2
+  else
+    printf 'Failed to start swaybg for wallpaper: %s\n' "$selected" >&2
+  fi
+  return 1
 }
 
 rotate_wallpaper() {
@@ -110,14 +153,7 @@ rotate_wallpaper() {
     return 0
   fi
 
-  if command -v omarchy >/dev/null 2>&1; then
-    omarchy theme bg set "$selected"
-  elif command -v omarchy-theme-bg-set >/dev/null 2>&1; then
-    omarchy-theme-bg-set "$selected"
-  else
-    printf 'Omarchy wallpaper command not found; cannot set %s\n' "$selected" >&2
-    return 1
-  fi
+  set_wallpaper "$selected"
 
   printf '%s\n' "$now" >"$LAST_FILE"
   printf '%s\n' "$selected" >"$PREVIOUS_FILE"
@@ -128,7 +164,7 @@ status_wallpaper() {
   local current="" timer="unknown"
   load_config
   ensure_dirs
-  [[ -L "$HOME/.config/omarchy/current/background" ]] && current="$(readlink "$HOME/.config/omarchy/current/background")"
+  [[ -L "$CURRENT_BACKGROUND_LINK" ]] && current="$(readlink "$CURRENT_BACKGROUND_LINK")"
   if command -v systemctl >/dev/null 2>&1; then
     timer="$(systemctl --user is-active dotfiles-wallpaper-rotate.timer 2>/dev/null || true)"
   fi

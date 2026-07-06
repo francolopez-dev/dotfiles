@@ -8,7 +8,7 @@ The design is intentionally simple:
 - Git tracks the small base wallpaper set.
 - Personal pictures stay local on each machine.
 - Rotation uses both sources when both exist.
-- Omarchy's own background command remains the setter.
+- The setter follows Omarchy's current background symlink plus `swaybg` behavior.
 - Debian, Ubuntu, and future non-Omarchy profiles do not get this system.
 
 ## Locations
@@ -137,11 +137,19 @@ Open the local folder:
 dotfiles wallpaper open-local
 ```
 
-The setter uses Omarchy's background command:
+The rotation script follows the behavior audited from Omarchy's background
+command: update `~/.config/omarchy/current/background`, then run `swaybg` with
+that symlink.
+
+Omarchy's own command is:
 
 ```bash
 omarchy theme bg set <image>
 ```
+
+The dotfiles script does the restart itself so a failed `swaybg` launch can be
+detected. If the new background fails to start, it restores the previous
+background instead of leaving the desktop black.
 
 Omarchy's manual background cycling still works with:
 

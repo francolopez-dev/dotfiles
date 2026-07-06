@@ -1,2 +1,10 @@
 # fornax (work Lenovo) pacman packages, on top of global + os-omarchy.
-# (none yet)
+
+# Windows/work-app VM exploration on FORNAX only.
+qemu-full
+libvirt
+virt-manager
+edk2-ovmf
+swtpm
+dnsmasq
+virt-viewer

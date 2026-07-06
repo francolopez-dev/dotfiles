@@ -145,7 +145,7 @@ install_missing_omarchy_packages() {
   fi
 
   aur_mgr="$(aur_pkg_manager)"
-  [[ "$dry" -eq 1 && -z "$aur_mgr" ]] && aur_mgr="paru -S --needed"
+  [[ "$dry" -eq 1 && -z "$aur_mgr" ]] && aur_mgr="paru -S --needed --noconfirm --skipreview"
   if [[ -z "$aur_mgr" ]]; then
     warn "AUR packages are declared but paru is not installed: ${missing_aur[*]}"
     return 1
@@ -158,9 +158,7 @@ install_missing_omarchy_packages() {
     return 1
   else
     info "Installing AUR packages with paru: ${missing_aur[*]}"
-    if [[ "${DOTFILES_ASSUME_YES:-0}" == "1" ]]; then
-      info "Using non-interactive trusted profile mode: --noconfirm --skipreview"
-    fi
+    info "Using non-interactive trusted profile mode: --noconfirm --skipreview"
     # shellcheck disable=SC2086
     if ! $aur_mgr "${missing_aur[@]}" </dev/tty; then
       warn "paru failed installing AUR packages: ${missing_aur[*]}"

@@ -37,11 +37,7 @@ pkg_manager() {
 
 aur_pkg_manager() {
   paru_health_status >/dev/null 2>&1 || { echo ""; return 0; }
-  if [[ "${DOTFILES_ASSUME_YES:-0}" == "1" ]]; then
-    echo "paru -S --needed --noconfirm --skipreview"
-  else
-    echo "paru -S --needed"
-  fi
+  echo "paru -S --needed --noconfirm --skipreview"
 }
 
 current_libalpm_major() {

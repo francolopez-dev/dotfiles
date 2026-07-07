@@ -45,7 +45,7 @@ else
   echo "brew: missing"
 fi
 
-section "dangling symlinks (home, .config, .ssh)"
+section "dangling symlinks (home, .config)"
 found=0
 while IFS= read -r f; do
   if [ ! -e "$f" ]; then
@@ -53,7 +53,7 @@ while IFS= read -r f; do
     found=1
   fi
 done < <({ find "$HOME" -maxdepth 1 -type l 2>/dev/null
-           find "$HOME/.config" "$HOME/.ssh" -maxdepth 3 -type l 2>/dev/null; })
+           find "$HOME/.config" -maxdepth 3 -type l 2>/dev/null; })
 [ "$found" -eq 0 ] && echo "(none)"
 
 section "managed symlinks into ~/dotfiles"
@@ -66,8 +66,7 @@ done < <({ find "$HOME" -maxdepth 1 -type l 2>/dev/null
 
 section "ssh (names only)"
 if [ -d "$HOME/.ssh" ]; then
-  # shellcheck disable=SC2012  # names/permissions only, deliberate
-  ls -l "$HOME/.ssh" | awk 'NR>1 {print $1, $NF}'
+  ls "$HOME/.ssh"
   printf -- '-- config Host/Include lines --\n'
   grep -E '^[[:space:]]*(Host|Include)[[:space:]]' "$HOME/.ssh/config" 2>/dev/null \
     || echo "(no config or no Host lines)"

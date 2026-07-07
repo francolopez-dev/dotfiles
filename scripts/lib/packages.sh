@@ -266,9 +266,16 @@ validate_aur_package_names() {
 
 validate_package_declarations() {
   local failed=0
-  validate_package_source_overlap || failed=1
-  validate_pacman_package_names || failed=1
-  validate_aur_package_names || failed=1
+  case "$(detect_os)" in
+    omarchy)
+      validate_package_source_overlap || failed=1
+      validate_pacman_package_names || failed=1
+      validate_aur_package_names || failed=1
+      ;;
+    macos)
+      validate_macos_package_declarations || failed=1
+      ;;
+  esac
   return "$failed"
 }
 

@@ -119,4 +119,30 @@ if validate_aur_package_names >/dev/null 2>&1; then
   fail 'source AUR package was accepted without override'
 fi
 
+mkdir -p \
+  "$tmp/packages/os-macos" \
+  "$tmp/packages/profile-test-macos"
+
+printf '%s\n' git stow >"$tmp/packages/global/brew.txt"
+printf '%s\n' stow felixkratz/formulae/borders >"$tmp/packages/os-macos/brew.txt"
+printf '%s\n' ghostty >"$tmp/packages/os-macos/cask.txt"
+printf '%s\n' rectangle >"$tmp/packages/profile-test-macos/cask.txt"
+
+export DOTFILES_PROFILE=profile-test-macos
+detect_os() { printf 'macos\n'; }
+detect_hostname() { printf 'test\n'; }
+
+expected_macos_packages=$'git\nstow\nfelixkratz/formulae/borders\nghostty\nrectangle'
+actual_macos_packages="$(desired_packages)"
+[[ "$actual_macos_packages" == "$expected_macos_packages" ]] || fail 'macos packages were not resolved in layer/source order with dedupe'
+
+validate_macos_package_declarations >/dev/null 2>&1 || fail 'valid macos brew/cask declarations were rejected'
+printf '%s\n' borders >"$tmp/packages/profile-test-macos/cask.txt"
+if validate_macos_package_declarations >/dev/null 2>&1; then
+  fail 'macos brew/cask overlap by short name was accepted'
+fi
+if validate_package_declarations >/dev/null 2>&1; then
+  fail 'generic package validation accepted macos brew/cask overlap'
+fi
+
 printf 'ok package bootstrap tests\n'

@@ -16,13 +16,13 @@ The design is intentionally simple:
 Repo-managed wallpapers live here:
 
 ```text
-stow/os-omarchy/wallpapers/.config/omarchy/backgrounds/tokyo-night/
+stow/os-omarchy/wallpapers/.config/omarchy/backgrounds/walls/
 ```
 
 After stow, Omarchy sees them here:
 
 ```text
-~/.config/omarchy/backgrounds/tokyo-night/
+~/.config/omarchy/backgrounds/walls/
 ```
 
 Local personal wallpapers go here and are not in Git:
@@ -32,13 +32,13 @@ Local personal wallpapers go here and are not in Git:
 ```
 
 `dotfiles update` creates the local folder automatically on Omarchy machines.
-The managed repo folder follows the current Omarchy theme audited on this host,
-`tokyo-night`, so Omarchy's own background cycling includes these images too.
+The managed repo folder is theme-independent and shared across all Omarchy
+profiles.
 
 Add repo-managed wallpapers by copying images into:
 
 ```text
-stow/os-omarchy/wallpapers/.config/omarchy/backgrounds/tokyo-night/
+stow/os-omarchy/wallpapers/.config/omarchy/backgrounds/walls/
 ```
 
 Then commit them to Git.
@@ -106,7 +106,8 @@ enable or disable the timer for you.
 
 ## Supported Images
 
-Rotation includes these file types from both wallpaper folders:
+Rotation scans subfolders and includes these file types from both wallpaper
+folders:
 
 - `jpg`
 - `jpeg`
@@ -157,8 +158,9 @@ Omarchy's manual background cycling still works with:
 Super + Ctrl + Space
 ```
 
-Because repo wallpapers are placed under Omarchy's user background folder for
-the active theme, Omarchy can include them in its own background choices.
+The dotfiles rotation is theme-independent: it uses every Git-tracked wallpaper
+under `~/.config/omarchy/backgrounds/walls/` plus every local wallpaper under
+`~/Pictures/Wallpapers/local/`.
 
 ## Systemd Timer
 
@@ -189,7 +191,7 @@ dotfiles wallpaper status
 Verify paths exist:
 
 ```bash
-ls ~/.config/omarchy/backgrounds/tokyo-night
+ls ~/.config/omarchy/backgrounds/walls
 ls ~/Pictures/Wallpapers/local
 ```
 

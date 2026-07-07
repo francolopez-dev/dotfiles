@@ -403,7 +403,7 @@ wallpaper_config_file() {
 wallpaper_load_config() {
   WALLPAPER_ROTATION_ENABLED=1
   WALLPAPER_ROTATION_INTERVAL="15m"
-  WALLPAPER_REPO_DIR="$HOME/.config/omarchy/backgrounds/tokyo-night"
+  WALLPAPER_REPO_DIR="$HOME/.config/omarchy/backgrounds/walls"
   WALLPAPER_LOCAL_DIR="$HOME/Pictures/Wallpapers/local"
   local config
   config="$(wallpaper_config_file)"
@@ -418,7 +418,7 @@ wallpaper_count_in() {
   while IFS= read -r file; do
     [[ -n "$file" ]] || continue
     count=$((count + 1))
-  done < <(find -L "$dir" -maxdepth 1 -type f \( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' -o -iname '*.webp' \) -print 2>/dev/null || true)
+  done < <(find -L "$dir" -type f \( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' -o -iname '*.webp' \) -print 2>/dev/null || true)
   printf '%s\n' "$count"
 }
 

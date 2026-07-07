@@ -1,6 +1,6 @@
 # Task 06 — brew/cask support in the packages library
 
-Status: todo
+Status: done
 Scope: repo-only
 Depends on: task-02
 Size: M
@@ -60,3 +60,12 @@ Single commit; revert.
 With sample brew/cask lists in a temp layer, `desired_packages` under
 `DOTFILES_OS=macos` prints the concatenated deduped set in layer order;
 overlap validation fails when a name is in both files; Linux paths untouched.
+
+## Result
+Added desired_brew_packages/desired_cask_packages, macos branches in
+desired_packages/pkg_manager/resolve_package_lists/_pkg_installed
+(tap-qualified names compare by short name), and
+validate_macos_package_declarations (brew∩cask overlap by short name).
+Validated 2026-07-07: scratch-layer resolution ordered+deduped, overlap
+negative test fails as required, installed-check correct for tap names and
+missing packages, shellcheck + package tests pass.

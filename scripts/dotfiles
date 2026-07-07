@@ -1063,9 +1063,14 @@ _status_line() {
 _mtime() { stat -f %m "$1" 2>/dev/null || stat -c %Y "$1"; }
 
 _pkg_installed() {
+  local short="${1##*/}"  # tap-qualified names install as their short name
   case "$(detect_os)" in
     omarchy) pacman -Qq "$1" >/dev/null 2>&1 ;;
     debian|ubuntu) dpkg -s "$1" >/dev/null 2>&1 ;;
+    macos)
+      brew list --formula --versions "$short" >/dev/null 2>&1 \
+        || brew list --cask --versions "$short" >/dev/null 2>&1
+      ;;
     *) return 0 ;;
   esac
 }

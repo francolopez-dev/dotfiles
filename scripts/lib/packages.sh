@@ -17,6 +17,7 @@ desired_packages() {
   case "$(detect_os)" in
     omarchy) { desired_pacman_packages; desired_aur_packages; } | dedupe_packages ;;
     debian|ubuntu) desired_apt_packages ;;
+    macos) { desired_brew_packages; desired_cask_packages; } | dedupe_packages ;;
   esac
 }
 
@@ -26,11 +27,17 @@ desired_aur_packages() { resolve_package_files aur | package_file_items | dedupe
 
 desired_apt_packages() { resolve_package_files apt | package_file_items | dedupe_packages; }
 
+desired_brew_packages() { resolve_package_files brew | package_file_items | dedupe_packages; }
+
+desired_cask_packages() { resolve_package_files cask | package_file_items | dedupe_packages; }
+
 # pkg_manager — echoes the native installer command base for this OS.
+# On macOS this is the formula installer; casks use `brew install --cask`.
 pkg_manager() {
   case "$(detect_os)" in
     omarchy) echo "sudo pacman -S --needed" ;;
     debian|ubuntu) echo "sudo apt-get install -y" ;;
+    macos) echo "brew install" ;;
     *) echo "" ;;
   esac
 }
@@ -262,6 +269,21 @@ validate_package_declarations() {
   validate_package_source_overlap || failed=1
   validate_pacman_package_names || failed=1
   validate_aur_package_names || failed=1
+  return "$failed"
+}
+
+# A package name must appear in brew.txt or cask.txt, never both. Tap-qualified
+# names (tap/repo/name) compare by their short name.
+validate_macos_package_declarations() {
+  local failed=0 pkg
+  while read -r pkg; do
+    [[ -z "$pkg" ]] && continue
+    warn "package declared in both brew and cask: $pkg"
+    warn "declare the package in brew.txt or cask.txt, not both"
+    failed=1
+  done < <(comm -12 \
+    <(desired_brew_packages | sed 's|.*/||' | sort -u) \
+    <(desired_cask_packages | sed 's|.*/||' | sort -u))
   return "$failed"
 }
 

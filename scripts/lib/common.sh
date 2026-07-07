@@ -122,5 +122,6 @@ resolve_package_lists() {
   case "$os" in
     omarchy) resolve_package_files pacman "$@" ;;
     debian|ubuntu) resolve_package_files apt "$@" ;;
+    macos) resolve_package_files brew "$@" ;;
   esac
 }

@@ -57,7 +57,21 @@
       "Bash(systemctl --user daemon-reload)",
       "Bash(hyprctl -j binds)",
       "Read(//home/jfranco/.local/state/omarchy/toggles/hypr/**)",
-      "Bash(systemctl --user show-environment)"
+      "Bash(systemctl --user show-environment)",
+      "Bash(sw_vers)",
+      "Bash(sysctl -n machdep.cpu.brand_string)",
+      "Bash(sysctl -n hw.memsize)",
+      "Bash(awk '{printf \"%.0f GB RAM\\\\n\", $1/1073741824}')",
+      "Bash(system_profiler SPHardwareDataType)",
+      "Bash(brew --version)",
+      "Bash(brew --prefix)",
+      "Bash(brew tap *)",
+      "Bash(brew list *)",
+      "Bash(./scripts/dotfiles status *)",
+      "Bash(echo \"---- exit: $?\")",
+      "Bash(defaults read *)",
+      "Bash(brew leaves *)",
+      "Bash(echo \"=== ghostty global config ===\"; cat /Users/franco.lopez/dotfiles/stow/global/ghostty/.config/ghostty/config; echo; echo \"=== fornax ghostty profile-overrides ===\"; cat /Users/franco.lopez/dotfiles/stow/profile-fornax-omarchy/ghostty/.config/ghostty/profile-overrides; echo; echo \"=== current mac sketchybarrc ===\"; cat ~/.config/sketchybar/sketchybarrc)"
     ]
   }
 }

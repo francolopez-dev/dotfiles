@@ -1,0 +1,55 @@
+# Task 28 — End-to-end validation (lamac + Linux regression)
+
+Status: todo
+Scope: mac-local + a check on one Omarchy machine
+Depends on: task-27
+Size: M
+
+## Objective
+Prove the whole system: lamac survives a reboot fully configured, and the
+Omarchy machines are not regressed by the repo changes.
+
+## Files involved
+None (validation only; record results in this file's Result section).
+
+## Reason
+Multiple agents changed shared code (detect_os, stow.sh, packages.sh,
+layer moves). One integrated pass catches interaction bugs.
+
+## Proposed implementation
+On lamac, after a REBOOT:
+- login shell: p10k prompt, aliases (`l`, `ll`, `gs`), zoxide, atuin history
+- `dotfiles status` / `doctor`: clean; `dotfiles update --dry-run`: no-op plan
+- Ghostty: theme/font/profile-overrides active (font-size 13, option-as-alt)
+- AeroSpace + SketchyBar: workspace switch updates the bar; cpu/mem/battery/
+  volume/wifi/tailscale items live; Spotify shows in the island when playing
+- borders drawn; Rectangle snapping works alongside AeroSpace
+- `dotfiles-wallpaper random` sets a wallpaper; create
+  `~/Pictures/local-wallpapers`, add an image, verify it joins the pool
+- `nvim` opens with LazyVim from the repo config
+- `scripts/macos-inventory.sh` runs clean, zero dangling symlinks reported
+On nox or fornax (whichever is at hand):
+- `git pull && dotfiles status` then `dotfiles apply` — expect the known
+  conflict prompts from the neovim/atuin/xdg-terminal-exec layer moves
+  (tasks 08/09): choose backup; then `dotfiles doctor` exit 0; Hyprland,
+  waybar, ghostty all unaffected.
+Repo-wide:
+```bash
+shellcheck -x scripts/dotfiles scripts/bootstrap.sh scripts/lib/*.sh
+bash tests/bootstrap-first-run.sh && bash tests/package-bootstrap.sh
+```
+
+## Safety concerns
+The Linux `apply` is the riskiest step — do it while at that machine, not
+over SSH from lamac, in case Hyprland session refresh acts up.
+
+## Validation commands
+The checklist above IS the validation; paste actual outputs (trimmed) into
+the Result section.
+
+## Rollback notes
+Per-item rollbacks are in the originating tasks; nothing new is changed here.
+
+## Acceptance criteria
+Every checklist item checked with evidence; Linux machines report clean
+status/doctor after their apply.

@@ -51,24 +51,29 @@ active_profile() {
   printf '%s\n' "${DOTFILES_PROFILE:-profile-${host}-${os}}"
 }
 
-# Echoes one of: omarchy | debian | ubuntu | unknown
+# Echoes one of: macos | omarchy | debian | ubuntu | unknown
 detect_os() {
   if [[ -n "${DOTFILES_OS:-}" ]]; then
     case "$DOTFILES_OS" in
-      omarchy|debian|ubuntu|unknown) echo "$DOTFILES_OS"; return 0 ;;
+      macos|omarchy|debian|ubuntu|unknown) echo "$DOTFILES_OS"; return 0 ;;
     esac
   fi
   if [[ -n "${DOTFILES_BOOTSTRAP_OS:-}" ]]; then
     case "$DOTFILES_BOOTSTRAP_OS" in
-      omarchy|debian|ubuntu|unknown) echo "$DOTFILES_BOOTSTRAP_OS"; return 0 ;;
+      macos|omarchy|debian|ubuntu|unknown) echo "$DOTFILES_BOOTSTRAP_OS"; return 0 ;;
     esac
   fi
   if [[ -n "${DOTFILES_PROFILE:-}" ]]; then
     case "$DOTFILES_PROFILE" in
+      profile-*-macos) echo "macos"; return 0 ;;
       profile-*-omarchy) echo "omarchy"; return 0 ;;
       profile-*-debian) echo "debian"; return 0 ;;
       profile-*-ubuntu) echo "ubuntu"; return 0 ;;
     esac
+  fi
+  if [[ "$(uname -s)" == "Darwin" ]]; then
+    echo "macos"
+    return 0
   fi
   if [[ -f /etc/os-release ]]; then
     # shellcheck disable=SC1091

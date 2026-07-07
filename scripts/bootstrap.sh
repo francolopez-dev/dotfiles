@@ -143,7 +143,12 @@ done
 
 detect_bootstrap_os() {
   if [[ -n "${DOTFILES_BOOTSTRAP_OS:-}" ]]; then
-    echo "$DOTFILES_BOOTSTRAP_OS"
+    case "$DOTFILES_BOOTSTRAP_OS" in
+      macos|omarchy|debian|ubuntu|unknown) echo "$DOTFILES_BOOTSTRAP_OS"; return 0 ;;
+    esac
+  fi
+  if [[ "$(uname -s)" == "Darwin" ]]; then
+    echo "macos"
     return 0
   fi
   if [[ -f /etc/os-release ]]; then

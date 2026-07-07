@@ -27,9 +27,11 @@ shellcheck atuin zoxide yazi age restic terminal-notifier timer desktoppr
 mas duti felixkratz/formulae/borders felixkratz/formulae/sketchybar
 
 `packages/os-macos/cask.txt`:
-ghostty alacritty nikitabobko/tap/aerospace rectangle raycast
+ghostty nikitabobko/tap/aerospace rectangle raycast
 font-jetbrains-mono-nerd-font font-fira-code-nerd-font
-(zen browser: add as a COMMENT only — Zen.app was installed manually and
+(No alacritty: Ghostty is the standard terminal on managed Macs — do not
+install a second managed terminal on new machines. No wezterm. Zen browser:
+add as a COMMENT only — Zen.app was installed manually and
 `brew install --cask zen` fails over an existing app; adopting it into brew is
 a manual later step, note it in the file.)
 

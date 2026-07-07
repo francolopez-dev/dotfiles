@@ -6,8 +6,11 @@ touches it; do not re-audit the world.
 ## Decisions (made by Franco, do not re-litigate)
 
 - The Mac will be renamed `lamac`; its profile is `profile-lamac-macos`.
-- Terminal on macOS is **Ghostty** (global config already in repo). WezTerm is
-  removed entirely: no cask, no config, no recovery of old wezterm.lua.
+- Terminal is **Ghostty** — on macOS now, and the standard target across all
+  of Franco's personal environments going forward. WezTerm is removed
+  entirely: no cask, no config, no recovery of old wezterm.lua. Alacritty is
+  demoted: its global config stays (harmless), but it is NOT declared for
+  installation on managed Macs; kitty stays installed-but-unmanaged.
 - Keep: AeroSpace, Rectangle, Raycast, kitty (kitty stays unmanaged).
 - Remove: minidlna, stale ollama LaunchAgent, WezTerm, all legacy flat-layout
   configs. This is a clean rebuild, not a patch.
@@ -21,10 +24,17 @@ touches it; do not re-audit the world.
 - Wallpapers: a rotation engine ALREADY EXISTS for Omarchy (commit 8fa4466,
   2026-07-07): conf at `~/.config/dotfiles/wallpapers.conf`,
   `dotfiles wallpaper rotate|status|open-local`, systemd user timer, repo+local
-  merge, docs in `docs/wallpapers.md`. Plan: relocate the shared collection to
-  the global layer (`~/.local/share/wallpapers/shared/`, task 16) and port the
-  engine to macOS with a desktoppr setter and an opt-in LaunchAgent (task 17).
-  Local pool stays `~/Pictures/Wallpapers/local` on both OSes for consistency.
+  merge, docs in `docs/wallpapers.md`. Architecture decision: ONE
+  platform-independent engine (`dotfiles-wallpaper` in the global layer) owning
+  config/sources/selection/state, with per-OS backends that only set the image
+  — omarchy = the existing audited current-background+swaybg behavior (NOT
+  hyprpaper), macos = desktoppr with osascript fallback (task 16/17). Shared
+  pool lives at `~/.local/share/wallpapers/shared/` (global layer); local pool
+  is `~/Pictures/local-wallpapers` on ALL OSes (Franco's explicit path — the
+  engine's day-old `~/Pictures/Wallpapers/local` default changes; docs carry
+  the migration note). Local pool is merged only when the folder exists and is
+  never committed. Schedulers stay per-OS: systemd timer (omarchy, existing),
+  opt-in LaunchAgent template (macos).
 - macOS system defaults: documented + selectively applied via a confirm-gated
   script only. Never run automatically.
 

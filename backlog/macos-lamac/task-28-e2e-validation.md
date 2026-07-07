@@ -24,15 +24,16 @@ On lamac, after a REBOOT:
 - AeroSpace + SketchyBar: workspace switch updates the bar; cpu/mem/battery/
   volume/wifi/tailscale items live; Spotify shows in the island when playing
 - borders drawn; Rectangle snapping works alongside AeroSpace
-- `dotfiles-wallpaper random` sets a wallpaper; create
+- `dotfiles wallpaper rotate` sets a wallpaper; create
   `~/Pictures/local-wallpapers`, add an image, verify it joins the pool
 - `nvim` opens with LazyVim from the repo config
 - `scripts/macos-inventory.sh` runs clean, zero dangling symlinks reported
 On nox or fornax (whichever is at hand):
 - `git pull && dotfiles status` then `dotfiles apply` — expect the known
-  conflict prompts from the neovim/atuin/xdg-terminal-exec layer moves
-  (tasks 08/09): choose backup; then `dotfiles doctor` exit 0; Hyprland,
-  waybar, ghostty all unaffected.
+  conflict prompts from the neovim/atuin/xdg-terminal-exec/wallpaper layer
+  moves (tasks 08/09/16): choose backup; then `dotfiles doctor` exit 0;
+  Hyprland, waybar, ghostty all unaffected; `dotfiles wallpaper status`
+  reports sane counts from the new shared pool path.
 Repo-wide:
 ```bash
 shellcheck -x scripts/dotfiles scripts/bootstrap.sh scripts/lib/*.sh

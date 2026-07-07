@@ -44,8 +44,8 @@ Phase 2 — stow layers
 - [ ] 08 repo-hygiene-stow-ignores (repo, S)
 - [ ] 09 promote-neovim-atuin-to-global (repo, S)
 - [ ] 10 recover-aerospace-borders (repo, S)
-- [ ] 11 os-macos-zprofile (repo, S)
-- [ ] 12 profile-lamac-layer (repo, S)
+- [ ] 11 macos-layer-skeleton (repo, S) — absorbs former task 12; there is no
+      task 12
 
 Phase 3 — SketchyBar (Waybar-inspired)
 - [ ] 13 sketchybar-core (repo, M) — needs 10
@@ -53,8 +53,8 @@ Phase 3 — SketchyBar (Waybar-inspired)
 - [ ] 15 sketchybar-network-media-plugins (repo, M) — needs 13
 
 Phase 4 — wallpapers
-- [ ] 16 wallpapers-repo-structure (repo, S)
-- [ ] 17 wallpaper-macos-script (repo, M) — needs 16
+- [ ] 16 wallpaper-unified-engine (repo, M)
+- [ ] 17 wallpaper-macos-backend (repo, S) — needs 16
 
 Phase 5 — bootstrap + CLI
 - [ ] 18 bootstrap-macos (repo, M) — needs 02, 03

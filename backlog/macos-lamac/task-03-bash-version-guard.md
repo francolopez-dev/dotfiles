@@ -1,6 +1,6 @@
 # Task 03 — Bash >= 4 guard with Homebrew re-exec
 
-Status: todo
+Status: done
 Scope: repo-only
 Depends on: none
 Size: S
@@ -52,3 +52,10 @@ Single commit; revert.
 ## Acceptance criteria
 Under bash 3.2 with no brew bash: one-line actionable error, exit 1. With brew
 bash installed: command works transparently. Linux unaffected.
+
+## Result
+Implemented in commit 2802d20 (status flipped retroactively). Validated
+2026-07-07 on lamac: under /bin/bash 3.2 with no brew bash the guard printed
+the actionable error; after `brew install bash` (part of the declared global
+baseline) the CLI transparently re-execs — `dotfiles status` now reports
+lamac/macos/profile-lamac-macos.

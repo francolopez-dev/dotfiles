@@ -1,6 +1,6 @@
 # Task 01 — Rename the Mac to "lamac"
 
-Status: todo
+Status: done
 Scope: mac-local (run on the Mac, needs sudo)
 Depends on: none
 Size: S
@@ -43,3 +43,7 @@ Re-run the same three commands with the old names (`Mac-2` / `Mac`).
 
 ## Acceptance criteria
 `hostname -s` prints `lamac` in a fresh terminal.
+
+## Result
+Done 2026-07-07 (by Franco, outside a task session). `hostname -s` and
+`scutil --get LocalHostName` both return `lamac`.

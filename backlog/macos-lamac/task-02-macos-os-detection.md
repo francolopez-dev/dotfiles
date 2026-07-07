@@ -1,6 +1,6 @@
 # Task 02 — Add macOS OS detection
 
-Status: todo
+Status: done
 Scope: repo-only
 Depends on: none
 Size: M
@@ -56,3 +56,10 @@ Single commit; `git revert` it.
 ## Acceptance criteria
 `detect_os` prints `macos` on Darwin and is unchanged on Linux; whitelists
 accept `macos`; shellcheck clean; tests pass.
+
+## Result
+Implemented in commit fb083e3 (before the concurrency rules landed; status
+flipped retroactively). detect_os/detect_bootstrap_os return `macos` on
+Darwin, env-override whitelists extended, tests/os-detection.sh added.
+Validated 2026-07-07: shellcheck clean, os-detection tests pass,
+`DOTFILES_OS=omarchy` override still wins on this Mac.

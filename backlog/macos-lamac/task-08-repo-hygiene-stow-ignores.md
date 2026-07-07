@@ -1,6 +1,6 @@
 # Task 08 — Repo hygiene: xdg-terminal-exec layer move + .stowrc ignores
 
-Status: todo
+Status: done
 Scope: repo-only
 Depends on: none
 Size: S
@@ -48,3 +48,11 @@ scripts/dotfiles apply --dry-run   # on whatever machine runs this
 ## Acceptance criteria
 File lives under os-omarchy; .stowrc covers the listed top-level entries;
 dry-run apply works.
+
+## Result
+xdg-terminal-exec moved to os-omarchy (git mv); docs/where-to-edit.md path
+updated; .stowrc gained ignores for backlog/tests/bootstrap.sh/CLAUDE.md/
+skills-lock.json/.githooks/.agents/.repo/.gitignore/.claude. Validated
+2026-07-07: no stale refs, shellcheck clean, apply --dry-run runs (reports
+only the known lamac legacy conflicts). Omarchy machines will see one
+conflict prompt for ~/.config/xdg-terminals.list at next apply (task 28).

@@ -19,7 +19,7 @@ change true everywhere it should apply.
 | Ghostty terminal style/shortcuts | `stow/global/ghostty/.config/ghostty/config` |
 | Alacritty terminal style/shortcuts | `stow/global/alacritty/.config/alacritty/alacritty.toml` |
 | Terminal font overrides for one machine | `stow/profile-<hostname>-<os>/{ghostty,alacritty}/.config/<terminal>/profile-overrides*` |
-| Default terminal launcher | `stow/global/xdg-terminal-exec/.config/xdg-terminals.list` |
+| Default terminal launcher | `stow/os-omarchy/xdg-terminal-exec/.config/xdg-terminals.list` |
 | Atuin | `stow/os-omarchy/atuin/.config/atuin/config.toml` |
 | Neovim | `stow/os-omarchy/neovim/.config/nvim/` |
 | Monitor scale/resolution for `nox` | `stow/profile-nox-omarchy/hyprland/.config/hypr/conf.d/20-monitors.conf` |

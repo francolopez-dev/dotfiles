@@ -6,3 +6,13 @@
 --ignore=^packages$
 --ignore=^\.stowrc$
 --ignore=^\.DS_Store$
+--ignore=^backlog$
+--ignore=^tests$
+--ignore=^bootstrap\.sh$
+--ignore=^CLAUDE\.md$
+--ignore=^skills-lock\.json$
+--ignore=^\.githooks$
+--ignore=^\.agents$
+--ignore=^\.repo$
+--ignore=^\.gitignore$
+--ignore=^\.claude$

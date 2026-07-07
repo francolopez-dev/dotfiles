@@ -10,6 +10,16 @@
 #   autostart audit and manage login/startup items
 set -euo pipefail
 
+if [ "${BASH_VERSINFO[0]}" -lt 4 ]; then
+  for b in /opt/homebrew/bin/bash /usr/local/bin/bash; do
+    if [ -x "$b" ] && [ -z "${DOTFILES_BASH_REEXEC:-}" ]; then
+      DOTFILES_BASH_REEXEC=1 exec "$b" "$0" "$@"
+    fi
+  done
+  printf 'err this tool needs bash >= 4; on macOS run: brew install bash\n' >&2
+  exit 1
+fi
+
 _self="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || echo "${BASH_SOURCE[0]}")")" && pwd)"
 # shellcheck disable=SC1091
 . "$_self/lib/common.sh"

@@ -6,6 +6,16 @@
 # stow layers for this machine, and symlinks `dotfiles` onto PATH.
 set -Eeuo pipefail
 
+if [ "${BASH_VERSINFO[0]}" -lt 4 ]; then
+  for b in /opt/homebrew/bin/bash /usr/local/bin/bash; do
+    if [ -x "$b" ] && [ -z "${DOTFILES_BASH_REEXEC:-}" ]; then
+      DOTFILES_BASH_REEXEC=1 exec "$b" "$0" "$@"
+    fi
+  done
+  printf 'err this tool needs bash >= 4; on macOS run: brew install bash\n' >&2
+  exit 1
+fi
+
 REPO_URL="${DOTFILES_REPO_URL:-https://github.com/jfrancolopez/dotfiles.git}"
 export DOTFILES_DIR="${DOTFILES_DIR:-$HOME/dotfiles}"
 BRANCH="${DOTFILES_BRANCH:-main}"

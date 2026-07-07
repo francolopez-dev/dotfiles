@@ -1,6 +1,6 @@
 # Task 04 — Safe macOS inventory script
 
-Status: todo
+Status: done
 Scope: repo-only (script is read-only when run)
 Depends on: none
 Size: M
@@ -55,3 +55,9 @@ Delete the file.
 ## Acceptance criteria
 Runs clean on macOS, exits 0, output contains all sections and zero secret
 patterns; on Linux it exits early with a polite "macOS only" message.
+
+## Result
+Added scripts/macos-inventory.sh (bash-3.2-safe, macOS-gated, read-only).
+Validated on lamac 2026-07-07: shellcheck clean, runs under /bin/bash 3.2,
+secret-pattern self-test = 0 matches, correctly reports the legacy dangling
+symlinks that task 24 will clean.

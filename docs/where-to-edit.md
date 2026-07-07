@@ -14,7 +14,7 @@ change true everywhere it should apply.
 | SSH client config | `stow/global/ssh/.ssh/config` |
 | Hyprland keybinds (all Omarchy machines) | `stow/os-omarchy/hyprland/.config/hypr/conf.d/99-omarchy-keymap.conf` |
 | Hyprland look/feel (all Omarchy machines) | `stow/os-omarchy/hyprland/.config/hypr/conf.d/99-personal.conf` |
-| Optional ALT-as-SUPER on one Omarchy machine | `profiles/profile-<hostname>-omarchy/stow-layers.txt` (`os-omarchy-alt-super`) |
+| Optional ALT-as-SUPER on one Omarchy machine | `stow/profile-<hostname>-omarchy/hyprland/.config/hypr/conf.d/50-input-alt-super.conf` |
 | Waybar | `stow/os-omarchy/waybar/.config/waybar/` |
 | Ghostty terminal style/shortcuts | `stow/global/ghostty/.config/ghostty/config` |
 | Alacritty terminal style/shortcuts | `stow/global/alacritty/.config/alacritty/alacritty.toml` |
@@ -40,7 +40,7 @@ change true everywhere it should apply.
   package entries here unless there is a specific new need.
 - The OS layer and profile layer both drop files into `conf.d/`, but with
   distinct filenames, so Stow merges them without conflict.
-- Optional Omarchy feature layers are enabled per profile in
-  `profiles/profile-<hostname>-omarchy/stow-layers.txt`.
+- Optional machine-specific Omarchy features belong in the matching profile
+  layer, disabled by default when appropriate.
 - After editing anything, run `dotfiles apply`.
 - To audit login apps and local startup drift, run `dotfiles autostart status`.

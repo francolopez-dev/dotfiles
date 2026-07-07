@@ -1,3 +1,0 @@
-# Optional Omarchy stow layers for nox.
-# Uncomment to make ALT behave as SUPER/Windows on this profile.
-# os-omarchy-alt-super

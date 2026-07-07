@@ -99,6 +99,26 @@ sketchybar --add item clock right \
     env="DATE_FORMAT=+%I:%M %p" \
   --subscribe clock system_woke
 
+sketchybar --add item cpu right \
+  --set cpu \
+    update_freq=3 \
+    script="${PLUGIN_DIR}/cpu.sh" \
+    click_script='open -na Ghostty --args -e btop || open -a Ghostty' \
+  --add item memory right \
+  --set memory \
+    update_freq=5 \
+    script="${PLUGIN_DIR}/memory.sh" \
+    click_script='open -na Ghostty --args -e btop || open -a Ghostty' \
+  --add item battery right \
+  --set battery \
+    update_freq=5 \
+    script="${PLUGIN_DIR}/battery.sh" \
+  --add item volume right \
+  --set volume \
+    script="${PLUGIN_DIR}/volume.sh" \
+    click_script="osascript -e 'set volume output muted not (output muted of (get volume settings))'" \
+  --subscribe volume volume_change
+
 sketchybar --trigger aerospace_workspace_change \
   FOCUSED_WORKSPACE="$(aerospace list-workspaces --focused 2>/dev/null || true)"
 

@@ -1,0 +1,105 @@
+#!/bin/bash
+
+# Managed by dotfiles. Start with: brew services start sketchybar
+
+CONFIG_DIR="${HOME}/.config/sketchybar"
+PLUGIN_DIR="${CONFIG_DIR}/plugins"
+
+# shellcheck source=stow/os-macos/sketchybar/.config/sketchybar/colors.sh
+. "${CONFIG_DIR}/colors.sh"
+
+FONT="JetBrainsMono Nerd Font"
+HEIGHT=28
+
+sketchybar --bar \
+  position=top \
+  height="${HEIGHT}" \
+  color="${BAR_BG}" \
+  padding_left=8 \
+  padding_right=8 \
+  margin=0 \
+  y_offset=0 \
+  sticky=on \
+  topmost=window
+
+sketchybar --default \
+  updates=when_shown \
+  icon.font="${FONT}:Regular:15.0" \
+  icon.color="${TEXT_SOFT}" \
+  icon.padding_left=5 \
+  icon.padding_right=5 \
+  label.font="${FONT}:Regular:12.0" \
+  label.color="${TEXT}" \
+  label.padding_left=5 \
+  label.padding_right=5 \
+  background.drawing=off \
+  padding_left=0 \
+  padding_right=0
+
+sketchybar --remove '/.*/' >/dev/null 2>&1
+sketchybar --add event aerospace_workspace_change
+
+if command -v aerospace >/dev/null 2>&1; then
+  workspace_index=0
+  aerospace list-workspaces --all | while IFS= read -r workspace; do
+    [ -n "${workspace}" ] || continue
+
+    workspace_index=$((workspace_index + 1))
+    item="workspace.${workspace}"
+    default_color="${BLUE}"
+    if [ $((workspace_index % 2)) -eq 1 ]; then
+      default_color="${PURPLE}"
+    fi
+
+    sketchybar --add item "${item}" left \
+      --set "${item}" \
+        icon="" \
+        icon.color="${default_color}" \
+        label.drawing=off \
+        click_script="aerospace workspace '${workspace}'" \
+        script="${PLUGIN_DIR}/aerospace.sh" \
+        env="DEFAULT_COLOR=${default_color}" \
+      --subscribe "${item}" aerospace_workspace_change
+  done
+fi
+
+sketchybar --add item front_app left \
+  --set front_app \
+    icon.drawing=off \
+    label.color="${TEXT_SOFT}" \
+    label.max_chars=36 \
+    background.drawing=on \
+    background.color="${SURFACE}" \
+    background.corner_radius=999 \
+    background.height=20 \
+    padding_left=4 \
+    padding_right=2 \
+    script="${PLUGIN_DIR}/front_app.sh" \
+  --subscribe front_app front_app_switched
+
+sketchybar --add item date right \
+  --set date \
+    icon.drawing=off \
+    label.color="${TEXT_SOFT}" \
+    label.font="${FONT}:Bold:12.0" \
+    update_freq=60 \
+    script="${PLUGIN_DIR}/clock.sh" \
+    click_script="open -a Calendar" \
+    env="DATE_FORMAT=+%b%d" \
+  --subscribe date system_woke
+
+sketchybar --add item clock right \
+  --set clock \
+    icon.drawing=off \
+    label.color="${TEXT}" \
+    label.font="${FONT}:Bold:12.0" \
+    update_freq=10 \
+    script="${PLUGIN_DIR}/clock.sh" \
+    click_script="open -a Calendar" \
+    env="DATE_FORMAT=+%I:%M %p" \
+  --subscribe clock system_woke
+
+sketchybar --trigger aerospace_workspace_change \
+  FOCUSED_WORKSPACE="$(aerospace list-workspaces --focused 2>/dev/null || true)"
+
+sketchybar --update

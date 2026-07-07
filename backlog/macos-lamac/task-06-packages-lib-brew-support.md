@@ -69,3 +69,10 @@ validate_macos_package_declarations (brew∩cask overlap by short name).
 Validated 2026-07-07: scratch-layer resolution ordered+deduped, overlap
 negative test fails as required, installed-check correct for tap names and
 missing packages, shellcheck + package tests pass.
+
+### Addendum (same day)
+Homebrew 6 refuses `brew list --versions` for untrusted third-party taps
+(aerospace false-negatived). Replaced per-package queries with a once-per-run
+`brew list --formula` + `brew list --cask` cache (_brew_pkg_installed) —
+immune to tap trust and ~2 brew calls instead of 2 per package. Task 19 spec
+updated with the `brew trust` requirement for installs.

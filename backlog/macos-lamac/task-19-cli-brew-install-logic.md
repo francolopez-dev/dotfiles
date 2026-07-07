@@ -29,6 +29,14 @@ Parity with the daily `dotfiles status/update/apply` loop on Omarchy.
 Rules: NEVER `brew upgrade`, NEVER uninstall, never `--force`. A cask that
 fails because the app already exists in /Applications gets a warn with the
 manual adoption hint (`brew install --cask --adopt <name>`), not a retry.
+Homebrew 6 tap trust (discovered in task 06/07 validation): installing or
+querying definitions from third-party taps fails with "untrusted tap" until
+`brew trust <tap>` runs. For tap-qualified declared packages
+(nikitabobko/tap/aerospace, felixkratz/formulae/*, caarlos0/tap/timer), the
+install flow must detect that error and print the exact `brew trust` command
+(interactive confirm to run it is fine — declared taps are trusted inputs,
+same policy as AUR trusted mode). The installed-CHECK already avoids the
+problem via plain `brew list` caching (_brew_pkg_installed).
 `cmd_update` plan text for macos: "2. install brew formulae 3. install brew
 casks" wording.
 `refresh_after_apply`: on macos run `sketchybar --reload` if

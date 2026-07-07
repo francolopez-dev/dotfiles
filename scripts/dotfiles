@@ -1062,15 +1062,24 @@ _status_line() {
 
 _mtime() { stat -f %m "$1" 2>/dev/null || stat -c %Y "$1"; }
 
-_pkg_installed() {
+# Installed formulae+casks, fetched once per run. Plain `brew list` avoids
+# loading package definitions, so Homebrew 6 tap-trust checks cannot error,
+# and 2 brew calls beat 2 calls per declared package.
+_brew_installed_names=""
+_brew_pkg_installed() {
   local short="${1##*/}"  # tap-qualified names install as their short name
+  command -v brew >/dev/null 2>&1 || return 1
+  if [[ -z "$_brew_installed_names" ]]; then
+    _brew_installed_names="$(brew list --formula 2>/dev/null; brew list --cask 2>/dev/null)"
+  fi
+  grep -Fxq "$short" <<<"$_brew_installed_names"
+}
+
+_pkg_installed() {
   case "$(detect_os)" in
     omarchy) pacman -Qq "$1" >/dev/null 2>&1 ;;
     debian|ubuntu) dpkg -s "$1" >/dev/null 2>&1 ;;
-    macos)
-      brew list --formula --versions "$short" >/dev/null 2>&1 \
-        || brew list --cask --versions "$short" >/dev/null 2>&1
-      ;;
+    macos) _brew_pkg_installed "$1" ;;
     *) return 0 ;;
   esac
 }

@@ -24,6 +24,17 @@ every task assumes.
    `<area>: <imperative summary>` (matches repo history style, e.g.
    `packages: add brew/cask support for macos`).
 6. Never push. Pushing happens once, in task 29, after everything is green.
+   (History note: the initial backlog and task 02 were pushed early on
+   2026-07-07 — done is done, but hold the line from here.)
+7. Concurrency rules (added after an amend collision on 2026-07-07):
+   - ONE agent works the repo at a time. Before starting: `git status` must
+     be clean apart from your task, and run `git pull --ff-only`.
+   - NEVER `git commit --amend`, rebase, or rewrite anything you did not
+     create in your current session — another agent's commit may be HEAD.
+   - Commit your task's file flip (Status + Result) together WITH the code,
+     in the same commit, so the backlog state always matches history.
+   - Do not commit `.claude/settings.local.json` or other session cruft with
+     task work.
 7. Never commit secrets, keys, tokens, `*.local` files, or anything from
    `~/Library` except where a task explicitly says otherwise.
 

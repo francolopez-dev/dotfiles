@@ -1,0 +1,19 @@
+# Global Homebrew formulae, installed on every macOS machine.
+# Mirrors packages/global/pacman.txt — the shared CLI baseline.
+git
+stow
+tmux
+fzf
+ripgrep
+jq
+bat
+eza
+fastfetch
+btop
+htop
+neovim
+zsh
+curl
+bash
+wget
+nano

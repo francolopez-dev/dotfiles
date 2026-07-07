@@ -1,6 +1,6 @@
 # Task 07 — Seed macOS package lists
 
-Status: todo
+Status: done
 Scope: repo-only
 Depends on: task-06
 Size: S
@@ -61,3 +61,12 @@ Delete the files.
 ## Acceptance criteria
 Lists resolve in layer order; every name verifiable via `brew info`
 (spot-check at least the tap-qualified ones); no wezterm/minidlna present.
+
+## Result
+Created packages/global/brew.txt (mirrors global pacman baseline),
+packages/os-macos/{brew,cask}.txt, packages/profile-lamac-macos/{brew,cask}.txt.
+Every name verified against `brew info` 2026-07-07; two spec corrections found
+during validation: `timer` is tap-only (declared caarlos0/tap/timer) and
+`desktoppr` is a cask, not a formula (moved to cask.txt). zen left commented
+with the --adopt hint. Overlap validation passes; `dotfiles status` on lamac
+now shows honest drift (atuin, ghostty, desktoppr, fonts... missing).

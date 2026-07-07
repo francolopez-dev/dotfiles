@@ -1,0 +1,22 @@
+# macOS Homebrew formulae on top of global/brew.txt.
+# These lists are the MANAGED BASELINE, not an inventory: brew never removes
+# undeclared extras, so work/k8s tooling etc. stays undeclared on purpose.
+# Tap packages are declared fully qualified so brew auto-taps.
+
+# shell + CLI parity with Omarchy
+shellcheck
+atuin
+zoxide
+yazi
+age
+restic
+
+# mac utilities
+terminal-notifier
+caarlos0/tap/timer
+mas
+duti
+
+# window/bar stack (run via brew services)
+felixkratz/formulae/borders
+felixkratz/formulae/sketchybar

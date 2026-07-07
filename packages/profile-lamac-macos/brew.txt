@@ -1,0 +1,2 @@
+# lamac (personal MacBook Pro M2) formulae, on top of global + os-macos.
+# (none yet)

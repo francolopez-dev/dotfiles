@@ -10,7 +10,7 @@
 
 # Per-machine profile state
 .config/dotfiles/profile
-stow/os-omarchy/neovim/.config/nvim/lazy-lock.json
+stow/global/neovim/.config/nvim/lazy-lock.json
 
 # Recovery pack working dir & encrypted artifacts (Phase 2)
 /recovery-pack/

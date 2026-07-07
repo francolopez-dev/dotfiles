@@ -15,10 +15,10 @@ zsh.
 | Directory listing | eza | package in `packages/global/pacman.txt` | Defaults were underused | Use long header, icons, git, relative time, directories first |
 | Colors | eza defaults + terminal theme | no custom `LS_COLORS` | `vivid` is not installed; custom colors add maintenance | Keep eza defaults for now; revisit `vivid` only if colors are not readable |
 | Prompt | Powerlevel10k | `stow/global/zsh/.p10k.zsh` | Already configured; Starship also installed but unused | Do not add another prompt framework |
-| History | Atuin | `stow/os-omarchy/atuin/.config/atuin/config.toml` | Good compact fuzzy host-filtered setup | Keep as-is |
+| History | Atuin | `stow/global/atuin/.config/atuin/config.toml` | Good compact fuzzy host-filtered setup | Keep as-is |
 | Navigation | zoxide | initialized in `stow/global/zsh/.zshrc` | zsh-only init today | Keep; add bash init later only if bash becomes interactive |
 | File manager | yazi | package + `alias y='yazi'`; placeholder config | No custom config yet | Keep simple until a concrete yazi workflow need appears |
-| Editor | Neovim LazyVim | `stow/os-omarchy/neovim/.config/nvim/` | Good starter config | Keep as-is |
+| Editor | Neovim LazyVim | `stow/global/neovim/.config/nvim/` | Good starter config | Keep as-is |
 | Opencode | none found | none | No repo config present | Do not add config without a concrete need |
 | Fonts | Nerd fonts installed | Ghostty global/profile configs | Global config lists JetBrains/Fira fallback | Keep Nerd Font support for icons |
 | Themes | Catppuccin Mocha | Ghostty theme | Fits dark low-strain direction | Keep Catppuccin/Dracula direction |

@@ -20,8 +20,8 @@ change true everywhere it should apply.
 | Alacritty terminal style/shortcuts | `stow/global/alacritty/.config/alacritty/alacritty.toml` |
 | Terminal font overrides for one machine | `stow/profile-<hostname>-<os>/{ghostty,alacritty}/.config/<terminal>/profile-overrides*` |
 | Default terminal launcher | `stow/os-omarchy/xdg-terminal-exec/.config/xdg-terminals.list` |
-| Atuin | `stow/os-omarchy/atuin/.config/atuin/config.toml` |
-| Neovim | `stow/os-omarchy/neovim/.config/nvim/` |
+| Atuin | `stow/global/atuin/.config/atuin/config.toml` |
+| Neovim | `stow/global/neovim/.config/nvim/` |
 | Monitor scale/resolution for `nox` | `stow/profile-nox-omarchy/hyprland/.config/hypr/conf.d/20-monitors.conf` |
 | Monitor scale/resolution for `fornax` | `stow/profile-fornax-omarchy/hyprland/.config/hypr/conf.d/20-monitors.conf` |
 | Autostart apps (one machine) | `stow/profile-<hostname>-omarchy/hyprland/.config/hypr/conf.d/30-autostart.conf` |

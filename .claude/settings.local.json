@@ -71,7 +71,23 @@
       "Bash(echo \"---- exit: $?\")",
       "Bash(defaults read *)",
       "Bash(brew leaves *)",
-      "Bash(echo \"=== ghostty global config ===\"; cat /Users/franco.lopez/dotfiles/stow/global/ghostty/.config/ghostty/config; echo; echo \"=== fornax ghostty profile-overrides ===\"; cat /Users/franco.lopez/dotfiles/stow/profile-fornax-omarchy/ghostty/.config/ghostty/profile-overrides; echo; echo \"=== current mac sketchybarrc ===\"; cat ~/.config/sketchybar/sketchybarrc)"
+      "Bash(echo \"=== ghostty global config ===\"; cat /Users/franco.lopez/dotfiles/stow/global/ghostty/.config/ghostty/config; echo; echo \"=== fornax ghostty profile-overrides ===\"; cat /Users/franco.lopez/dotfiles/stow/profile-fornax-omarchy/ghostty/.config/ghostty/profile-overrides; echo; echo \"=== current mac sketchybarrc ===\"; cat ~/.config/sketchybar/sketchybarrc)",
+      "Bash(scutil --get LocalHostName)",
+      "Bash(DOTFILES_OS=omarchy bash -c '. scripts/lib/common.sh; detect_os')",
+      "Bash(/bin/bash scripts/dotfiles status)",
+      "Bash(echo \"exit=$?\")",
+      "Bash(brew install *)",
+      "Bash(/opt/homebrew/bin/bash --version)",
+      "Bash(echo \"shellcheck exit=$?\")",
+      "Bash(/bin/bash scripts/macos-inventory.sh)",
+      "Bash(echo \"run exit=$?\")",
+      "Bash(DOTFILES_DIR=/private/tmp/claude-501/-Users-franco-lopez-dotfiles/88c23f20-3916-4d56-8a75-c66e8216b34d/scratchpad/pkgtest DOTFILES_OS=macos DOTFILES_PROFILE=profile-lamac-macos bash -c '. scripts/lib/common.sh; . scripts/lib/packages.sh; desired_packages')",
+      "Bash(DOTFILES_DIR=/private/tmp/claude-501/-Users-franco-lopez-dotfiles/88c23f20-3916-4d56-8a75-c66e8216b34d/scratchpad/pkgtest DOTFILES_OS=macos bash -c '. scripts/lib/common.sh; . scripts/lib/packages.sh; validate_macos_package_declarations')",
+      "Bash(echo \"overlap exit=$? \\(want 1\\)\")",
+      "Bash(DOTFILES_OS=macos bash -c '. scripts/lib/common.sh; f\\(\\) { local short=\"${1##*/}\"; brew list --formula --versions \"$short\" >/dev/null 2>&1 || brew list --cask --versions \"$short\" >/dev/null 2>&1; }; f felixkratz/formulae/borders && echo borders-installed; f raycast && echo raycast-installed; f not-a-pkg || echo missing-detected')",
+      "Bash(brew info *)",
+      "Bash(brew search *)",
+      "Bash(time scripts/dotfiles status)"
     ]
   }
 }

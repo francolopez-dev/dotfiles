@@ -480,7 +480,11 @@ install_powerlevel10k
 # 4. Stow only shell/CLI config before the longer package/update phase so a new
 # terminal cannot fall into zsh-newuser-install on fresh installs. Full layer
 # stow happens after pacman and AUR packages are handled by `dotfiles update`.
-apply_bootstrap_shell_config
+# Conflicts are reported (nonzero) but must not abort bootstrap: the full
+# `dotfiles update` below runs the interactive conflict wizard.
+if ! apply_bootstrap_shell_config; then
+  warn "shell config stow reported conflicts; dotfiles update will handle them"
+fi
 
 # 5. Install declared packages, then re-apply layers with conflict wizard.
 say "Running dotfiles update"

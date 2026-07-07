@@ -1,6 +1,6 @@
 # Task 05 — Fix: status/doctor hide stow conflicts in dry-run
 
-Status: todo
+Status: done
 Scope: repo-only (fixes all OSes, not just macOS)
 Depends on: none
 Size: M
@@ -56,3 +56,12 @@ Single commit; revert restores the (buggy) lenient behavior.
 ## Acceptance criteria
 Sandbox test shows the conflict; a machine with no conflicts still shows
 `ok stow dry-run clean`; update/bootstrap dry-runs still complete.
+
+## Result
+stow_one_package --no now returns 1 on conflicts; guarded the two callers
+that would abort under set -e (cmd_apply dry-run warns; bootstrap wraps
+apply_bootstrap_shell_config since the update wizard handles conflicts).
+Validated 2026-07-07 on lamac: sandbox conflict -> status warns with detail;
+empty-HOME sandbox -> "stow dry-run clean"; real `update --dry-run` honestly
+lists the legacy ~/.zshrc/.p10k.zsh conflicts it previously hid. shellcheck
+clean; no automation consumes status/doctor exit codes.

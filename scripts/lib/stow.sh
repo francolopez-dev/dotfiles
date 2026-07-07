@@ -92,7 +92,9 @@ stow_one_package() {
     warn "stow conflicts detected for $layer/$pkg"
     sed 's|^|  |' "$conflicts_file" >&2
     rm -f "$conflicts_file"
-    return 0
+    # Dry-run must report conflicts in its exit code so status/doctor/update
+    # cannot claim "clean" while conflicts exist.
+    return 1
   fi
 
   if [[ "$conflict_count" -gt 0 ]]; then

@@ -62,7 +62,7 @@ cmd_apply() {
   [[ "${1:-}" == "--dry-run" ]] && extra=(--no --verbose)
   info "machine: $(detect_hostname) ($(detect_os)); profile: $(active_profile)"
   if [[ ${#extra[@]} -gt 0 ]]; then
-    apply_all_layers "${extra[@]}"
+    apply_all_layers "${extra[@]}" || warn "dry-run found stow conflicts (nothing changed)"
   else
     apply_all_layers
   fi

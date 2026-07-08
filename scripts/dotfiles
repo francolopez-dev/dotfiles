@@ -456,12 +456,40 @@ refresh_desktop_caches() {
 refresh_shell_caches() {
   local dry="$1"
   if command -v zsh >/dev/null 2>&1 && [[ -f "$HOME/.zshrc" ]]; then
+    refresh_zsh_compaudit "$dry"
     if [[ "$dry" -eq 1 ]]; then
       dim "  would refresh zsh completion dump"
     else
       rm -f "$HOME"/.zcompdump* 2>/dev/null || true
       ok "zsh completion cache cleared"
     fi
+  fi
+}
+
+_zsh_compaudit_insecure() {
+  zsh -c 'autoload -Uz compaudit && compaudit' 2>/dev/null || true
+}
+
+# Group/other-writable completion dirs make oh-my-zsh refuse to load them and
+# spam every new shell (which in turn trips the p10k instant-prompt warning).
+# Homebrew casks symlink app-bundle completions with loose perms; tighten them.
+refresh_zsh_compaudit() {
+  local dry="$1" insecure line failed=0
+  insecure="$(_zsh_compaudit_insecure)"
+  [[ -n "$insecure" ]] || return 0
+  if [[ "$dry" -eq 1 ]]; then
+    dim "  would fix insecure zsh completion permissions (chmod g-w,o-w):"
+    while IFS= read -r line; do dim "    $line"; done <<<"$insecure"
+    return 0
+  fi
+  while IFS= read -r line; do
+    [[ -n "$line" ]] || continue
+    chmod g-w,o-w "$line" 2>/dev/null || failed=1
+  done <<<"$insecure"
+  if [[ "$failed" -eq 0 && -z "$(_zsh_compaudit_insecure)" ]]; then
+    ok "zsh completion permissions fixed (compaudit clean)"
+  else
+    warn "compaudit still reports insecure completion paths; run: compaudit | xargs chmod g-w,o-w"
   fi
 }
 
@@ -543,6 +571,7 @@ configure_macos_declared_services() {
   package_declared_short sketchybar && configure_macos_dotfiles_launchagent "$dry" sketchybar || true
   package_declared_short linearmouse && configure_macos_dotfiles_launchagent "$dry" linearmouse LinearMouse /Applications/LinearMouse.app || true
   configure_macos_primary_bar_defaults "$dry"
+  configure_macos_menubar_background "$dry"
   configure_macos_dock_defaults "$dry"
   configure_macos_finder_defaults "$dry"
   configure_macos_input_defaults "$dry"
@@ -728,6 +757,96 @@ configure_macos_primary_bar_defaults() {
     ok "native menu bar auto-hide enabled"
   else
     warn "menu bar defaults written; live auto-hide may require System Events permission or a new login"
+  fi
+}
+
+# Tahoe's "Show menu bar background" toggle has no defaults key (it drives a
+# private SkyLight API persisted inside WindowServer), so the only automation
+# is UI-scripting the real toggle in System Settings. State is recorded in a
+# marker file: "enabled" once the checkbox is confirmed on, "manual" after a
+# failed attempt so updates stop popping System Settings open.
+_macos_menubar_background_marker() {
+  printf '%s\n' "${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles/menubar-background"
+}
+
+configure_macos_menubar_background() {
+  local dry="$1" marker result=""
+  marker="$(_macos_menubar_background_marker)"
+  # The Menu Bar pane and its background toggle exist on macOS 26+ only.
+  [[ "$(sw_vers -productVersion 2>/dev/null | cut -d. -f1)" -ge 26 ]] 2>/dev/null || return 0
+  if [[ -f "$marker" && "$(cat "$marker" 2>/dev/null)" == "enabled" ]]; then
+    ok "native menu bar background enabled"
+    return 0
+  fi
+  if [[ -f "$marker" ]]; then
+    warn "menu bar background: automation failed before; flip it once manually:"
+    warn "  open \"x-apple.systempreferences:com.apple.ControlCenter-Settings.extension\"  -> turn ON 'Show menu bar background'"
+    warn "  then: printf enabled > $marker"
+    return 0
+  fi
+  if [[ "$dry" -eq 1 ]]; then
+    dim "  would enable 'Show menu bar background' via System Settings UI automation"
+    return 0
+  fi
+  open "x-apple.systempreferences:com.apple.ControlCenter-Settings.extension" >/dev/null 2>&1 || true
+  sleep 2
+  result="$(osascript 2>/dev/null <<'OSA' || true
+set deadline to (current date) + 15
+tell application "System Events"
+  tell process "System Settings"
+    repeat while (current date) < deadline
+      try
+        repeat with e in (entire contents of front window)
+          if class of e is checkbox then
+            set lbl to ""
+            try
+              set lbl to (name of e as string)
+            end try
+            if lbl is "" or lbl is "missing value" then
+              try
+                set lbl to (description of e as string)
+              end try
+            end if
+            if lbl contains "menu bar background" then
+              if (value of e as integer) is 1 then return "already"
+              click e
+              return "enabled"
+            end if
+          end if
+        end repeat
+      end try
+      delay 0.5
+    end repeat
+  end tell
+end tell
+return "notfound"
+OSA
+)"
+  osascript -e 'tell application "System Settings" to quit' >/dev/null 2>&1 || true
+  mkdir -p "$(dirname "$marker")"
+  case "$result" in
+    already|enabled)
+      printf 'enabled' >"$marker"
+      ok "native menu bar background enabled (System Settings toggle)"
+      ;;
+    *)
+      printf 'manual' >"$marker"
+      warn "could not toggle 'Show menu bar background' automatically (needs Accessibility/Automation permission for the terminal)"
+      warn "flip it once manually: open \"x-apple.systempreferences:com.apple.ControlCenter-Settings.extension\""
+      warn "then record it: printf enabled > $marker"
+      ;;
+  esac
+}
+
+_macos_menubar_background_doctor() {
+  local marker
+  marker="$(_macos_menubar_background_marker)"
+  [[ "$(sw_vers -productVersion 2>/dev/null | cut -d. -f1)" -ge 26 ]] 2>/dev/null || return 0
+  if [[ -f "$marker" && "$(cat "$marker" 2>/dev/null)" == "enabled" ]]; then
+    ok "native menu bar background enabled"
+  else
+    warn "menu bar background not confirmed; run dotfiles update (or flip it in System Settings -> Menu Bar)"
+    return 1
   fi
 }
 
@@ -1121,8 +1240,8 @@ print_next_steps() {
     printf '  macOS Accessibility: System Settings -> Privacy & Security -> Accessibility; enable AeroSpace, borders, Rectangle, Raycast, and LinearMouse\n'
     printf '    (AeroSpace/Rectangle shortcuts and LinearMouse scrolling do nothing until this is granted)\n'
     printf '  Raycast: Cmd-Space is preconfigured; if Spotlight still opens, log out and back in once\n'
-    printf '  Menu bar background (manual, once; the toggle drives a private WindowServer API and cannot be scripted):\n'
-    printf '    open "x-apple.systempreferences:com.apple.ControlCenter-Settings.extension"  then turn ON "Show menu bar background"\n'
+    printf '  Menu bar background: update toggles it via System Settings automation (allow the Accessibility/Automation prompt);\n'
+    printf '    manual fallback: open "x-apple.systempreferences:com.apple.ControlCenter-Settings.extension" -> turn ON "Show menu bar background"\n'
     printf '  Finder toolbar: re-add AirDrop via Finder -> View -> Customize Toolbar (sidebar: Finder -> Settings -> Sidebar)\n'
   elif package_declared tailscale; then
     printf '  Tailscale login: sudo tailscale up\n'
@@ -1268,6 +1387,14 @@ cmd_doctor() {
   else
     warn "Powerlevel10k config missing at ~/.p10k.zsh"
   fi
+  if command -v zsh >/dev/null 2>&1; then
+    if [[ -z "$(_zsh_compaudit_insecure)" ]]; then
+      ok "zsh compaudit clean"
+    else
+      warn "zsh compaudit reports insecure completion dirs (new shells warn on start); run dotfiles update"
+      failed=1
+    fi
+  fi
   remote="$(git -C "$DOTFILES_DIR" remote get-url origin 2>/dev/null || true)"
   case "$remote" in
     git@github.com:*) ok "GitHub remote uses SSH" ;;
@@ -1366,6 +1493,7 @@ cmd_doctor() {
     _macos_dotfiles_launchagent_doctor sketchybar sketchybar || failed=1
     _macos_dotfiles_launchagent_doctor linearmouse LinearMouse || failed=1
     _macos_nerd_font_doctor || failed=1
+    _macos_menubar_background_doctor || failed=1
     _macos_dock_doctor || failed=1
     _macos_finder_doctor || failed=1
     _macos_input_doctor || failed=1

@@ -181,7 +181,9 @@
       "Bash(osascript -e 'tell application \"System Settings\" to quit')",
       "Bash(osascript -e 'tell application \"System Settings\" to get the id of every pane')",
       "Bash(open \"x-apple.systempreferences:com.apple.ControlCenter-Settings.extension\")",
-      "Bash(osascript -e 'tell application \"System Settings\" to get the name of the current pane' -e 'tell application \"System Settings\" to get the id of the current pane')"
+      "Bash(osascript -e 'tell application \"System Settings\" to get the name of the current pane' -e 'tell application \"System Settings\" to get the id of the current pane')",
+      "Bash(sed -n '/^set deadline to/,/^return \"notfound\"/p' scripts/dotfiles)",
+      "Bash(osacompile -o /private/tmp/claude-501/-Users-franco-lopez-dotfiles/b15286f0-c48c-4593-a892-f2eb55cba797/scratchpad/menubar.scpt /private/tmp/claude-501/-Users-franco-lopez-dotfiles/b15286f0-c48c-4593-a892-f2eb55cba797/scratchpad/menubar.applescript)"
     ]
   }
 }

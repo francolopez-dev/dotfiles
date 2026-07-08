@@ -97,16 +97,8 @@ sketchybar --add item media e \
     script="${PLUGIN_DIR}/media.sh" \
   --subscribe media spotify_change system_woke
 
-sketchybar --add item date right \
-  --set date \
-    icon.drawing=off \
-    label.color="${TEXT_SOFT}" \
-    label.font="${FONT}:Bold:12.0" \
-    update_freq=60 \
-    script="${PLUGIN_DIR}/clock.sh" \
-    click_script="open -a Calendar" \
-  --subscribe date system_woke
-
+# Right items stack right-to-left (first added = rightmost). Desired visual
+# order, left to right: wifi, vpn, volume, battery, memory, cpu, date, time.
 sketchybar --add item clock right \
   --set clock \
     icon.drawing=off \
@@ -116,6 +108,16 @@ sketchybar --add item clock right \
     script="${PLUGIN_DIR}/clock.sh" \
     click_script="open -a Calendar" \
   --subscribe clock system_woke
+
+sketchybar --add item date right \
+  --set date \
+    icon.drawing=off \
+    label.color="${TEXT_SOFT}" \
+    label.font="${FONT}:Bold:12.0" \
+    update_freq=60 \
+    script="${PLUGIN_DIR}/clock.sh" \
+    click_script="open -a Calendar" \
+  --subscribe date system_woke
 
 sketchybar --add item cpu right \
   --set cpu \

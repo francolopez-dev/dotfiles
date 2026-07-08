@@ -580,7 +580,8 @@ bootstrap_summary() {
     printf '  macOS Accessibility: System Settings -> Privacy & Security -> Accessibility; enable AeroSpace, borders, Rectangle, Raycast, and LinearMouse\n'
     printf '    (AeroSpace/Rectangle shortcuts and LinearMouse scrolling do nothing until this is granted)\n'
     printf '  Raycast: Cmd-Space is preconfigured; if Spotlight still opens, log out and back in once\n'
-    printf '  Menu bar: System Settings -> Menu Bar -> turn on "Show menu bar background" so the native bar is readable when it slides in\n'
+    printf '  Menu bar background (manual, once; the toggle drives a private WindowServer API and cannot be scripted):\n'
+    printf '    open "x-apple.systempreferences:com.apple.ControlCenter-Settings.extension"  then turn ON "Show menu bar background"\n'
   else
     printf '  Tailscale: run sudo tailscale up\n'
   fi

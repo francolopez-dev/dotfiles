@@ -170,7 +170,18 @@
       "Bash(scripts/dotfiles update *)",
       "Bash(scripts/dotfiles doctor *)",
       "Read(//opt/homebrew/Caskroom/font-jetbrains-mono-nerd-font/**)",
-      "Bash(defaults find *)"
+      "Bash(defaults find *)",
+      "Bash(ls /System/Library/ExtensionKit/Extensions/ | grep -i -E \"menu|control\" ; echo ---; find /System/Library/ExtensionKit/Extensions -maxdepth 1 -iname \"*menubar*\" 2>/dev/null)",
+      "Bash(strings -a \"/System/Library/ExtensionKit/Extensions/ControlCenterSettings.appex/Contents/MacOS/ControlCenterSettings\" 2>/dev/null | grep -i \"opaque\" | sort -u; echo ---CC---; strings -a /System/Library/CoreServices/ControlCenter.app/Contents/MacOS/ControlCenter 2>/dev/null | grep -i \"opaque\" | sort -u | head; echo ---WS---; strings -a /System/Library/PrivateFrameworks/SkyLight.framework/Versions/A/SkyLight 2>/dev/null | grep -i \"opaque.*menu\\\\|menu.*opaque\" | sort -u | head)",
+      "Bash(strings -a /System/Library/Frameworks/Carbon.framework/Versions/A/Frameworks/HIToolbox.framework/Versions/A/HIToolbox 2>/dev/null | grep -iE \"opaque|menubarbackground|showmenubar\" | sort -u | head -20)",
+      "Bash(ls -lh /System/Volumes/Preboot/Cryptexes/OS/System/Library/dyld/ 2>/dev/null | head -6)",
+      "Bash(otool -L /System/Library/ExtensionKit/Extensions/ControlCenterSettings.appex/Contents/MacOS/ControlCenterSettings)",
+      "Bash(open \"x-apple.systempreferences:com.apple.desktopsettings.menubar\")",
+      "Bash(osascript -e 'tell application \"System Settings\" to get the id of the current pane')",
+      "Bash(osascript -e 'tell application \"System Settings\" to quit')",
+      "Bash(osascript -e 'tell application \"System Settings\" to get the id of every pane')",
+      "Bash(open \"x-apple.systempreferences:com.apple.ControlCenter-Settings.extension\")",
+      "Bash(osascript -e 'tell application \"System Settings\" to get the name of the current pane' -e 'tell application \"System Settings\" to get the id of the current pane')"
     ]
   }
 }

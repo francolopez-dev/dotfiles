@@ -163,7 +163,12 @@
       "Bash(echo \"=== NE config ===\")",
       "Bash(ps -axo pid,lstart,command)",
       "Bash(log stats *)",
-      "Bash(/usr/bin/log show *)"
+      "Bash(/usr/bin/log show *)",
+      "WebFetch(domain:nikitabobko.github.io)",
+      "WebFetch(domain:linearmouse.app)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(scripts/dotfiles update *)",
+      "Bash(scripts/dotfiles doctor *)"
     ]
   }
 }

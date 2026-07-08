@@ -355,7 +355,13 @@ refresh_after_apply() {
     refresh_omarchy_session "$dry" needs_manual
   fi
   if [[ "$(detect_os)" == "macos" ]] && pgrep -x sketchybar >/dev/null 2>&1; then
-    run_refresh_cmd "$dry" "sketchybar reloaded" sketchybar --reload || true
+    # Restart the process instead of --reload: a reload keeps the old process,
+    # which never sees fonts installed after it started (icons render as "?").
+    if _macos_dotfiles_launchagent_loaded sketchybar; then
+      run_refresh_cmd "$dry" "sketchybar restarted" launchctl kickstart -k "gui/$(id -u)/com.dotfiles.sketchybar" || true
+    else
+      run_refresh_cmd "$dry" "sketchybar reloaded" sketchybar --reload || true
+    fi
   fi
 
   detect_manual_refreshes needs_manual
@@ -517,8 +523,10 @@ configure_declared_services() {
 configure_macos_declared_services() {
   local dry="$1"
   configure_macos_trusted_taps "$dry"
+  configure_macos_sketchybar_font "$dry"
   package_declared_short borders && configure_macos_dotfiles_launchagent "$dry" borders || true
   package_declared_short sketchybar && configure_macos_dotfiles_launchagent "$dry" sketchybar || true
+  package_declared_short linearmouse && configure_macos_dotfiles_launchagent "$dry" linearmouse LinearMouse /Applications/LinearMouse.app || true
   configure_macos_primary_bar_defaults "$dry"
   configure_macos_dock_defaults "$dry"
   configure_macos_finder_defaults "$dry"
@@ -553,6 +561,27 @@ configure_macos_trusted_taps() {
     fi
   done
   [[ ${#trusted[@]} -eq 0 ]] || ok "trusted declared brew tap(s): ${trusted[*]}"
+}
+
+# sketchybar icons need the Nerd Font files on disk; a cask can stay
+# registered in brew while the copied font files are gone, so verify the
+# files themselves and reinstall when they are missing.
+configure_macos_sketchybar_font() {
+  local dry="$1" f
+  package_declared_short font-jetbrains-mono-nerd-font || return 0
+  command -v brew >/dev/null 2>&1 || return 0
+  for f in "$HOME/Library/Fonts"/JetBrainsMonoNerdFont*.ttf /Library/Fonts/JetBrainsMonoNerdFont*.ttf; do
+    [[ -f "$f" ]] && return 0
+  done
+  if [[ "$dry" -eq 1 ]]; then
+    dim "  would run: brew reinstall --cask font-jetbrains-mono-nerd-font"
+    return 0
+  fi
+  if brew reinstall --cask font-jetbrains-mono-nerd-font >/dev/null 2>&1; then
+    ok "reinstalled JetBrainsMono Nerd Font (files were missing)"
+  else
+    warn "JetBrainsMono Nerd Font files missing; run: brew reinstall --cask font-jetbrains-mono-nerd-font"
+  fi
 }
 
 configure_macos_brew_service() {
@@ -595,9 +624,8 @@ _macos_brew_service_formula() {
 }
 
 configure_macos_dotfiles_launchagent() {
-  local dry="$1" service="$2" source_plist target_dir target_plist uid label process formula
+  local dry="$1" service="$2" process="${3:-$2}" app_path="${4:-}" source_plist target_dir target_plist uid label formula
   label="com.dotfiles.$service"
-  process="$service"
   formula="$(_macos_brew_service_formula "$service")"
   source_plist="$HOME/.local/share/dotfiles/LaunchAgents/$label.plist"
   if [[ ! -r "$source_plist" ]]; then
@@ -607,7 +635,12 @@ configure_macos_dotfiles_launchagent() {
   target_plist="$target_dir/$label.plist"
   uid="$(id -u)"
 
-  if ! command -v "$service" >/dev/null 2>&1; then
+  if [[ -n "$app_path" ]]; then
+    if [[ ! -d "$app_path" ]]; then
+      warn "$service is declared but not installed; run dotfiles update again after package install completes"
+      return 0
+    fi
+  elif ! command -v "$service" >/dev/null 2>&1; then
     warn "$service is declared but not installed; run dotfiles update again after package install completes"
     return 0
   fi
@@ -665,23 +698,38 @@ configure_macos_primary_bar_defaults() {
 
 configure_macos_dock_defaults() {
   local dry="$1"
+  if _macos_dock_defaults_match; then
+    ok "Dock and desktop defaults applied"
+    return 0
+  fi
   if [[ "$dry" -eq 1 ]]; then
     dim "  would run: defaults write com.apple.dock autohide -bool true"
     dim "  would run: defaults write com.apple.dock orientation left"
     dim "  would run: defaults write com.apple.dock tilesize -int 47"
+    dim "  would run: defaults write com.apple.dock show-recents -bool false"
+    dim "  would run: defaults write com.apple.WindowManager EnableStandardClickToShowDesktop -bool false"
     dim "  would run: killall Dock"
     return 0
   fi
   defaults write com.apple.dock autohide -bool true
   defaults write com.apple.dock orientation left
   defaults write com.apple.dock tilesize -int 47
+  defaults write com.apple.dock show-recents -bool false
+  defaults write com.apple.WindowManager EnableStandardClickToShowDesktop -bool false
   killall Dock >/dev/null 2>&1 || true
-  ok "Dock auto-hide defaults applied"
+  ok "Dock and desktop defaults applied"
 }
 
 configure_macos_finder_defaults() {
   local dry="$1" home_url
   home_url="file://$HOME/"
+  # Skip (and never killall Finder) when everything already matches: a Finder
+  # restart closes windows and churns user session state, so it must only
+  # happen when a managed default actually changed.
+  if _macos_finder_defaults_match; then
+    ok "Finder defaults applied"
+    return 0
+  fi
   if [[ "$dry" -eq 1 ]]; then
     dim "  would run: defaults write com.apple.finder NewWindowTarget PfHm"
     dim "  would run: defaults write com.apple.finder NewWindowTargetPath $home_url"
@@ -708,54 +756,134 @@ configure_macos_finder_defaults() {
 
 configure_macos_input_defaults() {
   local dry="$1"
+  # Natural scrolling stays ON globally (trackpad behavior); LinearMouse
+  # reverses vertical scroll for mice only via the stowed linearmouse.json,
+  # since macOS has no native per-device scroll direction.
+  if _macos_input_defaults_match; then
+    ok "macOS input defaults applied"
+    return 0
+  fi
   if [[ "$dry" -eq 1 ]]; then
-    dim "  would run: defaults write -g com.apple.swipescrolldirection -bool false"
+    dim "  would run: defaults write -g com.apple.swipescrolldirection -bool true"
     dim "  would run: defaults write com.apple.AppleMultitouchTrackpad Clicking -bool true"
     dim "  would run: defaults write -g KeyRepeat -int 2"
     dim "  would run: defaults write -g InitialKeyRepeat -int 15"
     dim "  would run: defaults write -g ApplePressAndHoldEnabled -bool false"
     return 0
   fi
-  defaults write -g com.apple.swipescrolldirection -bool false
+  defaults write -g com.apple.swipescrolldirection -bool true
   defaults write com.apple.AppleMultitouchTrackpad Clicking -bool true
   defaults write -g KeyRepeat -int 2
   defaults write -g InitialKeyRepeat -int 15
   defaults write -g ApplePressAndHoldEnabled -bool false
   ok "macOS input defaults applied"
+  warn "scroll direction changes may need a log out/in to affect running apps"
 }
 
 configure_macos_aerospace() {
   local dry="$1"
   [[ -d /Applications/AeroSpace.app ]] || return 0
+  _macos_aerospace_config_cleanup "$dry"
   if pgrep -x AeroSpace >/dev/null 2>&1; then
-    if command -v aerospace >/dev/null 2>&1 && aerospace reload-config >/dev/null 2>&1 && aerospace list-workspaces --focused >/dev/null 2>&1; then
+    if _macos_aerospace_responding && aerospace reload-config >/dev/null 2>&1; then
       ok "AeroSpace running and responding"
-    else
-      warn "AeroSpace is running but not responding to CLI checks"
-      warn "check macOS Accessibility: System Settings -> Privacy & Security -> Accessibility"
+      return 0
     fi
-    return 0
-  fi
-  if [[ "$dry" -eq 1 ]]; then
+    if [[ "$dry" -eq 1 ]]; then
+      dim "  would restart AeroSpace (running but not responding to CLI checks)"
+      return 0
+    fi
+    # A restart recovers from startup errors such as the ambiguous-config
+    # refusal; a plain reload-config cannot reach a wedged instance.
+    warn "AeroSpace running but not responding; restarting it"
+    pkill -x AeroSpace >/dev/null 2>&1 || true
+    sleep 1
+  elif [[ "$dry" -eq 1 ]]; then
     dim "  would run: open -ga AeroSpace"
     return 0
   fi
   if open -ga AeroSpace >/dev/null 2>&1; then
-    ok "AeroSpace launched"
-    if command -v aerospace >/dev/null 2>&1; then
-      aerospace reload-config >/dev/null 2>&1 || warn "AeroSpace launched but config reload failed"
+    sleep 2
+    if _macos_aerospace_responding; then
+      ok "AeroSpace running and responding"
+    else
+      warn "AeroSpace launched but CLI checks still fail: $(_macos_aerospace_cli_error)"
+      warn "grant Accessibility: System Settings -> Privacy & Security -> Accessibility"
     fi
-    warn "AeroSpace may still need macOS Accessibility permission before it can manage windows"
-    warn "check: System Settings -> Privacy & Security -> Accessibility"
   else
     warn "failed to launch AeroSpace; open it from /Applications and grant Accessibility permission if prompted"
   fi
 }
 
+_macos_aerospace_responding() {
+  command -v aerospace >/dev/null 2>&1 || return 1
+  aerospace list-workspaces --focused >/dev/null 2>&1
+}
+
+_macos_aerospace_cli_error() {
+  if ! command -v aerospace >/dev/null 2>&1; then
+    printf 'aerospace CLI not in PATH\n'
+    return 0
+  fi
+  aerospace list-workspaces --focused 2>&1 | head -n 1 || true
+}
+
+# AeroSpace refuses to load when its config exists in both supported
+# locations (~/.aerospace.toml and the XDG path). The XDG file is the managed
+# one; remove a root-level link only if it is a stale stow link into this repo.
+_macos_aerospace_config_cleanup() {
+  local dry="$1" root_cfg="$HOME/.aerospace.toml" xdg_cfg="${XDG_CONFIG_HOME:-$HOME/.config}/aerospace/aerospace.toml" link_target
+  [[ -e "$xdg_cfg" ]] || return 0
+  [[ -e "$root_cfg" || -L "$root_cfg" ]] || return 0
+  if [[ -L "$root_cfg" ]]; then
+    link_target="$(readlink "$root_cfg" 2>/dev/null || true)"
+    case "$link_target" in
+      *"/stow/os-macos/aerospace/"*)
+        if [[ "$dry" -eq 1 ]]; then
+          dim "  would remove stale AeroSpace config link: $root_cfg"
+        else
+          rm -f "$root_cfg"
+          ok "removed stale AeroSpace config link: $root_cfg"
+        fi
+        return 0
+        ;;
+    esac
+  fi
+  warn "AeroSpace config exists in both $root_cfg and $xdg_cfg; AeroSpace refuses this ambiguity — keep only the XDG file"
+}
+
 configure_macos_desktop_apps() {
   local dry="$1"
   configure_macos_app_launch "$dry" Raycast /Applications/Raycast.app Raycast
+  configure_macos_raycast_hotkey "$dry"
   configure_macos_app_launch "$dry" Rectangle /Applications/Rectangle.app Rectangle
+}
+
+# Cmd-Space for Raycast is two prefs: Spotlight's symbolic hotkey 64 must be
+# disabled, and Raycast reads raycastGlobalHotkey at launch (hence the
+# restart when the value changes).
+configure_macos_raycast_hotkey() {
+  local dry="$1"
+  [[ -d /Applications/Raycast.app ]] || return 0
+  if [[ "$(defaults read com.raycast.macos raycastGlobalHotkey 2>/dev/null || true)" == "Command-49" ]]; then
+    ok "Raycast hotkey set to Cmd-Space"
+    return 0
+  fi
+  if [[ "$dry" -eq 1 ]]; then
+    dim "  would disable Spotlight Cmd-Space (symbolic hotkey 64)"
+    dim "  would run: defaults write com.raycast.macos raycastGlobalHotkey Command-49"
+    dim "  would restart Raycast to pick up the hotkey"
+    return 0
+  fi
+  defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add 64 '<dict><key>enabled</key><false/></dict>'
+  /System/Library/PrivateFrameworks/SystemAdministration.framework/Resources/activateSettings -u >/dev/null 2>&1 || true
+  defaults write com.raycast.macos raycastGlobalHotkey -string "Command-49"
+  if pgrep -x Raycast >/dev/null 2>&1; then
+    killall Raycast >/dev/null 2>&1 || true
+    sleep 1
+    open -ga Raycast >/dev/null 2>&1 || true
+  fi
+  ok "Raycast hotkey set to Cmd-Space (Spotlight shortcut disabled)"
 }
 
 configure_macos_app_launch() {
@@ -928,8 +1056,10 @@ print_next_steps() {
   printf '\nNext steps:\n'
   if [[ "$os" == "macos" ]]; then
     printf '  Tailscale: open Tailscale.app and log in\n'
-    printf '  macOS Accessibility: System Settings -> Privacy & Security -> Accessibility; enable AeroSpace, borders, Rectangle, and Raycast if listed\n'
-    printf '  Raycast: set Cmd-Space in Raycast -> Settings -> Extensions -> Search -> Hotkey\n'
+    printf '  macOS Accessibility: System Settings -> Privacy & Security -> Accessibility; enable AeroSpace, borders, Rectangle, Raycast, and LinearMouse\n'
+    printf '    (AeroSpace/Rectangle shortcuts and LinearMouse scrolling do nothing until this is granted)\n'
+    printf '  Raycast: Cmd-Space is preconfigured; if Spotlight still opens, log out and back in once\n'
+    printf '  Finder toolbar: re-add AirDrop via Finder -> View -> Customize Toolbar (sidebar: Finder -> Settings -> Sidebar)\n'
   elif package_declared tailscale; then
     printf '  Tailscale login: sudo tailscale up\n'
   fi
@@ -1168,6 +1298,8 @@ cmd_doctor() {
     _macos_process_doctor Raycast Raycast || failed=1
     _macos_dotfiles_launchagent_doctor borders borders || failed=1
     _macos_dotfiles_launchagent_doctor sketchybar sketchybar || failed=1
+    _macos_dotfiles_launchagent_doctor linearmouse LinearMouse || failed=1
+    _macos_nerd_font_doctor || failed=1
     _macos_dock_doctor || failed=1
     _macos_finder_doctor || failed=1
     _macos_input_doctor || failed=1
@@ -1274,6 +1406,7 @@ cmd_status() {
       _macos_process_status Rectangle Rectangle
       _macos_dotfiles_launchagent_status borders borders
       _macos_dotfiles_launchagent_status sketchybar sketchybar
+      _macos_dotfiles_launchagent_status linearmouse LinearMouse
       _macos_dock_status
       _macos_finder_status
       _macos_input_status
@@ -1671,13 +1804,22 @@ _macos_aerospace_running() {
   pgrep -x AeroSpace >/dev/null 2>&1
 }
 
+_macos_aerospace_config_ambiguous() {
+  [[ -e "$HOME/.aerospace.toml" && -e "${XDG_CONFIG_HOME:-$HOME/.config}/aerospace/aerospace.toml" ]]
+}
+
 _macos_aerospace_doctor() {
+  local err
   if _macos_aerospace_running; then
-    if command -v aerospace >/dev/null 2>&1 && aerospace list-workspaces --focused >/dev/null 2>&1; then
+    if _macos_aerospace_responding; then
       ok "AeroSpace running and responding"
     else
-      warn "AeroSpace running but CLI checks failed; verify Accessibility permission"
-      warn "System Settings -> Privacy & Security -> Accessibility"
+      err="$(_macos_aerospace_cli_error)"
+      warn "AeroSpace running but CLI checks failed${err:+: $err}"
+      if _macos_aerospace_config_ambiguous; then
+        warn "AeroSpace config exists in both ~/.aerospace.toml and ~/.config/aerospace/; run dotfiles update to clean up"
+      fi
+      warn "if this mentions permissions: System Settings -> Privacy & Security -> Accessibility"
       return 1
     fi
   else
@@ -1689,10 +1831,10 @@ _macos_aerospace_doctor() {
 
 _macos_aerospace_status() {
   if _macos_aerospace_running; then
-    if command -v aerospace >/dev/null 2>&1 && aerospace list-workspaces --focused >/dev/null 2>&1; then
+    if _macos_aerospace_responding; then
       printf '  aerospace: running/responding\n'
     else
-      printf '  aerospace: running, CLI check failed; check Accessibility permission\n'
+      printf '  aerospace: running, CLI check failed (%s)\n' "$(_macos_aerospace_cli_error)"
     fi
   elif [[ -d /Applications/AeroSpace.app ]]; then
     printf '  aerospace: installed, not running\n'
@@ -1701,15 +1843,31 @@ _macos_aerospace_status() {
   fi
 }
 
+# The sketchybar config renders icons with JetBrainsMono Nerd Font; when the
+# font files are missing every icon shows as "?".
+_macos_nerd_font_doctor() {
+  local f
+  for f in "$HOME/Library/Fonts"/JetBrainsMonoNerdFont*.ttf /Library/Fonts/JetBrainsMonoNerdFont*.ttf; do
+    if [[ -f "$f" ]]; then
+      ok "JetBrainsMono Nerd Font installed (sketchybar icons)"
+      return 0
+    fi
+  done
+  warn "JetBrainsMono Nerd Font files missing; run: brew reinstall --cask font-jetbrains-mono-nerd-font"
+  return 1
+}
+
 _macos_dock_defaults_match() {
   [[ "$(defaults read com.apple.dock autohide 2>/dev/null || true)" == "1" ]] || return 1
   [[ "$(defaults read com.apple.dock orientation 2>/dev/null || true)" == "left" ]] || return 1
-  [[ "$(defaults read com.apple.dock tilesize 2>/dev/null || true)" == "47" ]]
+  [[ "$(defaults read com.apple.dock tilesize 2>/dev/null || true)" == "47" ]] || return 1
+  [[ "$(defaults read com.apple.dock show-recents 2>/dev/null || true)" == "0" ]] || return 1
+  [[ "$(defaults read com.apple.WindowManager EnableStandardClickToShowDesktop 2>/dev/null || true)" == "0" ]]
 }
 
 _macos_dock_doctor() {
   if _macos_dock_defaults_match; then
-    ok "Dock auto-hide defaults applied"
+    ok "Dock and desktop defaults applied"
   else
     warn "Dock defaults not applied; run dotfiles update"
     return 1
@@ -1720,10 +1878,13 @@ _macos_dock_status() {
   printf '  dock autohide: %s\n' "$(defaults read com.apple.dock autohide 2>/dev/null || printf 'unset')"
   printf '  dock orientation: %s\n' "$(defaults read com.apple.dock orientation 2>/dev/null || printf 'unset')"
   printf '  dock tilesize: %s\n' "$(defaults read com.apple.dock tilesize 2>/dev/null || printf 'unset')"
+  printf '  dock show recents: %s\n' "$(defaults read com.apple.dock show-recents 2>/dev/null || printf 'unset')"
+  printf '  click wallpaper reveals desktop: %s\n' "$(defaults read com.apple.WindowManager EnableStandardClickToShowDesktop 2>/dev/null || printf 'unset')"
 }
 
 _macos_finder_defaults_match() {
   [[ "$(defaults read com.apple.finder NewWindowTarget 2>/dev/null || true)" == "PfHm" ]] || return 1
+  [[ "$(defaults read com.apple.finder NewWindowTargetPath 2>/dev/null || true)" == "file://$HOME/" ]] || return 1
   [[ "$(defaults read com.apple.finder FXPreferredViewStyle 2>/dev/null || true)" == "clmv" ]] || return 1
   [[ "$(defaults read com.apple.finder ShowPathbar 2>/dev/null || true)" == "1" ]] || return 1
   [[ "$(defaults read com.apple.finder ShowStatusBar 2>/dev/null || true)" == "1" ]] || return 1
@@ -1752,7 +1913,7 @@ _macos_finder_status() {
 }
 
 _macos_input_defaults_match() {
-  [[ "$(defaults read -g com.apple.swipescrolldirection 2>/dev/null || true)" == "0" ]] || return 1
+  [[ "$(defaults read -g com.apple.swipescrolldirection 2>/dev/null || true)" == "1" ]] || return 1
   [[ "$(defaults read -g KeyRepeat 2>/dev/null || true)" == "2" ]] || return 1
   [[ "$(defaults read -g InitialKeyRepeat 2>/dev/null || true)" == "15" ]] || return 1
   [[ "$(defaults read -g ApplePressAndHoldEnabled 2>/dev/null || true)" == "0" ]]
@@ -1768,7 +1929,13 @@ _macos_input_doctor() {
 }
 
 _macos_input_status() {
-  printf '  natural scrolling: %s\n' "$(defaults read -g com.apple.swipescrolldirection 2>/dev/null || printf 'unset')"
+  printf '  natural scrolling (trackpad): %s\n' "$(defaults read -g com.apple.swipescrolldirection 2>/dev/null || printf 'unset')"
+  if pgrep -x LinearMouse >/dev/null 2>&1; then
+    printf '  mouse scroll flip (LinearMouse): running\n'
+  else
+    printf '  mouse scroll flip (LinearMouse): not running\n'
+  fi
+  printf '  raycast hotkey: %s\n' "$(defaults read com.raycast.macos raycastGlobalHotkey 2>/dev/null || printf 'unset')"
   printf '  key repeat: %s\n' "$(defaults read -g KeyRepeat 2>/dev/null || printf 'unset')"
   printf '  initial key repeat: %s\n' "$(defaults read -g InitialKeyRepeat 2>/dev/null || printf 'unset')"
   printf '  press-and-hold accents: %s\n' "$(defaults read -g ApplePressAndHoldEnabled 2>/dev/null || printf 'unset')"

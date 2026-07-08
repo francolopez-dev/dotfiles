@@ -9,6 +9,10 @@ raycast
 # wallpaper setter used by dotfiles-wallpaper (task 17)
 desktoppr
 
+# per-device scrolling: trackpad stays natural, mice get classic wheel
+# direction via stowed ~/.config/linearmouse/linearmouse.json
+linearmouse
+
 # fonts
 font-jetbrains-mono-nerd-font
 font-fira-code-nerd-font

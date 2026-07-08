@@ -577,8 +577,9 @@ bootstrap_summary() {
   printf '\nNeeds manual action:\n'
   if [ "$(detect_bootstrap_os)" = "macos" ]; then
     printf '  Tailscale: open Tailscale.app and log in\n'
-    printf '  macOS Accessibility: System Settings -> Privacy & Security -> Accessibility; enable AeroSpace, borders, Rectangle, and Raycast if listed\n'
-    printf '  Raycast: set Cmd-Space in Raycast -> Settings -> Extensions -> Search -> Hotkey\n'
+    printf '  macOS Accessibility: System Settings -> Privacy & Security -> Accessibility; enable AeroSpace, borders, Rectangle, Raycast, and LinearMouse\n'
+    printf '    (AeroSpace/Rectangle shortcuts and LinearMouse scrolling do nothing until this is granted)\n'
+    printf '  Raycast: Cmd-Space is preconfigured; if Spotlight still opens, log out and back in once\n'
   else
     printf '  Tailscale: run sudo tailscale up\n'
   fi

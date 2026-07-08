@@ -913,7 +913,9 @@ cmd_status() {
   else
     _command_status ghostty
   fi
-  _command_status brave
+  if [[ "$os" != "macos" ]]; then
+    _command_status brave
+  fi
   _command_status firefox
   if [[ -r "$HOME/.oh-my-zsh/oh-my-zsh.sh" ]]; then
     ok "oh-my-zsh installed"

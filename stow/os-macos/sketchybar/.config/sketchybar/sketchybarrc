@@ -15,6 +15,7 @@ sketchybar --bar \
   position=top \
   height="${HEIGHT}" \
   color="${BAR_BG}" \
+  blur_radius=20 \
   padding_left=8 \
   padding_right=8 \
   margin=0 \
@@ -56,10 +57,10 @@ if command -v aerospace >/dev/null 2>&1; then
       --set "${item}" \
         icon="" \
         icon.color="${default_color}" \
+        icon.highlight_color="${CYAN}" \
         label.drawing=off \
         click_script="aerospace workspace '${workspace}'" \
         script="${PLUGIN_DIR}/aerospace.sh" \
-        env="DEFAULT_COLOR=${default_color}" \
       --subscribe "${item}" aerospace_workspace_change
   done
 fi
@@ -101,7 +102,6 @@ sketchybar --add item date right \
     update_freq=60 \
     script="${PLUGIN_DIR}/clock.sh" \
     click_script="open -a Calendar" \
-    env="DATE_FORMAT=+%b%d" \
   --subscribe date system_woke
 
 sketchybar --add item clock right \
@@ -112,7 +112,6 @@ sketchybar --add item clock right \
     update_freq=10 \
     script="${PLUGIN_DIR}/clock.sh" \
     click_script="open -a Calendar" \
-    env="DATE_FORMAT=+%I:%M %p" \
   --subscribe clock system_woke
 
 sketchybar --add item cpu right \

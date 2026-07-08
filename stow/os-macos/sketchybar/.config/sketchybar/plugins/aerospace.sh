@@ -1,9 +1,7 @@
 #!/bin/bash
 
-CONFIG_DIR="${HOME}/.config/sketchybar"
-
-# shellcheck source=stow/os-macos/sketchybar/.config/sketchybar/colors.sh
-. "${CONFIG_DIR}/colors.sh"
+# Focus state only; per-workspace colors are set in sketchybarrc via
+# icon.color / icon.highlight_color (sketchybar has no per-item env vars).
 
 workspace=${NAME#workspace.}
 focused_workspace=${FOCUSED_WORKSPACE:-}
@@ -13,7 +11,7 @@ if [ -z "${focused_workspace}" ] && command -v aerospace >/dev/null 2>&1; then
 fi
 
 if [ "${workspace}" = "${focused_workspace}" ]; then
-  sketchybar --set "${NAME}" icon="" icon.color="${CYAN}"
+  sketchybar --set "${NAME}" icon="" icon.highlight=on
 else
-  sketchybar --set "${NAME}" icon="" icon.color="${DEFAULT_COLOR:-${IDLE}}"
+  sketchybar --set "${NAME}" icon="" icon.highlight=off
 fi

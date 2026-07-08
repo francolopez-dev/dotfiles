@@ -97,6 +97,11 @@ Phase 7 — apply on lamac (mac-local, human present, in this exact order)
 - [ ] 28 e2e-validation (mac-local + linux check, M) — blocked on 27, reboot, and Omarchy check
 - [ ] 29 final-review-and-push (repo, S) — needs 28
 
+Phase 8 — post-migration improvements
+- [x] 30 sketchybar-primary-bar (repo + mac-local, M) — hide native menu bar,
+      bar opacity/blur, aerospace per-monitor top gap; reboot check folds
+      into 28
+
 Size: S = small mechanical change, any model. M = needs judgment; use a
 stronger model. Phase 7 tasks mutate a real machine: strongest model, human
 watching.

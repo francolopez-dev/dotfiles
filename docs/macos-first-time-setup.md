@@ -69,9 +69,11 @@ dotfiles git setup-ssh
 
 ## 5. Services
 
-Start the managed UI services:
+Start the managed UI services. Homebrew 6+ refuses to manage services from
+untrusted taps, so trust the tap first:
 
 ```bash
+brew trust felixkratz/formulae
 brew services start felixkratz/formulae/borders
 brew services start felixkratz/formulae/sketchybar
 ```
@@ -83,7 +85,36 @@ cp ~/.local/share/dotfiles/com.dotfiles.wallpaper.plist ~/Library/LaunchAgents/
 launchctl load ~/Library/LaunchAgents/com.dotfiles.wallpaper.plist
 ```
 
-## 6. Permissions
+## 6. Menu Bar
+
+SketchyBar is the primary system bar on managed Macs. Auto-hide the native
+menu bar so only SketchyBar is visible during normal use:
+
+```bash
+scripts/macos-defaults.sh    # approve the "Menu bar" group
+```
+
+This sets "Automatically hide and show the menu bar" to Always
+(`_HIHideMenuBar=1`, `AppleMenuBarVisibleInFullscreen=0` in the user global
+domain — the same keys System Settings > Menu Bar writes; per-user, no sudo).
+Apps already running keep showing the menu bar until relaunched; log out and
+back in once for a fully consistent session. The native bar stays reachable
+by pushing the cursor to the top edge of the screen, where it slides over
+SketchyBar temporarily.
+
+Rollback:
+
+```bash
+defaults write -g _HIHideMenuBar -bool false
+osascript -e 'tell application "System Events" to set autohide menu bar of dock preferences to false'
+```
+
+AeroSpace pairs with this via a per-monitor top gap
+(`outer.top = [{ monitor.'built-in' = 5 }, 38]`): external monitors reserve
+38px for SketchyBar; the notched built-in display needs only 5 because macOS
+keeps the camera-notch strip reserved even with the menu bar hidden.
+
+## 7. Permissions
 
 Expected first-run prompts:
 
@@ -94,7 +125,7 @@ Expected first-run prompts:
 
 Grant these in System Settings when prompted.
 
-## 7. Validate
+## 8. Validate
 
 ```bash
 dotfiles status

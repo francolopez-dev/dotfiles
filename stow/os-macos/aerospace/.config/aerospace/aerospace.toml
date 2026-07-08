@@ -25,7 +25,11 @@ inner.horizontal = 5
 inner.vertical = 5
 outer.left = 5
 outer.right = 5
-outer.top = 5
+# The native menu bar is auto-hidden (scripts/macos-defaults.sh) and
+# SketchyBar (height 28) is the primary bar. On the notched built-in display
+# macOS keeps the menu-bar strip reserved, so 5 is enough; on external
+# monitors windows would tile under SketchyBar without the larger gap.
+outer.top = [{ monitor.'built-in' = 5 }, 38]
 outer.bottom = 5
 
 

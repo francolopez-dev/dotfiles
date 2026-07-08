@@ -1,7 +1,9 @@
 #!/bin/bash
 
 # Waybar-inspired palette translated to SketchyBar 0xAARRGGBB colors.
-export BAR_BG=0xc706070d
+# BAR_BG is ~94% opaque; combined with bar blur it reads as a solid native
+# bar without going fully flat.
+export BAR_BG=0xf006070d
 export SURFACE=0xff11131f
 export SURFACE_HOVER=0xff181b2b
 export TEXT=0xffd7dcff

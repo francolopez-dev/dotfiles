@@ -15,26 +15,25 @@ if [ -n "$active_service" ]; then
   active_addr=$(/usr/sbin/ipconfig getifaddr "$active_service" 2>/dev/null || true)
 fi
 
+# Icon-only: the SSID is private info that doesn't belong on an
+# always-visible bar. Icon shape + color carry the connection state;
+# clicking the item opens the Wi-Fi settings pane for details.
 if [ -n "$ssid" ]; then
   icon="󰤨"
-  label=$ssid
   color=$CYAN
 elif [ -n "$active_addr" ]; then
   icon="󰈀"
-  label="ethernet"
   color=$TEAL
 else
   icon="󰤮"
-  label="offline"
   color=$MUTED
 fi
 
 if command -v sketchybar >/dev/null 2>&1; then
   sketchybar --set "$NAME" \
     icon="$icon" \
-    label="$label" \
     icon.color="$color" \
-    label.color="$color"
+    label.drawing=off
 else
-  printf '%s %s\n' "$icon" "$label"
+  printf '%s\n' "$icon"
 fi

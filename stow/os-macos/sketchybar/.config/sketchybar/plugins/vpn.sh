@@ -16,11 +16,16 @@ if [ -z "$TAILSCALE" ]; then
   fi
 fi
 
+# Hide the item entirely until Tailscale exists; a permanent
+# "not installed" label is just noise on the bar.
 if [ -z "$TAILSCALE" ]; then
-  icon="󰦝"
-  label="not installed"
-  color=$MUTED
-elif "$TAILSCALE" status >/dev/null 2>&1; then
+  if command -v sketchybar >/dev/null 2>&1; then
+    sketchybar --set "$NAME" drawing=off
+  fi
+  exit 0
+fi
+
+if "$TAILSCALE" status >/dev/null 2>&1; then
   icon="󰖂"
   label="tailnet"
   color=$GREEN
@@ -32,6 +37,7 @@ fi
 
 if command -v sketchybar >/dev/null 2>&1; then
   sketchybar --set "$NAME" \
+    drawing=on \
     icon="$icon" \
     label="$label" \
     icon.color="$color" \

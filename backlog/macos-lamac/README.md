@@ -103,9 +103,12 @@ Phase 8 — post-migration improvements
       into 28
 - [x] 31 sketchybar-notch-polish (repo, S) — media island to position `e`
       so the notch never covers it
-- [x] 32 tailscale-manual-mode (mac-local + docs, M) — root-caused VPN
-      on-demand auto-reconnect; manual-only workflow; one GUI toggle left
-      for Franco (see task file)
+- [x] 32 tailscale-manual-mode (mac-local + docs, M) — investigation stands
+      but its fix FAILED validation (2026-07-08): the extension rewrites the
+      config on every launch; superseded by task 33
+- [ ] 33 tailscale-oss-migration (mac-local, M, sudo + human) — replace the
+      App Store client with OSS tailscaled for true manual mode; evidence
+      and steps in the task file
 
 Size: S = small mechanical change, any model. M = needs judgment; use a
 stronger model. Phase 7 tasks mutate a real machine: strongest model, human

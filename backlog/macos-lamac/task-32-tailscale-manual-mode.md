@@ -1,6 +1,12 @@
 # Task 32 — Tailscale manual-only mode (root cause + fix)
 
-Status: done (one 10-second GUI step left for Franco, see "Remaining step")
+Status: closed — fix FAILED validation on 2026-07-08; superseded by task 33.
+The investigation and dotfiles audit below stand; the "policy + GUI toggle"
+remedy does not: live log forensics showed IPNExtension rewrites the NE
+configuration on every launch (overwriting Franco's manual disable within
+5 seconds) regardless of the documented policy, and on-demand relaunches
+the extension at every boot. See task-33-tailscale-oss-migration.md for
+the evidence table and the permanent solution.
 Scope: mac-local investigation + docs; repo changes are docs/backlog only
 Depends on: none
 Size: M

@@ -94,38 +94,30 @@ LaunchAgent scheduler is opt-in; see `docs/wallpapers.md`.
 
 ## Tailscale (manual-only)
 
-Tailscale.app (App Store build) is used as a traditional dial-up VPN:
-disconnected by default, connected only on explicit action.
+Verdict (2026-07-08, evidence in backlog task 33): the App Store client
+**cannot** run as a traditional dial-up VPN. Its network extension
+(IPNExtension) rewrites the VPN configuration — re-arming "VPN On Demand" —
+on every extension launch, within seconds of any manual disable, and the
+armed on-demand rules make macOS relaunch the extension at every boot and
+network change. That loop has no user-accessible break point: the GUI
+toggle, System Settings, profile deletion, `tailscale down`, and the
+documented `VPNOnDemandIsUserConfigured` policy (both defaults domains AND
+the internal group-container marker) were all tested on 1.98.8 and all get
+overwritten. The standalone .pkg build ships the same extension code and
+behaves identically.
 
-By design the client arms a broad "VPN On Demand" policy so macOS itself
-relaunches the tunnel after reboots and crashes. To keep it manual:
+Manual-only mode therefore means the open-source daemon:
+`brew install tailscale` + `sudo tailscaled install-system-daemon`, then
+`tailscale up` / `tailscale down`. No Network Extension, no VPN profile in
+System Settings, no on-demand framework; `down` persists across reboots.
+Migration steps, validation, and rollback:
+`backlog/macos-lamac/task-33-tailscale-oss-migration.md`.
 
-- The documented system policy
-  (`defaults write io.tailscale.ipn.macos VPNOnDemandIsUserConfigured -bool true`,
-  see tailscale.com/docs/integrations/mdm/mac) must be set, otherwise the
-  client re-enables on-demand on every extension launch and undoes System
-  Settings changes and profile deletions. `scripts/macos-defaults.sh` offers
-  this as a confirm-gated group. The extension keeps an internal marker with
-  the same name in its group container
-  (`~/Library/Group Containers/W5364U7YZB.group.io.tailscale.ipn.macos/Library/Preferences/`);
-  that one is an implementation detail — do not automate it.
-- "VPN on Demand" must be OFF in Tailscale's own Settings window (only
-  Tailscale's code can rewrite its VPN configuration; there is no CLI or
-  policy path).
-- "Start Tailscale on login" stays off (`TailscaleStartOnLogin = 0`).
-
-Connect/disconnect manually via the menu bar app or:
-
-```bash
-/Applications/Tailscale.app/Contents/MacOS/Tailscale up
-/Applications/Tailscale.app/Contents/MacOS/Tailscale down
-```
-
-Verify the state that macOS acts on with
-`scutil --nc show "Tailscale" | grep OnDemandEnabled` — FALSE means the OS
-will not resurrect the tunnel. Full history, evidence, and the
-open-source-variant contingency live in
-`backlog/macos-lamac/task-32-tailscale-manual-mode.md`.
+Until that migration runs, expect the App Store client to resurrect its
+VPN profile and on-demand rules; `Tailscale down` stops tailnet traffic
+(engine down) but macOS keeps the extension process alive. The sketchybar
+vpn plugin already prefers a PATH `tailscale` binary, so it keeps working
+unchanged after the migration.
 
 ## AI Tooling
 

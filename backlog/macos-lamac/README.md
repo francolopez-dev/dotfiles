@@ -35,6 +35,18 @@ every task assumes.
      in the same commit, so the backlog state always matches history.
    - Do not commit `.claude/settings.local.json` or other session cruft with
      task work.
+8. Blast-radius rules (added after the 2026-07-08 re-audit):
+   - Extending a shared dispatch function (pkg_manager, detect_os,
+     install_missing_packages, resolve_*) can ARM code paths for other OSes
+     that were previously dead. Check every caller before returning a new
+     value from a shared function.
+   - Tests must pin DOTFILES_OS / DOTFILES_BOOTSTRAP_OS explicitly and mock
+     every package manager they could reach; an unpinned fixture on a Mac
+     once installed real brew packages.
+   - main is consumed live (machines pull it; curl bootstrap runs it), so a
+     task that lands "detection" without its "implementation" counterpart
+     changes error messages users see. Prefer landing such pairs
+     back-to-back (02+18, 06+19).
 7. Never commit secrets, keys, tokens, `*.local` files, or anything from
    `~/Library` except where a task explicitly says otherwise.
 

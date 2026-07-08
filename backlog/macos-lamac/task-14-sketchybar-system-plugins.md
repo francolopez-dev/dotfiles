@@ -1,6 +1,6 @@
 # Task 14 — SketchyBar system plugins (cpu, memory, battery, volume)
 
-Status: todo
+Status: done
 Scope: repo-only
 Depends on: task-13
 Size: M
@@ -52,3 +52,10 @@ Remove the plugin files and their registrations.
 ## Acceptance criteria
 All four items live on lamac after task 27 with correct threshold colors;
 each plugin is shellcheck-clean and fast.
+
+## Result
+Implemented by an agent session on 2026-07-07 without flipping this status;
+verified and closed during the same-day re-audit (see commits
+51ce1ab/95892bc/7394a40/1b2ec4e/df81054):
+cpu/memory/battery/volume plugins present and shellcheck-clean. Runtime
+thresholds/latency to verify in task 27/28.

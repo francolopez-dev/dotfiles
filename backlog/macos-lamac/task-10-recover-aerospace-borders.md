@@ -1,6 +1,6 @@
 # Task 10 — Recover AeroSpace and JankyBorders configs into os-macos
 
-Status: todo
+Status: done
 Scope: repo-only
 Depends on: none
 Size: S
@@ -52,3 +52,11 @@ Delete the two files.
 ## Acceptance criteria
 Both files tracked under os-macos, reviewed, no hardcoded user paths, single
 borders owner documented in the file header.
+
+## Result
+Implemented by an agent session on 2026-07-07 without flipping this status;
+verified and closed during the same-day re-audit (see commits
+51ce1ab/95892bc/7394a40/1b2ec4e/df81054):
+aerospace.toml + bordersrc recovered under os-macos; no hardcoded /Users
+paths; bordersrc shellcheck-clean and executable; aerospace.toml does not
+start borders (brew service is the single owner).

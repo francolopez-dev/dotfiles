@@ -1,6 +1,6 @@
 # Task 11 — macOS stow layer skeleton (os-macos zsh + profile-lamac-macos)
 
-Status: todo
+Status: done
 Scope: repo-only
 Depends on: none
 Size: S
@@ -67,3 +67,10 @@ Delete both package dirs.
 ## Acceptance criteria
 Both layers resolve for lamac; `.zprofile` contains nothing machine-specific;
 profile-overrides carries exactly font-size + macos-option-as-alt.
+
+## Result
+Implemented by an agent session on 2026-07-07 without flipping this status;
+verified and closed during the same-day re-audit (see commits
+51ce1ab/95892bc/7394a40/1b2ec4e/df81054):
+os-macos/zsh/.zprofile (brew shellenv only) and lamac ghostty
+profile-overrides (font-size 13 + macos-option-as-alt) match the spec.

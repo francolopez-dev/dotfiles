@@ -1,6 +1,6 @@
 # Task 09 — Promote neovim and atuin config to the global layer
 
-Status: todo
+Status: done
 Scope: repo-only
 Depends on: none
 Size: S
@@ -45,3 +45,10 @@ scripts/dotfiles apply --dry-run
 ## Acceptance criteria
 Both packages under `stow/global/`; no stale path references; gitignore still
 covers lazy-lock.json at its new path.
+
+## Result
+Implemented by an agent session on 2026-07-07 without flipping this status;
+verified and closed during the same-day re-audit (see commits
+51ce1ab/95892bc/7394a40/1b2ec4e/df81054):
+neovim+atuin live under stow/global, old dirs gone, .gitignore path updated,
+no stale references. Omarchy machines still owe the backup-wizard pass (task 28).

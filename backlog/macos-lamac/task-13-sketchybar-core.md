@@ -1,6 +1,6 @@
 # Task 13 — SketchyBar core (Waybar-inspired bar, workspaces, front app, clock)
 
-Status: todo
+Status: done
 Scope: repo-only
 Depends on: task-10
 Size: M
@@ -62,3 +62,10 @@ Delete the package dir; `brew services stop sketchybar`.
 ## Acceptance criteria
 shellcheck clean; on lamac (post task 27) the bar shows workspaces that follow
 AeroSpace focus, the focused app name, and clock/date, in the Waybar palette.
+
+## Result
+Implemented by an agent session on 2026-07-07 without flipping this status;
+verified and closed during the same-day re-audit (see commits
+51ce1ab/95892bc/7394a40/1b2ec4e/df81054):
+colors.sh + sketchybarrc (executable) + aerospace/front_app/clock plugins
+present, shellcheck-clean. Live rendering still to verify in task 27/28.

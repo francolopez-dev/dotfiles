@@ -685,6 +685,10 @@ configure_macos_finder_defaults() {
   if [[ "$dry" -eq 1 ]]; then
     dim "  would run: defaults write com.apple.finder NewWindowTarget PfHm"
     dim "  would run: defaults write com.apple.finder NewWindowTargetPath $home_url"
+    dim "  would run: defaults write com.apple.finder FXPreferredViewStyle clmv"
+    dim "  would run: defaults write com.apple.finder ShowPathbar -bool true"
+    dim "  would run: defaults write com.apple.finder ShowStatusBar -bool true"
+    dim "  would run: defaults write com.apple.finder FXDefaultSearchScope SCcf"
     dim "  would run: defaults write com.apple.finder AppleShowAllFiles -bool true"
     dim "  would run: defaults write -g AppleShowAllExtensions -bool true"
     dim "  would run: killall Finder"
@@ -692,6 +696,10 @@ configure_macos_finder_defaults() {
   fi
   defaults write com.apple.finder NewWindowTarget PfHm
   defaults write com.apple.finder NewWindowTargetPath "$home_url"
+  defaults write com.apple.finder FXPreferredViewStyle clmv
+  defaults write com.apple.finder ShowPathbar -bool true
+  defaults write com.apple.finder ShowStatusBar -bool true
+  defaults write com.apple.finder FXDefaultSearchScope SCcf
   defaults write com.apple.finder AppleShowAllFiles -bool true
   defaults write -g AppleShowAllExtensions -bool true
   killall Finder >/dev/null 2>&1 || true
@@ -701,14 +709,14 @@ configure_macos_finder_defaults() {
 configure_macos_input_defaults() {
   local dry="$1"
   if [[ "$dry" -eq 1 ]]; then
-    dim "  would run: defaults write -g com.apple.swipescrolldirection -bool true"
+    dim "  would run: defaults write -g com.apple.swipescrolldirection -bool false"
     dim "  would run: defaults write com.apple.AppleMultitouchTrackpad Clicking -bool true"
     dim "  would run: defaults write -g KeyRepeat -int 2"
     dim "  would run: defaults write -g InitialKeyRepeat -int 15"
     dim "  would run: defaults write -g ApplePressAndHoldEnabled -bool false"
     return 0
   fi
-  defaults write -g com.apple.swipescrolldirection -bool true
+  defaults write -g com.apple.swipescrolldirection -bool false
   defaults write com.apple.AppleMultitouchTrackpad Clicking -bool true
   defaults write -g KeyRepeat -int 2
   defaults write -g InitialKeyRepeat -int 15
@@ -720,7 +728,7 @@ configure_macos_aerospace() {
   local dry="$1"
   [[ -d /Applications/AeroSpace.app ]] || return 0
   if pgrep -x AeroSpace >/dev/null 2>&1; then
-    if command -v aerospace >/dev/null 2>&1 && aerospace list-workspaces --all >/dev/null 2>&1; then
+    if command -v aerospace >/dev/null 2>&1 && aerospace reload-config >/dev/null 2>&1 && aerospace list-workspaces --focused >/dev/null 2>&1; then
       ok "AeroSpace running and responding"
     else
       warn "AeroSpace is running but not responding to CLI checks"
@@ -734,6 +742,9 @@ configure_macos_aerospace() {
   fi
   if open -ga AeroSpace >/dev/null 2>&1; then
     ok "AeroSpace launched"
+    if command -v aerospace >/dev/null 2>&1; then
+      aerospace reload-config >/dev/null 2>&1 || warn "AeroSpace launched but config reload failed"
+    fi
     warn "AeroSpace may still need macOS Accessibility permission before it can manage windows"
     warn "check: System Settings -> Privacy & Security -> Accessibility"
   else
@@ -1662,7 +1673,7 @@ _macos_aerospace_running() {
 
 _macos_aerospace_doctor() {
   if _macos_aerospace_running; then
-    if command -v aerospace >/dev/null 2>&1 && aerospace list-workspaces --all >/dev/null 2>&1; then
+    if command -v aerospace >/dev/null 2>&1 && aerospace list-workspaces --focused >/dev/null 2>&1; then
       ok "AeroSpace running and responding"
     else
       warn "AeroSpace running but CLI checks failed; verify Accessibility permission"
@@ -1678,7 +1689,7 @@ _macos_aerospace_doctor() {
 
 _macos_aerospace_status() {
   if _macos_aerospace_running; then
-    if command -v aerospace >/dev/null 2>&1 && aerospace list-workspaces --all >/dev/null 2>&1; then
+    if command -v aerospace >/dev/null 2>&1 && aerospace list-workspaces --focused >/dev/null 2>&1; then
       printf '  aerospace: running/responding\n'
     else
       printf '  aerospace: running, CLI check failed; check Accessibility permission\n'
@@ -1713,6 +1724,10 @@ _macos_dock_status() {
 
 _macos_finder_defaults_match() {
   [[ "$(defaults read com.apple.finder NewWindowTarget 2>/dev/null || true)" == "PfHm" ]] || return 1
+  [[ "$(defaults read com.apple.finder FXPreferredViewStyle 2>/dev/null || true)" == "clmv" ]] || return 1
+  [[ "$(defaults read com.apple.finder ShowPathbar 2>/dev/null || true)" == "1" ]] || return 1
+  [[ "$(defaults read com.apple.finder ShowStatusBar 2>/dev/null || true)" == "1" ]] || return 1
+  [[ "$(defaults read com.apple.finder FXDefaultSearchScope 2>/dev/null || true)" == "SCcf" ]] || return 1
   [[ "$(defaults read com.apple.finder AppleShowAllFiles 2>/dev/null || true)" == "1" ]] || return 1
   [[ "$(defaults read -g AppleShowAllExtensions 2>/dev/null || true)" == "1" ]]
 }
@@ -1728,12 +1743,16 @@ _macos_finder_doctor() {
 
 _macos_finder_status() {
   printf '  finder new window target: %s\n' "$(defaults read com.apple.finder NewWindowTarget 2>/dev/null || printf 'unset')"
+  printf '  finder default view: %s\n' "$(defaults read com.apple.finder FXPreferredViewStyle 2>/dev/null || printf 'unset')"
+  printf '  finder path bar: %s\n' "$(defaults read com.apple.finder ShowPathbar 2>/dev/null || printf 'unset')"
+  printf '  finder status bar: %s\n' "$(defaults read com.apple.finder ShowStatusBar 2>/dev/null || printf 'unset')"
+  printf '  finder search scope: %s\n' "$(defaults read com.apple.finder FXDefaultSearchScope 2>/dev/null || printf 'unset')"
   printf '  finder show hidden files: %s\n' "$(defaults read com.apple.finder AppleShowAllFiles 2>/dev/null || printf 'unset')"
   printf '  finder show extensions: %s\n' "$(defaults read -g AppleShowAllExtensions 2>/dev/null || printf 'unset')"
 }
 
 _macos_input_defaults_match() {
-  [[ "$(defaults read -g com.apple.swipescrolldirection 2>/dev/null || true)" == "1" ]] || return 1
+  [[ "$(defaults read -g com.apple.swipescrolldirection 2>/dev/null || true)" == "0" ]] || return 1
   [[ "$(defaults read -g KeyRepeat 2>/dev/null || true)" == "2" ]] || return 1
   [[ "$(defaults read -g InitialKeyRepeat 2>/dev/null || true)" == "15" ]] || return 1
   [[ "$(defaults read -g ApplePressAndHoldEnabled 2>/dev/null || true)" == "0" ]]

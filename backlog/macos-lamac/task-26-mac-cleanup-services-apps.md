@@ -1,6 +1,6 @@
 # Task 26 — lamac cleanup 3/3: unwanted services and apps
 
-Status: todo
+Status: done
 Scope: mac-local (run on lamac, human present)
 Depends on: task-24
 Size: S
@@ -51,3 +51,10 @@ formula is reinstalled — that is fine.
 ## Acceptance criteria
 All three validation greps clean; Ollama.app CLI unaffected; no other
 LaunchAgents removed.
+
+## Result
+Completed on lamac. `minidlna` was no longer installed as a formula but its
+LaunchAgent was removed; stale `homebrew.mxcl.ollama.plist` removed; WezTerm
+cask uninstalled and `/Applications/WezTerm.app` removed. Homebrew autoremoved
+four now-unused dependencies. Validation: services-clean, agents-clean,
+wezterm-gone, and `ollama --version` reports 0.13.1.

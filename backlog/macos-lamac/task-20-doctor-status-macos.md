@@ -1,6 +1,6 @@
 # Task 20 — doctor and status speak macOS
 
-Status: todo
+Status: done
 Scope: repo-only
 Depends on: task-02, task-06
 Size: M
@@ -51,3 +51,10 @@ Revert commit.
 On lamac both commands are accurate and mention nothing Linux-only; on
 Omarchy output is unchanged (diff status output before/after with
 DOTFILES_OS=omarchy where feasible).
+
+## Result
+Added macOS doctor checks for profile brew/cask lists, Homebrew, bash >= 4,
+Ghostty cask, key apps, brew services, and wallpaper status. Status now gates
+waybar/tailscaled to Omarchy, shows macOS brew service state, and uses
+Tailscale.app login wording. Validated with shellcheck and macOS status output;
+Omarchy status still reports waybar.

@@ -1,6 +1,6 @@
 # Task 17 — macOS wallpaper backend + opt-in scheduler
 
-Status: todo
+Status: done
 Scope: repo-only
 Depends on: task-16
 Size: S
@@ -62,3 +62,9 @@ Revert; `launchctl unload && rm` the copied plist if it was enabled.
 On lamac: rotate sets the desktop from the merged pool (repo-only when the
 local folder is absent); status shows both pool counts; scheduler inert until
 manually installed; Omarchy output byte-identical.
+
+## Result
+Implemented macOS backend with desktoppr and osascript fallback, added inert
+LaunchAgent template under ~/.local/share/dotfiles, and made dotfiles update
+print opt-in launchctl commands instead of installing it. plutil lint and
+shellcheck pass; status shows repo/local counts and scheduler state on macOS.

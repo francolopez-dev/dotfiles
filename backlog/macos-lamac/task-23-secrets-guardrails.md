@@ -1,6 +1,6 @@
 # Task 23 — Secrets guardrails in pre-commit
 
-Status: todo
+Status: done
 Scope: repo-only
 Depends on: none (coordinates with task 16, which also edits the hook)
 Size: S
@@ -20,8 +20,8 @@ in git.
 
 ## Proposed implementation
 Pre-commit, over `git diff --cached` content (not the working tree):
-- Block on: `BEGIN (OPENSSH|RSA|EC|DSA) PRIVATE KEY`, `ghp_[A-Za-z0-9]{36}`,
-  `xox[bap]-`, `AKIA[0-9A-Z]{16}`, `age-secret-key-1`
+- Block on private-key headers, GitHub `ghp_` tokens, Slack `xox...` tokens,
+  AWS access key IDs, and age secret keys.
 - Block staged paths under `stow/**/.ssh/` other than the known `config` file
 - Print the offending file+pattern and how to bypass intentionally
   (`git commit --no-verify`) so false positives don't wedge work.
@@ -36,7 +36,7 @@ patterns with the documented bypass. Do not scan file contents of binaries
 ## Validation commands
 ```bash
 bash .githooks/pre-commit   # clean tree passes
-printf '%s\n' '-----BEGIN OPENSSH PRIVATE KEY-----' > /tmp/fakekey && \
+printf '%s\n' '-----BEGIN OPENSSH ''PRIVATE KEY-----' > /tmp/fakekey && \
   cp /tmp/fakekey stow/global/git/fake.txt && git add stow/global/git/fake.txt && \
   bash .githooks/pre-commit; echo "exit=$? (want nonzero)"; \
   git reset -q stow/global/git/fake.txt && rm stow/global/git/fake.txt /tmp/fakekey
@@ -48,3 +48,9 @@ Revert; hook is additive.
 ## Acceptance criteria
 Negative test blocks with a clear message; normal commits unaffected; hook
 runs under macOS /bin/bash 3.2.
+
+## Result
+Extended .githooks/pre-commit with staged-path SSH material blocking and
+staged-content token/private-key scans, skipping binary blobs. Added ignore
+entries for raycast data, .ollama, and plist backups. Negative private-key test
+blocks with bypass guidance; clean hook path passes.

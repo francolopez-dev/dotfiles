@@ -22,6 +22,15 @@ change true everywhere it should apply.
 | Default terminal launcher | `stow/os-omarchy/xdg-terminal-exec/.config/xdg-terminals.list` |
 | Atuin | `stow/global/atuin/.config/atuin/config.toml` |
 | Neovim | `stow/global/neovim/.config/nvim/` |
+| macOS first-time setup | `docs/macos-first-time-setup.md` |
+| macOS personal reference | `docs/macos-personal.md` |
+| macOS zprofile | `stow/os-macos/zsh/.zprofile` |
+| macOS Ghostty profile override for `lamac` | `stow/profile-lamac-macos/ghostty/.config/ghostty/profile-overrides` |
+| macOS AeroSpace | `stow/os-macos/aerospace/.config/aerospace/aerospace.toml` |
+| macOS Borders | `stow/os-macos/borders/.config/borders/bordersrc` |
+| macOS SketchyBar | `stow/os-macos/sketchybar/.config/sketchybar/` |
+| macOS wallpaper LaunchAgent template | `stow/os-macos/wallpapers/.local/share/dotfiles/com.dotfiles.wallpaper.plist` |
+| Shared wallpapers | `stow/global/wallpapers/.local/share/wallpapers/shared/` |
 | Monitor scale/resolution for `nox` | `stow/profile-nox-omarchy/hyprland/.config/hypr/conf.d/20-monitors.conf` |
 | Monitor scale/resolution for `fornax` | `stow/profile-fornax-omarchy/hyprland/.config/hypr/conf.d/20-monitors.conf` |
 | Autostart apps (one machine) | `stow/profile-<hostname>-omarchy/hyprland/.config/hypr/conf.d/30-autostart.conf` |
@@ -29,6 +38,8 @@ change true everywhere it should apply.
 | Add an Omarchy pacman package everywhere | `packages/global/pacman.txt` |
 | Add an Omarchy AUR package everywhere | `packages/global/aur.txt` |
 | Add a package on all Omarchy machines | `packages/os-omarchy/{pacman,aur}.txt` |
+| Add a Homebrew formula on all Macs | `packages/os-macos/brew.txt` |
+| Add a Homebrew cask on all Macs | `packages/os-macos/cask.txt` |
 | Add a package on one machine | `packages/profile-<hostname>-<os>/{pacman,aur}.txt` |
 
 ## Rules of thumb

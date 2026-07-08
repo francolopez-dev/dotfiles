@@ -1,6 +1,6 @@
 # Task 21 — Notable macOS defaults: documented + selectively applied
 
-Status: todo
+Status: done
 Scope: repo-only (script only runs when a human invokes it)
 Depends on: none
 Size: S
@@ -52,3 +52,8 @@ writing the old value) — include them in the doc table.
 ## Acceptance criteria
 Dry-run accurate; per-group confirmation works; doc table has
 setting/command/revert columns; script referenced nowhere in automated flows.
+
+## Result
+Added scripts/macos-defaults.sh with per-group y/N prompts and --dry-run, plus
+the Notable Defaults table in docs/macos-personal.md. The script exits on
+non-macOS and is not referenced by bootstrap/update/apply.

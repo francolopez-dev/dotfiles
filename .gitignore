@@ -28,6 +28,12 @@ logs/
 
 # OS cruft
 .DS_Store
+._*
 Thumbs.db
 *.swp
 *~
+.thumbnails/
+local-wallpapers/
+**/raycast/
+.ollama/
+*.plist.bak

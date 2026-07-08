@@ -53,48 +53,48 @@ every task assumes.
 ## Task index and order
 
 Phase 0 — foundations
-- [ ] 01 rename-hostname-lamac (mac-local, S)
-- [ ] 02 macos-os-detection (repo, M)
-- [ ] 03 bash-version-guard (repo, S)
-- [ ] 04 macos-inventory-script (repo, M)
-- [ ] 05 fix-status-conflict-visibility (repo, M)
+- [x] 01 rename-hostname-lamac (mac-local, S)
+- [x] 02 macos-os-detection (repo, M)
+- [x] 03 bash-version-guard (repo, S)
+- [x] 04 macos-inventory-script (repo, M)
+- [x] 05 fix-status-conflict-visibility (repo, M)
 
 Phase 1 — packages plumbing
-- [ ] 06 packages-lib-brew-support (repo, M) — needs 02
-- [ ] 07 packages-macos-lists (repo, S) — needs 06
+- [x] 06 packages-lib-brew-support (repo, M) — needs 02
+- [x] 07 packages-macos-lists (repo, S) — needs 06
 
 Phase 2 — stow layers
-- [ ] 08 repo-hygiene-stow-ignores (repo, S)
-- [ ] 09 promote-neovim-atuin-to-global (repo, S)
-- [ ] 10 recover-aerospace-borders (repo, S)
-- [ ] 11 macos-layer-skeleton (repo, S) — absorbs former task 12; there is no
+- [x] 08 repo-hygiene-stow-ignores (repo, S)
+- [x] 09 promote-neovim-atuin-to-global (repo, S)
+- [x] 10 recover-aerospace-borders (repo, S)
+- [x] 11 macos-layer-skeleton (repo, S) — absorbs former task 12; there is no
       task 12
 
 Phase 3 — SketchyBar (Waybar-inspired)
-- [ ] 13 sketchybar-core (repo, M) — needs 10
-- [ ] 14 sketchybar-system-plugins (repo, M) — needs 13
-- [ ] 15 sketchybar-network-media-plugins (repo, M) — needs 13
+- [x] 13 sketchybar-core (repo, M) — needs 10
+- [x] 14 sketchybar-system-plugins (repo, M) — needs 13
+- [x] 15 sketchybar-network-media-plugins (repo, M) — needs 13
 
 Phase 4 — wallpapers
-- [ ] 16 wallpaper-unified-engine (repo, M)
-- [ ] 17 wallpaper-macos-backend (repo, S) — needs 16
+- [x] 16 wallpaper-unified-engine (repo, M)
+- [x] 17 wallpaper-macos-backend (repo, S) — needs 16
 
 Phase 5 — bootstrap + CLI
-- [ ] 18 bootstrap-macos (repo, M) — needs 02, 03
-- [ ] 19 cli-brew-install-logic (repo, M) — needs 06, 07
-- [ ] 20 doctor-status-macos (repo, M) — needs 02, 06
+- [x] 18 bootstrap-macos (repo, M) — needs 02, 03
+- [x] 19 cli-brew-install-logic (repo, M) — needs 06, 07
+- [x] 20 doctor-status-macos (repo, M) — needs 02, 06
 
 Phase 6 — docs + guardrails
-- [ ] 21 macos-defaults-script (repo, S)
-- [ ] 22 docs-macos-setup (repo, S)
-- [ ] 23 secrets-guardrails (repo, S)
+- [x] 21 macos-defaults-script (repo, S)
+- [x] 22 docs-macos-setup (repo, S)
+- [x] 23 secrets-guardrails (repo, S)
 
 Phase 7 — apply on lamac (mac-local, human present, in this exact order)
-- [ ] 24 mac-cleanup-dangling-links (mac-local, S) — needs 01
-- [ ] 25 mac-cleanup-legacy-configs (mac-local, M) — needs 24
-- [ ] 26 mac-cleanup-services-apps (mac-local, S) — needs 24
-- [ ] 27 mac-first-apply (mac-local, M) — needs ALL repo tasks + 25, 26
-- [ ] 28 e2e-validation (mac-local + linux check, M) — needs 27
+- [x] 24 mac-cleanup-dangling-links (mac-local, S) — needs 01
+- [x] 25 mac-cleanup-legacy-configs (mac-local, M) — needs 24
+- [x] 26 mac-cleanup-services-apps (mac-local, S) — needs 24
+- [ ] 27 mac-first-apply (mac-local, M) — blocked on terminal sudo install of desktoppr + human app logins
+- [ ] 28 e2e-validation (mac-local + linux check, M) — blocked on 27, reboot, and Omarchy check
 - [ ] 29 final-review-and-push (repo, S) — needs 28
 
 Size: S = small mechanical change, any model. M = needs judgment; use a

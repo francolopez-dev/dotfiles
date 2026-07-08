@@ -6,7 +6,7 @@
 #   status   one aggregated dashboard (machine, repo, layers, drift, sync, recovery)
 #   update   pull, re-stow, install missing packages (the daily maintenance verb)
 #   apply    re-stow layers only (after editing configs locally)
-#   wallpaper rotate randomize Omarchy wallpaper from repo/local folders
+#   wallpaper rotate randomize wallpaper from repo/local folders
 #   autostart audit and manage login/startup items
 set -euo pipefail
 
@@ -45,8 +45,8 @@ Usage:
   dotfiles commands list     List discoverable shortcuts, aliases, layouts, commands.
   dotfiles commands search   Search discoverable dotfiles entries.
   dotfiles commands doctor   Validate the discovery registry.
-  dotfiles wallpaper rotate  Rotate Omarchy wallpaper now.
-  dotfiles wallpaper status  Show Omarchy wallpaper rotation state.
+  dotfiles wallpaper rotate  Rotate wallpaper now.
+  dotfiles wallpaper status  Show wallpaper rotation state.
   dotfiles git setup-ssh     Guided GitHub SSH setup; prompts before changes.
   dotfiles autostart status  Audit login/startup items.
   dotfiles autostart help    Show autostart subcommands.
@@ -505,8 +505,9 @@ wallpaper_config_file() {
 wallpaper_load_config() {
   WALLPAPER_ROTATION_ENABLED=1
   WALLPAPER_ROTATION_INTERVAL="15m"
-  WALLPAPER_REPO_DIR="$HOME/.config/omarchy/backgrounds/walls"
-  WALLPAPER_LOCAL_DIR="$HOME/Pictures/Wallpapers/local"
+  WALLPAPER_ROTATION_MODE="random"
+  WALLPAPER_REPO_DIR="$HOME/.local/share/wallpapers/shared"
+  WALLPAPER_LOCAL_DIR="$HOME/Pictures/local-wallpapers"
   local config
   config="$(wallpaper_config_file)"
   if [[ -r "$config" ]]; then
@@ -525,14 +526,26 @@ wallpaper_count_in() {
 }
 
 configure_wallpaper_rotation() {
-  local dry="$1"
-  [[ "$(detect_os)" == "omarchy" ]] || return 0
+  local dry="$1" os
+  os="$(detect_os)"
+  case "$os" in omarchy|macos) ;; *) return 0 ;; esac
   wallpaper_load_config
 
   if [[ "$dry" -eq 1 ]]; then
     dim "  would create local wallpaper folder: $WALLPAPER_LOCAL_DIR"
   else
     mkdir -p "$WALLPAPER_LOCAL_DIR"
+  fi
+
+  if [[ "$os" == "macos" ]]; then
+    if [[ "$WALLPAPER_ROTATION_ENABLED" == "1" ]]; then
+      dim "  macOS wallpaper scheduler is opt-in; to enable:"
+      dim "  cp ~/.local/share/dotfiles/com.dotfiles.wallpaper.plist ~/Library/LaunchAgents/"
+      dim "  launchctl load ~/Library/LaunchAgents/com.dotfiles.wallpaper.plist"
+    else
+      dim "  macOS wallpaper rotation disabled in $(wallpaper_config_file)"
+    fi
+    return 0
   fi
 
   command -v systemctl >/dev/null 2>&1 || return 0
@@ -557,61 +570,61 @@ configure_wallpaper_rotation() {
 }
 
 wallpaper_status_lines() {
-  local timer="unknown" current="unknown"
-  [[ "$(detect_os)" == "omarchy" ]] || return 0
+  if wallpaper_engine_cmd status; then
+    return 0
+  fi
   wallpaper_load_config
-  if command -v systemctl >/dev/null 2>&1 && systemd_user_ready; then
-    timer="$(systemctl --user is-active dotfiles-wallpaper-rotate.timer 2>/dev/null || true)"
-    timer="${timer:-unknown}"
+  printf 'enabled: %s\n' "$WALLPAPER_ROTATION_ENABLED"
+  printf 'interval: %s\n' "$WALLPAPER_ROTATION_INTERVAL"
+  printf 'mode: %s\n' "$WALLPAPER_ROTATION_MODE"
+  printf 'repo_dir: %s\n' "$WALLPAPER_REPO_DIR"
+  printf 'repo_wallpapers: %s\n' "$(wallpaper_count_in "$WALLPAPER_REPO_DIR")"
+  printf 'local_dir: %s\n' "$WALLPAPER_LOCAL_DIR"
+  printf 'local_wallpapers: %s\n' "$(wallpaper_count_in "$WALLPAPER_LOCAL_DIR")"
+}
+
+wallpaper_engine_cmd() {
+  if command -v dotfiles-wallpaper >/dev/null 2>&1; then
+    dotfiles-wallpaper "$@"
+  elif [[ -x "$HOME/.local/bin/dotfiles-wallpaper" ]]; then
+    "$HOME/.local/bin/dotfiles-wallpaper" "$@"
+  elif [[ -x "$DOTFILES_DIR/stow/global/wallpapers/.local/bin/dotfiles-wallpaper" ]]; then
+    "$DOTFILES_DIR/stow/global/wallpapers/.local/bin/dotfiles-wallpaper" "$@"
+  else
+    return 1
   fi
-  if [[ -L "$HOME/.config/omarchy/current/background" ]]; then
-    current="$(readlink "$HOME/.config/omarchy/current/background")"
-  fi
-  printf '  rotation enabled : %s\n' "$WALLPAPER_ROTATION_ENABLED"
-  printf '  interval         : %s\n' "$WALLPAPER_ROTATION_INTERVAL"
-  printf '  timer            : %s\n' "$timer"
-  printf '  repo wallpapers  : %s (%s)\n' "$(wallpaper_count_in "$WALLPAPER_REPO_DIR")" "$WALLPAPER_REPO_DIR"
-  printf '  local wallpapers : %s (%s)\n' "$(wallpaper_count_in "$WALLPAPER_LOCAL_DIR")" "$WALLPAPER_LOCAL_DIR"
-  printf '  current          : %s\n' "$current"
 }
 
 cmd_wallpaper() {
   local subcmd="${1:-status}"
-  [[ "$(detect_os)" == "omarchy" ]] || { err "wallpaper commands are Omarchy-only"; return 1; }
   case "$subcmd" in
     rotate)
-      if command -v dotfiles-wallpaper-rotate >/dev/null 2>&1; then
-        dotfiles-wallpaper-rotate rotate --force
-      else
-        "$HOME/.local/bin/dotfiles-wallpaper-rotate" rotate --force
-      fi
+      wallpaper_engine_cmd rotate --force
       ;;
     status)
-      if command -v dotfiles-wallpaper-rotate >/dev/null 2>&1; then
-        dotfiles-wallpaper-rotate status
-      else
-        wallpaper_status_lines
-      fi
+      wallpaper_status_lines
       ;;
     open-local)
-      if command -v dotfiles-wallpaper-rotate >/dev/null 2>&1; then
-        dotfiles-wallpaper-rotate open-local
-      else
-        wallpaper_load_config
-        mkdir -p "$WALLPAPER_LOCAL_DIR"
-        printf '%s\n' "$WALLPAPER_LOCAL_DIR"
-      fi
+      wallpaper_engine_cmd open-local
+      ;;
+    set)
+      shift || true
+      wallpaper_engine_cmd set "$@"
       ;;
     help|-h|--help|"")
-      printf 'Usage:\n  dotfiles wallpaper rotate\n  dotfiles wallpaper status\n  dotfiles wallpaper open-local\n'
+      printf 'Usage:\n  dotfiles wallpaper rotate\n  dotfiles wallpaper status\n  dotfiles wallpaper open-local\n  dotfiles wallpaper set <file>\n'
       ;;
     *) err "unknown wallpaper subcommand: $subcmd"; return 1 ;;
   esac
 }
 
 print_next_steps() {
+  local os
+  os="$(detect_os)"
   printf '\nNext steps:\n'
-  if package_declared tailscale; then
+  if [[ "$os" == "macos" ]]; then
+    printf '  Tailscale: open Tailscale.app and log in\n'
+  elif package_declared tailscale; then
     printf '  Tailscale login: sudo tailscale up\n'
   fi
   printf '  GitHub SSH: dotfiles git setup-ssh\n'
@@ -710,6 +723,18 @@ cmd_doctor() {
         ok "profile apt package list exists"
       else
         warn "profile apt package list missing: packages/$profile/apt.txt"
+      fi
+      ;;
+    macos)
+      if [[ -f "$DOTFILES_DIR/packages/$profile/brew.txt" ]]; then
+        ok "profile brew package list exists"
+      else
+        warn "profile brew package list missing: packages/$profile/brew.txt"
+      fi
+      if [[ -f "$DOTFILES_DIR/packages/$profile/cask.txt" ]]; then
+        ok "profile cask package list exists"
+      else
+        warn "profile cask package list missing: packages/$profile/cask.txt"
       fi
       ;;
   esac
@@ -812,6 +837,30 @@ cmd_doctor() {
     fi
     info "Wallpaper rotation"
     wallpaper_status_lines
+  elif [[ "$(detect_os)" == "macos" ]]; then
+    info "macOS apps and services"
+    if command -v brew >/dev/null 2>&1; then
+      ok "Homebrew installed"
+    else
+      warn "Homebrew missing"; failed=1
+    fi
+    if [[ "${BASH_VERSINFO[0]}" -ge 4 ]] || [[ -x /opt/homebrew/bin/bash || -x /usr/local/bin/bash ]]; then
+      ok "bash >= 4 resolvable"
+    else
+      warn "bash >= 4 missing; run: brew install bash"; failed=1
+    fi
+    if command -v brew >/dev/null 2>&1 && brew list --cask --versions ghostty >/dev/null 2>&1; then
+      ok "Ghostty cask installed"
+    else
+      warn "Ghostty cask missing"; failed=1
+    fi
+    _macos_app_doctor "AeroSpace" "/Applications/AeroSpace.app" || failed=1
+    _macos_app_doctor "Rectangle" "/Applications/Rectangle.app" || failed=1
+    _macos_app_doctor "Raycast" "/Applications/Raycast.app" || failed=1
+    _macos_brew_service_doctor borders || failed=1
+    _macos_brew_service_doctor sketchybar || failed=1
+    info "Wallpaper rotation"
+    wallpaper_status_lines
   fi
   return "$failed"
 }
@@ -859,7 +908,11 @@ cmd_status() {
   info "Terminal and apps"
   _command_status zsh
   _command_status dotfiles
-  _command_status ghostty
+  if [[ "$os" == "macos" ]]; then
+    _macos_app_status "ghostty" "/Applications/Ghostty.app"
+  else
+    _command_status ghostty
+  fi
   _command_status brave
   _command_status firefox
   if [[ -r "$HOME/.oh-my-zsh/oh-my-zsh.sh" ]]; then
@@ -895,9 +948,17 @@ cmd_status() {
   rm -f /tmp/dotfiles-status-stow.$$
 
   info "Service state"
-  _tailscaled_daemon_status
-  _waybar_status
-  if [[ "$os" == "omarchy" ]]; then
+  case "$os" in
+    omarchy)
+      _tailscaled_daemon_status
+      _waybar_status
+      ;;
+    macos)
+      _macos_brew_service_status borders
+      _macos_brew_service_status sketchybar
+      ;;
+  esac
+  if [[ "$os" == "omarchy" || "$os" == "macos" ]]; then
     info "Wallpaper rotation"
     wallpaper_status_lines
   fi
@@ -1093,6 +1154,19 @@ _tailscaled_daemon_status() {
 }
 
 _tailscale_status() {
+  local tailscale_cmd=""
+  if [[ "$(detect_os)" == "macos" ]]; then
+    tailscale_cmd="$(_tailscale_macos_cli)"
+    if [[ -z "$tailscale_cmd" ]]; then
+      dim "  tailscale login: install/open Tailscale.app"
+    elif "$tailscale_cmd" status >/dev/null 2>&1; then
+      printf '  tailscale login: connected\n'
+    else
+      printf '  tailscale login: not connected\n'
+      printf '  next step: open Tailscale.app and log in\n'
+    fi
+    return 0
+  fi
   if ! command -v tailscale >/dev/null 2>&1; then
     dim "  tailscale login: not installed"
   elif tailscale status >/dev/null 2>&1; then
@@ -1100,6 +1174,69 @@ _tailscale_status() {
   else
     printf '  tailscale login: not connected\n'
     printf '  next step: sudo tailscale up\n'
+  fi
+}
+
+_tailscale_macos_cli() {
+  if command -v tailscale >/dev/null 2>&1; then
+    command -v tailscale
+  elif [[ -x /Applications/Tailscale.app/Contents/MacOS/Tailscale ]]; then
+    printf '%s\n' /Applications/Tailscale.app/Contents/MacOS/Tailscale
+  fi
+}
+
+_macos_app_doctor() {
+  local name="$1" path="$2"
+  if [[ -d "$path" ]]; then
+    ok "$name installed"
+  else
+    warn "$name missing at $path"
+    return 1
+  fi
+}
+
+_macos_brew_service_started() {
+  local service="$1"
+  if command -v brew >/dev/null 2>&1 && brew services list 2>/dev/null | awk -v service="$service" '$1 == service && $2 == "started" { found = 1 } END { exit found ? 0 : 1 }'; then
+    return 0
+  fi
+  [[ -f "$HOME/Library/LaunchAgents/homebrew.mxcl.$service.plist" ]] && pgrep -x "$service" >/dev/null 2>&1
+}
+
+_macos_brew_service_doctor() {
+  local service="$1"
+  if _macos_brew_service_started "$service"; then
+    ok "brew service running: $service"
+  else
+    warn "brew service not started: $service"
+    return 1
+  fi
+}
+
+_macos_brew_service_status() {
+  local service="$1" line
+  if ! command -v brew >/dev/null 2>&1; then
+    printf '  %s: unknown (brew missing)\n' "$service"
+    return 0
+  fi
+  line="$(brew services list 2>/dev/null | awk -v service="$service" '$1 == service { print; found = 1 } END { exit found ? 0 : 1 }' || true)"
+  if [[ -n "$line" ]]; then
+    printf '  %s\n' "$line"
+  elif [[ -f "$HOME/Library/LaunchAgents/homebrew.mxcl.$service.plist" ]] && pgrep -x "$service" >/dev/null 2>&1; then
+    printf '  %s: started (LaunchAgent/process)\n' "$service"
+  elif [[ -f "$HOME/Library/LaunchAgents/homebrew.mxcl.$service.plist" ]]; then
+    printf '  %s: LaunchAgent present, process not running\n' "$service"
+  else
+    printf '  %s: not registered with brew services\n' "$service"
+  fi
+}
+
+_macos_app_status() {
+  local name="$1" path="$2"
+  if [[ -d "$path" ]]; then
+    printf '  %s: installed\n' "$name"
+  else
+    printf '  %s: missing\n' "$name"
   fi
 }
 

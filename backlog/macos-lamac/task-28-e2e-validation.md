@@ -1,6 +1,6 @@
 # Task 28 — End-to-end validation (lamac + Linux regression)
 
-Status: todo
+Status: blocked
 Scope: mac-local + a check on one Omarchy machine
 Depends on: task-27
 Size: M
@@ -54,3 +54,15 @@ Per-item rollbacks are in the originating tasks; nothing new is changed here.
 ## Acceptance criteria
 Every checklist item checked with evidence; Linux machines report clean
 status/doctor after their apply.
+
+## Result
+Blocked pending a lamac reboot and physical/access-at-hand Omarchy validation.
+Repo-wide checks from this macOS session passed:
+`shellcheck -x scripts/dotfiles scripts/bootstrap.sh scripts/lib/*.sh
+scripts/macos-inventory.sh scripts/macos-defaults.sh .githooks/pre-commit ...`,
+`bash tests/bootstrap-first-run.sh`, `bash tests/package-bootstrap.sh`,
+`bash tests/os-detection.sh`, and `bash .githooks/pre-commit`.
+
+lamac pre-reboot state: fresh login zsh finds `dotfiles` and `brew`, stow
+dry-run is clean, borders/sketchybar processes are running, but `desktoppr`
+still needs terminal sudo install and Tailscale/Atuin login are pending.

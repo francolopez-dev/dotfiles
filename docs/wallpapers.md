@@ -1,209 +1,113 @@
-# Omarchy Wallpapers
+# Wallpapers
 
-This repo manages base Omarchy wallpapers and a user timer for automatic rotation.
-It only applies to Omarchy profiles through the `stow/os-omarchy` layer.
-
-The design is intentionally simple:
-
-- Git tracks the small base wallpaper set.
-- Personal pictures stay local on each machine.
-- Rotation uses both sources when both exist.
-- The setter follows Omarchy's current background symlink plus `swaybg` behavior.
-- Debian, Ubuntu, and future non-Omarchy profiles do not get this system.
+One command, `dotfiles-wallpaper`, owns wallpaper config, source merging,
+selection, state, and status across supported OSes. OS-specific code only sets
+the selected image.
 
 ## Locations
 
-Repo-managed wallpapers live here:
+Shared repo wallpapers live in:
 
 ```text
-stow/os-omarchy/wallpapers/.config/omarchy/backgrounds/walls/
+stow/global/wallpapers/.local/share/wallpapers/shared/
 ```
 
-After stow, Omarchy sees them here:
+After stow, all OSes read them from:
 
 ```text
-~/.config/omarchy/backgrounds/walls/
+~/.local/share/wallpapers/shared/
 ```
 
-Local personal wallpapers go here and are not in Git:
+Local personal wallpapers go here on every OS and are never committed:
 
 ```text
-~/Pictures/Wallpapers/local/
+~/Pictures/local-wallpapers/
 ```
 
-`dotfiles update` creates the local folder automatically on Omarchy machines.
-The managed repo folder is theme-independent and shared across all Omarchy
-profiles.
+The engine merges the local folder only when it exists. `dotfiles update`
+creates it for managed Omarchy/macOS machines; `dotfiles wallpaper open-local`
+also creates it on demand.
 
-Add repo-managed wallpapers by copying images into:
+Migration note for the day-one Omarchy engine: move any existing local images
+from `~/Pictures/Wallpapers/local/` to `~/Pictures/local-wallpapers/`.
 
-```text
-stow/os-omarchy/wallpapers/.config/omarchy/backgrounds/walls/
-```
+## Config
 
-Then commit them to Git.
-
-Add private local wallpapers by copying images into:
-
-```text
-~/Pictures/Wallpapers/local/
-```
-
-Do not commit personal images. That folder lives outside the repo.
-
-## Rotation
-
-Configuration lives in:
+Configuration is stowed from `stow/global/wallpapers/.config/dotfiles/wallpapers.conf` to:
 
 ```text
 ~/.config/dotfiles/wallpapers.conf
 ```
 
-Change the interval by editing:
+Supported settings:
 
 ```bash
+WALLPAPER_ROTATION_ENABLED=1
 WALLPAPER_ROTATION_INTERVAL="15m"
+WALLPAPER_ROTATION_MODE="random" # random or sequential
+WALLPAPER_REPO_DIR="$HOME/.local/share/wallpapers/shared"
+WALLPAPER_LOCAL_DIR="$HOME/Pictures/local-wallpapers"
 ```
 
-Supported suffixes are `s`, `m`, `h`, and `d`. The default is `15m`.
-
-Examples:
-
-```bash
-WALLPAPER_ROTATION_INTERVAL="5m"
-WALLPAPER_ROTATION_INTERVAL="30m"
-WALLPAPER_ROTATION_INTERVAL="2h"
-WALLPAPER_ROTATION_INTERVAL="1d"
-```
-
-Apply config changes with:
-
-```bash
-dotfiles apply
-dotfiles update
-```
-
-Disable rotation by setting:
-
-```bash
-WALLPAPER_ROTATION_ENABLED=0
-```
-
-Then run:
-
-```bash
-systemctl --user disable --now dotfiles-wallpaper-rotate.timer
-```
-
-Enable it again with:
-
-```bash
-systemctl --user enable --now dotfiles-wallpaper-rotate.timer
-```
-
-If you only changed `WALLPAPER_ROTATION_ENABLED`, `dotfiles update` will also
-enable or disable the timer for you.
-
-## Supported Images
-
-Rotation scans subfolders and includes these file types from both wallpaper
-folders:
-
-- `jpg`
-- `jpeg`
-- `png`
-- `webp`
-
-Broken or empty files are skipped when ImageMagick's `magick` or `identify`
-command is available. If no valid wallpaper exists, rotation exits without
-crashing.
+Intervals support `s`, `m`, `h`, and `d` suffixes.
 
 ## Commands
 
-Rotate now:
-
-```bash
-dotfiles wallpaper rotate
-```
-
-Show wallpaper state:
-
 ```bash
 dotfiles wallpaper status
-```
-
-Open the local folder:
-
-```bash
+dotfiles wallpaper rotate
+dotfiles wallpaper set /path/to/image.jpg
 dotfiles wallpaper open-local
 ```
 
-The rotation script follows the behavior audited from Omarchy's background
-command: update `~/.config/omarchy/current/background`, then run `swaybg` with
-that symlink.
+Supported image types are `jpg`, `jpeg`, `png`, and `webp`. Empty or corrupt
+images are skipped when ImageMagick's `magick` or `identify` command is
+available.
 
-Omarchy's own command is:
+## Omarchy Backend
+
+Omarchy keeps the audited behavior: update `~/.config/omarchy/current/background`,
+restart `swaybg`, and restore the previous background if `swaybg` fails.
+
+The systemd user timer remains in `stow/os-omarchy/wallpapers/` and runs:
 
 ```bash
-omarchy theme bg set <image>
+dotfiles-wallpaper rotate
 ```
 
-The dotfiles script does the restart itself so a failed `swaybg` launch can be
-detected. If the new background fails to start, it restores the previous
-background instead of leaving the desktop black.
+`dotfiles update` enables or disables `dotfiles-wallpaper-rotate.timer` based on
+`WALLPAPER_ROTATION_ENABLED`.
 
-Omarchy's manual background cycling still works with:
+## macOS Backend
+
+macOS uses `desktoppr` when installed, with an `osascript` fallback that may not
+cover every Space. `desktoppr` is declared in the macOS package lists.
+
+The scheduler is opt-in. The LaunchAgent template is deliberately stowed to an
+inert path:
 
 ```text
-Super + Ctrl + Space
+~/.local/share/dotfiles/com.dotfiles.wallpaper.plist
 ```
 
-The dotfiles rotation is theme-independent: it uses every Git-tracked wallpaper
-under `~/.config/omarchy/backgrounds/walls/` plus every local wallpaper under
-`~/Pictures/Wallpapers/local/`.
-
-## Systemd Timer
-
-The timer files are stowed to:
-
-```text
-~/.config/systemd/user/dotfiles-wallpaper-rotate.service
-~/.config/systemd/user/dotfiles-wallpaper-rotate.timer
-```
-
-Check the timer with:
+Enable it manually with:
 
 ```bash
-systemctl --user status dotfiles-wallpaper-rotate.timer
+cp ~/.local/share/dotfiles/com.dotfiles.wallpaper.plist ~/Library/LaunchAgents/
+launchctl load ~/Library/LaunchAgents/com.dotfiles.wallpaper.plist
 ```
 
-The systemd timer wakes every minute. The script enforces the configured
-`WALLPAPER_ROTATION_INTERVAL`, which keeps interval changes in one file.
-
-## Troubleshooting
-
-Show current state:
+Disable it with:
 
 ```bash
-dotfiles wallpaper status
+launchctl unload ~/Library/LaunchAgents/com.dotfiles.wallpaper.plist
+rm ~/Library/LaunchAgents/com.dotfiles.wallpaper.plist
 ```
 
-Verify paths exist:
+The LaunchAgent wakes every 30 minutes; the engine's interval check remains the
+authority.
 
-```bash
-ls ~/.config/omarchy/backgrounds/walls
-ls ~/Pictures/Wallpapers/local
-```
+## Git Guardrails
 
-Rotate manually and watch for errors:
-
-```bash
-dotfiles wallpaper rotate
-```
-
-Reload and restart the timer:
-
-```bash
-systemctl --user daemon-reload
-systemctl --user restart dotfiles-wallpaper-rotate.timer
-```
+Repo wallpapers must be curated `jpg`, `jpeg`, `png`, or `webp` files at or
+below 8 MB. Personal images belong in `~/Pictures/local-wallpapers/`.

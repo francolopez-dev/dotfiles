@@ -1,6 +1,6 @@
 # Task 24 — lamac cleanup 1/3: dangling flat-layout symlinks
 
-Status: todo
+Status: done
 Scope: mac-local (run on lamac, human present)
 Depends on: task-01
 Size: S
@@ -52,3 +52,10 @@ recreation (`ln -s <target> <link>`) if ever needed.
 ## Acceptance criteria
 Both find commands return 0; manifest saved; ssh keys/config.local untouched
 (`ls -la ~/.ssh` unchanged except the removed `config` link).
+
+## Result
+Completed on lamac. Backup dir:
+`~/.dotfiles-backup/legacy-2026-07-07-211258/`. Manifest has 22 entries
+including the dead profile marker. Both dangling-link find checks return 0;
+`~/.ssh` real files and `config.local` are untouched; `zsh -ic 'echo shell-ok'`
+works.

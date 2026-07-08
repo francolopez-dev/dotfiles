@@ -3,3 +3,70 @@ set -euo pipefail
 
 repo_dir="$(git rev-parse --show-toplevel)"
 "$repo_dir/scripts/validate-bootstrap.sh"
+
+wallpaper_root="stow/global/wallpapers/.local/share/wallpapers/"
+max_wallpaper_bytes=$((8 * 1024 * 1024))
+
+while IFS= read -r path; do
+  [ -n "$path" ] || continue
+  case "$path" in
+    "$wallpaper_root"*) ;;
+    *) continue ;;
+  esac
+
+  case "$path" in
+    "$wallpaper_root"shared/README.md) continue ;;
+  esac
+
+  case "$path" in
+    *.jpg|*.jpeg|*.png|*.webp|*.JPG|*.JPEG|*.PNG|*.WEBP) ;;
+    *)
+      printf 'err wallpaper files must be jpg/jpeg/png/webp: %s\n' "$path" >&2
+      exit 1
+      ;;
+  esac
+
+  size=$(git cat-file -s ":$path" 2>/dev/null || printf '0')
+  if [ "$size" -gt "$max_wallpaper_bytes" ]; then
+    printf 'err wallpaper exceeds 8 MB: %s (%s bytes)\n' "$path" "$size" >&2
+    exit 1
+  fi
+done <<EOF
+$(git diff --cached --name-only --diff-filter=ACMR)
+EOF
+
+while IFS= read -r path; do
+  [ -n "$path" ] || continue
+  case "$path" in
+    stow/*/.ssh/*)
+      if [ "${path##*/}" = "config" ]; then
+        continue
+      fi
+      printf 'err refusing to commit SSH material under stow: %s\n' "$path" >&2
+      printf '    only stow/**/.ssh/config is allowed; bypass intentionally with git commit --no-verify\n' >&2
+      exit 1
+      ;;
+  esac
+
+  numstat=$(git diff --cached --numstat -- "$path" | sed -n '1p')
+  case "$numstat" in
+    -$'\t'-$'\t'*) continue ;;
+  esac
+
+  private_key_re='BEGIN (OPENSSH|RSA|EC|DSA) PRIVATE'
+  github_re='ghp'_'[A-Za-z0-9]{36}'
+  slack_re='xox''[bap]-'
+  aws_re='AK''IA[0-9A-Z]{16}'
+  age_re='age-secret-key''-1'
+  secret_re="$private_key_re KEY|$github_re|$slack_re|$aws_re|$age_re"
+  if git show ":$path" 2>/dev/null | grep -E -n "$secret_re" >/tmp/dotfiles-precommit-secrets.$$; then
+    printf 'err staged secret-like content in %s\n' "$path" >&2
+    sed 's/^/    /' /tmp/dotfiles-precommit-secrets.$$ >&2
+    rm -f /tmp/dotfiles-precommit-secrets.$$
+    printf '    bypass intentionally with git commit --no-verify\n' >&2
+    exit 1
+  fi
+  rm -f /tmp/dotfiles-precommit-secrets.$$
+done <<EOF
+$(git diff --cached --name-only --diff-filter=ACMR)
+EOF

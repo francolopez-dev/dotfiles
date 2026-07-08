@@ -1,6 +1,6 @@
 # Task 16 — Unify the wallpaper engine: one command, per-OS backends
 
-Status: todo
+Status: done
 Scope: repo-only
 Depends on: none
 Size: M
@@ -93,3 +93,10 @@ behavior cleanly.
 One engine file contains all shared logic; the only OS-specific code is the
 two setter functions; Omarchy rotate/status/timer work as before (new paths);
 mode=sequential cycles deterministically; guardrail negative test rejects.
+
+## Result
+Created global dotfiles-wallpaper engine and shared wallpapers.conf/pool path,
+updated dotfiles wallpaper delegation and Omarchy systemd ExecStart, removed
+the Omarchy-only rotate script/config/pool placeholder, rewrote docs, and added
+wallpaper pre-commit guardrails. Shellcheck clean; status works on macOS;
+oversized staged wallpaper negative test rejects as required.

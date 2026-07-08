@@ -1,0 +1,346 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+CONFIG_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/dotfiles/wallpapers.conf"
+STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles"
+LAST_FILE="$STATE_DIR/wallpaper-rotate.last"
+PREVIOUS_FILE="$STATE_DIR/wallpaper-rotate.previous"
+CURRENT_FILE="$STATE_DIR/wallpaper-current"
+SEQUENTIAL_FILE="$STATE_DIR/wallpaper-sequential.index"
+CURRENT_BACKGROUND_LINK="$HOME/.config/omarchy/current/background"
+
+WALLPAPER_ROTATION_ENABLED=1
+WALLPAPER_ROTATION_INTERVAL="15m"
+WALLPAPER_ROTATION_MODE="random"
+WALLPAPER_REPO_DIR="$HOME/.local/share/wallpapers/shared"
+WALLPAPER_LOCAL_DIR="$HOME/Pictures/local-wallpapers"
+
+err() { printf 'err %s\n' "$*" >&2; }
+
+usage() {
+  cat <<'EOF'
+Usage: dotfiles-wallpaper <command>
+
+Commands:
+  set <file>       Set an explicit wallpaper file.
+  rotate [--force] Rotate from repo + local wallpaper pools.
+  status           Show config, pool counts, scheduler, and current image.
+  open-local       Create and open the local wallpaper folder.
+EOF
+}
+
+load_config() {
+  if [[ -r "$CONFIG_FILE" ]]; then
+    # shellcheck disable=SC1090
+    . "$CONFIG_FILE"
+  fi
+  case "$WALLPAPER_ROTATION_MODE" in
+    random|sequential) ;;
+    *) WALLPAPER_ROTATION_MODE="random" ;;
+  esac
+}
+
+interval_seconds() {
+  local value="$1" number unit
+  if [[ "$value" =~ ^([0-9]+)([smhd]?)$ ]]; then
+    number="${BASH_REMATCH[1]}"
+    unit="${BASH_REMATCH[2]:-s}"
+    case "$unit" in
+      s) printf '%s\n' "$number" ;;
+      m) printf '%s\n' "$((number * 60))" ;;
+      h) printf '%s\n' "$((number * 3600))" ;;
+      d) printf '%s\n' "$((number * 86400))" ;;
+    esac
+  else
+    printf '%s\n' 900
+  fi
+}
+
+ensure_state_dir() {
+  mkdir -p "$STATE_DIR"
+}
+
+wallpaper_dirs() {
+  printf '%s\n' "$WALLPAPER_REPO_DIR"
+  [[ -d "$WALLPAPER_LOCAL_DIR" ]] && printf '%s\n' "$WALLPAPER_LOCAL_DIR"
+}
+
+wallpaper_files() {
+  local dir
+  while IFS= read -r dir; do
+    [[ -d "$dir" ]] || continue
+    find -L "$dir" -type f \( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' -o -iname '*.webp' \) -print 2>/dev/null || true
+  done < <(wallpaper_dirs)
+}
+
+valid_wallpapers() {
+  local file
+  while IFS= read -r file; do
+    [[ -f "$file" && -s "$file" ]] || continue
+    if command -v magick >/dev/null 2>&1; then
+      magick identify -quiet "$file" >/dev/null 2>&1 || continue
+    elif command -v identify >/dev/null 2>&1; then
+      identify -quiet "$file" >/dev/null 2>&1 || continue
+    fi
+    printf '%s\n' "$file"
+  done < <(wallpaper_files)
+}
+
+count_wallpapers_in() {
+  local dir="$1" count=0 file
+  while IFS= read -r file; do
+    [[ -n "$file" ]] || continue
+    count=$((count + 1))
+  done < <(find -L "$dir" -type f \( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' -o -iname '*.webp' \) -print 2>/dev/null || true)
+  printf '%s\n' "$count"
+}
+
+canonical_path() {
+  local file="$1" dir base
+  dir="$(dirname -- "$file")"
+  base="$(basename -- "$file")"
+  dir="$(cd "$dir" 2>/dev/null && pwd -P)" || return 1
+  printf '%s/%s\n' "$dir" "$base"
+}
+
+current_wallpaper() {
+  case "$(uname -s)" in
+    Linux)
+      if [[ -L "$CURRENT_BACKGROUND_LINK" ]]; then
+        readlink "$CURRENT_BACKGROUND_LINK"
+      elif [[ -r "$CURRENT_FILE" ]]; then
+        sed -n '1p' "$CURRENT_FILE"
+      fi
+      ;;
+    Darwin)
+      if [[ -r "$CURRENT_FILE" ]]; then
+        sed -n '1p' "$CURRENT_FILE"
+      else
+        local picture
+        picture="$(osascript -e 'tell application "System Events" to get picture of current desktop' 2>/dev/null || true)"
+        [[ "$picture" != "missing value" ]] && printf '%s\n' "$picture"
+      fi
+      ;;
+    *) [[ -r "$CURRENT_FILE" ]] && sed -n '1p' "$CURRENT_FILE" ;;
+  esac
+}
+
+choose_random_wallpaper() {
+  local previous="" current="" previous_real="" current_real="" choice="" choice_count line line_real
+  local -a choices=()
+  [[ -r "$PREVIOUS_FILE" ]] && previous="$(sed -n '1p' "$PREVIOUS_FILE")"
+  current="$(current_wallpaper || true)"
+  [[ -n "$previous" ]] && previous_real="$(canonical_path "$previous" 2>/dev/null || true)"
+  [[ -n "$current" ]] && current_real="$(canonical_path "$current" 2>/dev/null || true)"
+
+  mapfile -t choices < <(valid_wallpapers | sort)
+  choice_count="${#choices[@]}"
+  [[ "$choice_count" -gt 0 ]] || return 1
+  [[ "$choice_count" -eq 1 ]] && { printf '%s\n' "${choices[0]}"; return 0; }
+
+  while IFS= read -r line; do
+    line_real="$(canonical_path "$line" 2>/dev/null || true)"
+    [[ -z "$previous_real" || "$line_real" != "$previous_real" ]] || continue
+    [[ -z "$current_real" || "$line_real" != "$current_real" ]] || continue
+    choice="$line"
+    break
+  done < <(printf '%s\n' "${choices[@]}" | awk 'BEGIN { srand() } { key = rand(); print key "\t" $0 }' | sort -n | cut -f2-)
+
+  printf '%s\n' "${choice:-${choices[0]}}"
+}
+
+choose_sequential_wallpaper() {
+  local index=0 choice_count
+  local -a choices=()
+  mapfile -t choices < <(valid_wallpapers | sort)
+  choice_count="${#choices[@]}"
+  [[ "$choice_count" -gt 0 ]] || return 1
+  [[ -r "$SEQUENTIAL_FILE" ]] && index="$(sed -n '1p' "$SEQUENTIAL_FILE")"
+  [[ "$index" =~ ^[0-9]+$ ]] || index=0
+  index=$((index % choice_count))
+  printf '%s\n' "${choices[$index]}"
+  printf '%s\n' "$(((index + 1) % choice_count))" >"$SEQUENTIAL_FILE"
+}
+
+choose_wallpaper() {
+  case "$WALLPAPER_ROTATION_MODE" in
+    sequential) choose_sequential_wallpaper ;;
+    *) choose_random_wallpaper ;;
+  esac
+}
+
+is_omarchy_host() {
+  [[ -d "$HOME/.config/omarchy" ]] && return 0
+  [[ -r /etc/os-release ]] && grep -Eq '^(ID|ID_LIKE)=.*omarchy' /etc/os-release
+}
+
+start_swaybg() {
+  local background_link="$1"
+  if command -v uwsm-app >/dev/null 2>&1; then
+    setsid uwsm-app -- swaybg -i "$background_link" -m fill >/dev/null 2>&1 &
+  else
+    setsid swaybg -i "$background_link" -m fill >/dev/null 2>&1 &
+  fi
+}
+
+set_wallpaper_omarchy() {
+  local selected="$1" old_background=""
+  is_omarchy_host || { printf 'no wallpaper backend for this OS\n'; return 0; }
+  [[ -d "$(dirname "$CURRENT_BACKGROUND_LINK")" ]] || mkdir -p "$(dirname "$CURRENT_BACKGROUND_LINK")"
+  [[ -L "$CURRENT_BACKGROUND_LINK" ]] && old_background="$(readlink "$CURRENT_BACKGROUND_LINK")"
+
+  ln -nsf "$selected" "$CURRENT_BACKGROUND_LINK"
+  pkill -x swaybg >/dev/null 2>&1 || true
+  start_swaybg "$CURRENT_BACKGROUND_LINK"
+  sleep 0.5
+
+  if pgrep -x swaybg >/dev/null 2>&1; then
+    return 0
+  fi
+
+  if [[ -n "$old_background" && -f "$old_background" ]]; then
+    ln -nsf "$old_background" "$CURRENT_BACKGROUND_LINK"
+    start_swaybg "$CURRENT_BACKGROUND_LINK"
+    sleep 0.5
+  fi
+
+  if pgrep -x swaybg >/dev/null 2>&1; then
+    err "Failed to start selected wallpaper, restored previous background: $old_background"
+  else
+    err "Failed to start swaybg for wallpaper: $selected"
+  fi
+  return 1
+}
+
+set_wallpaper_macos() {
+  local selected="$1"
+  if command -v desktoppr >/dev/null 2>&1; then
+    desktoppr "$selected" >/dev/null
+    return $?
+  fi
+  # Fallback may not cover every Space; desktoppr is the preferred backend.
+  osascript -e 'tell application "System Events" to set picture of every desktop to POSIX file "'"$selected"'"' >/dev/null
+}
+
+set_wallpaper_backend() {
+  local selected="$1"
+  case "$(uname -s)" in
+    Darwin) set_wallpaper_macos "$selected" ;;
+    Linux) set_wallpaper_omarchy "$selected" ;;
+    *) printf 'no wallpaper backend for this OS\n'; return 0 ;;
+  esac
+}
+
+set_wallpaper() {
+  local selected="$1" now
+  load_config
+  ensure_state_dir
+  [[ -f "$selected" ]] || { err "wallpaper not found: $selected"; return 1; }
+  selected="$(canonical_path "$selected")"
+  now="$(date +%s)"
+  set_wallpaper_backend "$selected"
+  printf '%s\n' "$now" >"$LAST_FILE"
+  printf '%s\n' "$selected" >"$PREVIOUS_FILE"
+  printf '%s\n' "$selected" >"$CURRENT_FILE"
+  printf 'Set wallpaper: %s\n' "$selected"
+}
+
+rotate_wallpaper() {
+  local force="${1:-0}" now last=0 interval selected
+  load_config
+  ensure_state_dir
+
+  if [[ "$WALLPAPER_ROTATION_ENABLED" != "1" && "$force" != "1" ]]; then
+    return 0
+  fi
+
+  now="$(date +%s)"
+  [[ -r "$LAST_FILE" ]] && last="$(sed -n '1p' "$LAST_FILE")"
+  [[ "$last" =~ ^[0-9]+$ ]] || last=0
+  interval="$(interval_seconds "$WALLPAPER_ROTATION_INTERVAL")"
+  if [[ "$force" != "1" && $((now - last)) -lt "$interval" ]]; then
+    return 0
+  fi
+
+  selected="$(choose_wallpaper || true)"
+  if [[ -z "$selected" ]]; then
+    printf 'No valid wallpapers found in:\n  %s\n' "$WALLPAPER_REPO_DIR" >&2
+    [[ -d "$WALLPAPER_LOCAL_DIR" ]] && printf '  %s\n' "$WALLPAPER_LOCAL_DIR" >&2
+    return 0
+  fi
+
+  set_wallpaper_backend "$selected"
+  printf '%s\n' "$now" >"$LAST_FILE"
+  printf '%s\n' "$selected" >"$PREVIOUS_FILE"
+  printf '%s\n' "$selected" >"$CURRENT_FILE"
+  printf 'Rotated wallpaper: %s\n' "$selected"
+}
+
+scheduler_status() {
+  case "$(uname -s)" in
+    Linux)
+      if command -v systemctl >/dev/null 2>&1; then
+        systemctl --user is-active dotfiles-wallpaper-rotate.timer 2>/dev/null || true
+      fi
+      ;;
+    Darwin)
+      if [[ -f "$HOME/Library/LaunchAgents/com.dotfiles.wallpaper.plist" ]]; then
+        printf 'installed\n'
+      else
+        printf 'not installed\n'
+      fi
+      ;;
+  esac
+}
+
+status_wallpaper() {
+  local current scheduler
+  load_config
+  ensure_state_dir
+  current="$(current_wallpaper || true)"
+  scheduler="$(scheduler_status)"
+  printf 'enabled: %s\n' "$WALLPAPER_ROTATION_ENABLED"
+  printf 'interval: %s\n' "$WALLPAPER_ROTATION_INTERVAL"
+  printf 'mode: %s\n' "$WALLPAPER_ROTATION_MODE"
+  printf 'scheduler: %s\n' "${scheduler:-unknown}"
+  printf 'repo_dir: %s\n' "$WALLPAPER_REPO_DIR"
+  printf 'repo_wallpapers: %s\n' "$(count_wallpapers_in "$WALLPAPER_REPO_DIR")"
+  printf 'local_dir: %s\n' "$WALLPAPER_LOCAL_DIR"
+  printf 'local_wallpapers: %s\n' "$(count_wallpapers_in "$WALLPAPER_LOCAL_DIR")"
+  printf 'current: %s\n' "${current:-unknown}"
+}
+
+open_local() {
+  load_config
+  mkdir -p "$WALLPAPER_LOCAL_DIR"
+  if [[ "$(uname -s)" == "Darwin" ]]; then
+    open "$WALLPAPER_LOCAL_DIR" >/dev/null 2>&1 &
+  elif command -v xdg-open >/dev/null 2>&1; then
+    xdg-open "$WALLPAPER_LOCAL_DIR" >/dev/null 2>&1 &
+  elif command -v nautilus >/dev/null 2>&1; then
+    nautilus "$WALLPAPER_LOCAL_DIR" >/dev/null 2>&1 &
+  else
+    printf '%s\n' "$WALLPAPER_LOCAL_DIR"
+  fi
+}
+
+main() {
+  local cmd="${1:-status}"
+  [[ $# -gt 0 ]] && shift || true
+  case "$cmd" in
+    set) [[ $# -eq 1 ]] || { usage >&2; return 2; }; set_wallpaper "$1" ;;
+    rotate)
+      if [[ "${1:-}" == "--force" ]]; then
+        rotate_wallpaper 1
+      else
+        rotate_wallpaper 0
+      fi
+      ;;
+    status) status_wallpaper ;;
+    open-local) open_local ;;
+    help|-h|--help) usage ;;
+    *) usage >&2; return 2 ;;
+  esac
+}
+
+main "$@"

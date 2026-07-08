@@ -7,7 +7,7 @@ packs, logs, and machine-local credentials do not live in this repo.
 
 ## What This Does
 
-- Installs declared packages for Omarchy and Debian/Ubuntu machines.
+- Installs declared packages for Omarchy, Debian/Ubuntu, and macOS machines.
 - Applies real config files from `stow/` into `$HOME` with GNU Stow.
 - Uses layers: `global`, `os-<os>`, then `profile-<hostname>-<os>`.
 - Provides one daily command: `dotfiles`.
@@ -42,6 +42,12 @@ Declared repo AUR packages are trusted bootstrap inputs and install with paru
 
 If Stow finds existing Omarchy config, choose the recommended backup option.
 Backups go under `~/.dotfiles-backup/YYYY-MM-DD-HHMMSS/`.
+
+## Bootstrap A New Mac
+
+Install Homebrew from `https://brew.sh`, then follow
+[`macos-first-time-setup.md`](macos-first-time-setup.md). The personal Mac uses
+hostname `lamac` and profile `profile-lamac-macos`.
 
 ## Daily Use
 
@@ -78,6 +84,7 @@ Examples:
 
 - `nox` on Omarchy uses `profile-nox-omarchy`.
 - `fornax` on Omarchy uses `profile-fornax-omarchy`.
+- `lamac` on macOS uses `profile-lamac-macos`.
 
 To test another profile without renaming the machine:
 
@@ -158,6 +165,6 @@ Walker is an Omarchy default app launcher. This repo does not install, stow, or
 configure Walker.
 
 More docs: [first-time-setup.md](first-time-setup.md), [first-time-system.md](first-time-system.md),
+[macos-first-time-setup.md](macos-first-time-setup.md), [macos-personal.md](macos-personal.md),
 [git-github-cheatsheet.md](git-github-cheatsheet.md), [autostart.md](autostart.md),
-[wallpapers.md](wallpapers.md), [terminal-ux.md](terminal-ux.md), and
-[where-to-edit.md](where-to-edit.md).
+[wallpapers.md](wallpapers.md), [terminal-ux.md](terminal-ux.md), and [where-to-edit.md](where-to-edit.md).

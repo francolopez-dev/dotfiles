@@ -1,6 +1,6 @@
 # Task 27 — lamac first full apply
 
-Status: todo
+Status: blocked
 Scope: mac-local (run on lamac, human present, same sitting as 25/26)
 Depends on: tasks 02-23 all done, plus 24, 25, 26
 Size: M
@@ -59,3 +59,19 @@ uninstall manually.
 All validation commands pass in a NEW terminal; Ghostty opens with the repo
 theme; AeroSpace workspaces switch and SketchyBar reflects them; borders
 visible.
+
+## Result
+Partial on lamac. Cleaned remaining atuin conflict by moving
+`~/.config/atuin` into `~/.dotfiles-backup/legacy-2026-07-07-211258/.config/`.
+`scripts/dotfiles apply` completed and all three layers are stowed; stow dry-run
+is clean. Created bootstrap-equivalent `~/.local/bin/dotfiles` symlink. Borders
+and SketchyBar are running via LaunchAgent/process fallback. Fresh login zsh
+finds `dotfiles` and `brew`; SSH config validates.
+
+Blocked item: `desktoppr` cask install requires a sudo password prompt and failed
+from the non-TTY tool session. Run from a real terminal:
+`brew install --cask desktoppr`, then `dotfiles doctor`.
+
+Remaining expected human login/setup: Tailscale.app login, `atuin login && atuin
+sync`, GitHub SSH remote switch if desired, Ghostty/AeroSpace/Rectangle UI
+permission checks.

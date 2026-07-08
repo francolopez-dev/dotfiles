@@ -5,7 +5,7 @@
 CONFIG_DIR="${HOME}/.config/sketchybar"
 PLUGIN_DIR="${CONFIG_DIR}/plugins"
 
-# shellcheck source=stow/os-macos/sketchybar/.config/sketchybar/colors.sh
+# shellcheck source=/dev/null
 . "${CONFIG_DIR}/colors.sh"
 
 FONT="JetBrainsMono Nerd Font"
@@ -38,6 +38,7 @@ sketchybar --default \
 
 sketchybar --remove '/.*/' >/dev/null 2>&1
 sketchybar --add event aerospace_workspace_change
+sketchybar --add event spotify_change com.spotify.client.PlaybackStateChanged
 
 if command -v aerospace >/dev/null 2>&1; then
   workspace_index=0
@@ -76,6 +77,21 @@ sketchybar --add item front_app left \
     padding_right=2 \
     script="${PLUGIN_DIR}/front_app.sh" \
   --subscribe front_app front_app_switched
+
+sketchybar --add item media center \
+  --set media \
+    icon.color="${GREEN}" \
+    label.color="${TEXT}" \
+    label.max_chars=56 \
+    background.drawing=on \
+    background.color="${SURFACE}" \
+    background.corner_radius=999 \
+    background.height=22 \
+    padding_left=6 \
+    padding_right=6 \
+    update_freq=10 \
+    script="${PLUGIN_DIR}/media.sh" \
+  --subscribe media spotify_change system_woke
 
 sketchybar --add item date right \
   --set date \
@@ -117,7 +133,16 @@ sketchybar --add item cpu right \
   --set volume \
     script="${PLUGIN_DIR}/volume.sh" \
     click_script="osascript -e 'set volume output muted not (output muted of (get volume settings))'" \
-  --subscribe volume volume_change
+  --subscribe volume volume_change \
+  --add item vpn right \
+  --set vpn \
+    update_freq=10 \
+    script="${PLUGIN_DIR}/vpn.sh" \
+  --add item wifi right \
+  --set wifi \
+    update_freq=10 \
+    script="${PLUGIN_DIR}/wifi.sh" \
+  --subscribe wifi wifi_change system_woke
 
 sketchybar --trigger aerospace_workspace_change \
   FOCUSED_WORKSPACE="$(aerospace list-workspaces --focused 2>/dev/null || true)"

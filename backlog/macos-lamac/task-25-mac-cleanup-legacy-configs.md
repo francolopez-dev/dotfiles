@@ -1,6 +1,6 @@
 # Task 25 — lamac cleanup 2/3: legacy real configs + env.local handoff
 
-Status: todo
+Status: done
 Scope: mac-local (run on lamac, human present)
 Depends on: task-24
 Size: M
@@ -54,3 +54,12 @@ Everything is a `mv`; restore any path from the backup dir verbatim.
 ## Acceptance criteria
 Legacy paths cleared, backup complete, env.local carries Toolbox + OrbStack
 lines, and the follow-on tasks are run the same day.
+
+## Result
+Completed on lamac using backup dir
+`~/.dotfiles-backup/legacy-2026-07-07-211258/`. Moved `.zprofile`,
+`.config/alacritty`, `.config/nvim`, `.config/sketchybar`, and
+`.config/neofetch` preserving structure. Updated `~/.config/shell/env.local`
+with JetBrains Toolbox and OrbStack lines; did not copy Homebrew shellenv or
+pipx PATH. Validation: legacy paths cleared, `grep -c orbstack` = 1, and
+`zsh -lic 'command -v brew'` returns `/opt/homebrew/bin/brew`.

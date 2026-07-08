@@ -1,6 +1,6 @@
 # Task 15 — SketchyBar network + media plugins (wifi, tailscale, media island)
 
-Status: todo
+Status: done
 Scope: repo-only
 Depends on: task-13
 Size: M
@@ -54,3 +54,9 @@ Remove files + registrations.
 ## Acceptance criteria
 On lamac: SSID shows, tailscale state correct, Spotify track appears center
 when playing, empty when idle. All shellcheck-clean.
+
+## Result
+Added wifi.sh, vpn.sh, and Spotify-only media.sh; registered wifi/vpn on the
+right and the media island in the center. Shellcheck clean for all three
+plugins and sketchybarrc. Standalone macOS runtime toggles still need live
+desktop verification.

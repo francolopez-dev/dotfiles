@@ -1,6 +1,6 @@
 # Task 22 — macOS documentation
 
-Status: todo
+Status: done
 Scope: repo-only
 Depends on: none (richer if 07/13/17/21 are done; write what exists, stub the rest)
 Size: S
@@ -57,3 +57,9 @@ Docs-only; revert.
 A fresh-Mac rebuild is executable from macos-first-time-setup.md alone;
 macos-personal.md answers "where do I edit X for the Mac" for every managed
 piece.
+
+## Result
+Added docs/macos-first-time-setup.md, expanded docs/macos-personal.md with the
+lamac layer map and managed surfaces, and linked macOS docs/layers from README
+and where-to-edit. Validation grep for unwanted WezTerm/minidlna references is
+clean except explicit removed/legacy wording.

@@ -74,8 +74,92 @@ install_missing_packages() {
   local dry="$1"
   case "$(detect_os)" in
     omarchy) install_missing_omarchy_packages "$dry" ;;
+    macos) install_missing_macos_packages "$dry" ;;
     *) install_missing_native_packages "$dry" ;;
   esac
+}
+
+# Two-phase like omarchy's pacman-then-AUR: formulae first, casks second.
+# Never upgrades, never uninstalls, never --force.
+install_missing_macos_packages() {
+  local dry="$1" p missing_brew=() missing_cask=()
+  if ! command -v brew >/dev/null 2>&1; then
+    warn "Homebrew is required on macOS; install it from https://brew.sh"
+    return 1
+  fi
+  validate_macos_package_declarations || return 1
+
+  info "Checking brew formulae"
+  while read -r p; do
+    [[ -z "$p" ]] && continue
+    _pkg_installed "$p" || missing_brew+=("$p")
+  done < <(desired_brew_packages)
+  if [[ ${#missing_brew[@]} -eq 0 ]]; then
+    ok "all brew formulae installed"
+  else
+    printf '  missing formulae: %s\n' "${missing_brew[*]}"
+    if [[ "$dry" -eq 1 ]]; then
+      dim "  would run: brew install ${missing_brew[*]}"
+    elif confirm "Install ${#missing_brew[@]} missing formula(e)?"; then
+      _brew_install_or_hint "" "${missing_brew[@]}" || return 1
+    fi
+  fi
+
+  info "Checking brew casks"
+  while read -r p; do
+    [[ -z "$p" ]] && continue
+    _pkg_installed "$p" || missing_cask+=("$p")
+  done < <(desired_cask_packages)
+  if [[ ${#missing_cask[@]} -eq 0 ]]; then
+    ok "all brew casks installed"
+    return 0
+  fi
+  printf '  missing casks: %s\n' "${missing_cask[*]}"
+  if [[ "$dry" -eq 1 ]]; then
+    dim "  would run: brew install --cask ${missing_cask[*]}"
+    return 0
+  fi
+  if ! have_tty; then
+    warn "cask installs skipped: no TTY (cask installers may need sudo)"
+    warn "run later: brew install --cask ${missing_cask[*]}"
+    return 0
+  fi
+  if confirm "Install ${#missing_cask[@]} missing cask(s)?"; then
+    _brew_install_or_hint --cask "${missing_cask[@]}" || return 1
+  fi
+}
+
+_brew_install_or_hint() {
+  local kind="$1" status=0 n taps=""
+  shift
+  local args=(install)
+  [[ "$kind" == "--cask" ]] && args+=(--cask)
+  info "Installing with brew: $*"
+  set +e
+  if have_tty; then
+    brew "${args[@]}" "$@" </dev/tty
+  else
+    brew "${args[@]}" "$@"
+  fi
+  status=$?
+  set -e
+  _brew_installed_names=""  # invalidate the installed-names cache
+  if [[ "$status" -ne 0 ]]; then
+    warn "brew install failed (exit $status)"
+    for n in "$@"; do
+      case "$n" in */*/*) taps="$taps ${n%/*}" ;; esac
+    done
+    if [[ -n "$taps" ]]; then
+      warn "if brew reported an untrusted tap, declared taps are trusted inputs; run:"
+      warn "  brew trust$taps"
+      warn "then rerun: dotfiles update"
+    fi
+    if [[ "$kind" == "--cask" ]]; then
+      warn "if a cask failed over an existing app, adopt it manually:"
+      warn "  brew install --cask --adopt <name>"
+    fi
+    return 1
+  fi
 }
 
 install_missing_native_packages() {
@@ -194,6 +278,8 @@ cmd_update() {
   info "Update plan for $(detect_hostname) ($(detect_os)); profile: $(active_profile):"
   if [[ "$(detect_os)" == "omarchy" ]]; then
     printf '  1. git pull --ff-only\n  2. install pacman profile packages\n  3. install paru/AUR profile packages\n  4. re-stow layers (conflict wizard; never silently overwritten)\n  5. targeted desktop/system refreshes\n'
+  elif [[ "$(detect_os)" == "macos" ]]; then
+    printf '  1. git pull --ff-only\n  2. install brew formulae\n  3. install brew casks\n  4. re-stow layers (conflict wizard; never silently overwritten)\n  5. targeted refreshes\n'
   else
     printf '  1. git pull --ff-only\n  2. install missing packages\n  3. re-stow layers (conflict wizard; never silently overwritten)\n  4. targeted system refreshes\n'
   fi
@@ -256,6 +342,9 @@ refresh_after_apply() {
   if [[ "$(detect_os)" == "omarchy" ]]; then
     refresh_omarchy_session "$dry" needs_manual
   fi
+  if [[ "$(detect_os)" == "macos" ]] && pgrep -x sketchybar >/dev/null 2>&1; then
+    run_refresh_cmd "$dry" "sketchybar reloaded" sketchybar --reload || true
+  fi
 
   detect_manual_refreshes needs_manual
   if [[ ${#needs_manual[@]} -gt 0 ]]; then
@@ -308,6 +397,9 @@ refresh_systemd_daemons() {
 
 refresh_desktop_caches() {
   local dry="$1" icon_dir font_dirs=()
+  # macOS owns its font/app caches; the freedesktop tooling below may exist
+  # via brew deps but must not be run against ~/Library conventions.
+  [[ "$(uname -s)" == "Darwin" ]] && return 0
 
   if command -v fc-cache >/dev/null 2>&1 && [[ -d "$HOME/.local/share/fonts" || -d "$HOME/.fonts" ]]; then
     [[ -d "$HOME/.local/share/fonts" ]] && font_dirs+=("$HOME/.local/share/fonts")

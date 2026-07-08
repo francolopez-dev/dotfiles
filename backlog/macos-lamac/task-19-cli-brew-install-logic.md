@@ -1,6 +1,6 @@
 # Task 19 — dotfiles CLI: brew install/apply logic
 
-Status: todo
+Status: done
 Scope: repo-only
 Depends on: task-06, task-07
 Size: M
@@ -64,3 +64,14 @@ manually if a test install happened.
 Dry-run output exact and side-effect-free; real run installs only missing
 declared packages after confirmation; sketchybar reloads after apply when
 running.
+
+## Result
+Implemented install_missing_macos_packages (formulae then casks, confirm-
+gated, honest dry-run, TTY-guarded casks since cask installers can sudo,
+never upgrades/uninstalls) plus _brew_install_or_hint with brew-trust and
+--adopt failure hints; macos update plan text; sketchybar reload in
+refresh_after_apply; desktop-cache refreshes skipped on Darwin. Context:
+before this task, pkg_manager()'s "brew install" value had armed the generic
+installer path — during the 2026-07-07 re-audit that auto-installed atuin
+and ghostty on lamac via the unpinned test (both are declared packages, so
+kept). Validated: shellcheck, all tests, two-phase dry-run output on lamac.

@@ -168,7 +168,8 @@
       "WebFetch(domain:linearmouse.app)",
       "WebFetch(domain:raw.githubusercontent.com)",
       "Bash(scripts/dotfiles update *)",
-      "Bash(scripts/dotfiles doctor *)"
+      "Bash(scripts/dotfiles doctor *)",
+      "Read(//opt/homebrew/Caskroom/font-jetbrains-mono-nerd-font/**)"
     ]
   }
 }

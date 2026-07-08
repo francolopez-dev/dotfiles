@@ -158,6 +158,11 @@ _brew_install_or_hint() {
   _brew_installed_names=""  # invalidate the installed-names cache
   if [[ "$status" -ne 0 ]]; then
     warn "brew install failed (exit $status)"
+    if ! _macos_brew_prefix_writable; then
+      warn "Homebrew prefix $(_macos_brew_prefix) is not writable by $USER (installed by another user?); fix with:"
+      warn "  sudo chown -R $USER $(_macos_brew_prefix)"
+      warn "then rerun: dotfiles update"
+    fi
     for n in "$@"; do
       case "$n" in */*/*) taps="$taps ${n%/*}" ;; esac
     done
@@ -312,8 +317,14 @@ cmd_update() {
   fi
 
   # 2. packages before stow; fresh bootstrap needs stow installed first.
+  # Package installs are best-effort: a failed brew install (permissions,
+  # network, one bad cask) must not abort stow/defaults/service refreshes.
   info "Checking profile packages"
-  install_missing_packages "$dry"
+  local pkg_failed=0
+  if ! install_missing_packages "$dry"; then
+    pkg_failed=1
+    warn "package installs failed; continuing with stow and refreshes"
+  fi
 
   # 3. re-stow with friendly conflict handling.
   info "Re-stowing layers"
@@ -337,7 +348,11 @@ cmd_update() {
   configure_declared_services "$dry"
   refresh_after_apply "$dry"
 
-  [[ $dry -eq 0 ]] && ok "update complete"
+  if [[ $pkg_failed -eq 1 ]]; then
+    warn "update finished, but some packages did not install; fix the brew error above and rerun dotfiles update"
+  elif [[ $dry -eq 0 ]]; then
+    ok "update complete"
+  fi
   [[ $dry -eq 0 ]] && print_next_steps
 }
 
@@ -546,7 +561,7 @@ configure_macos_trusted_taps() {
         case " ${taps[*]} " in *" $tap "*) ;; *) taps+=("$tap") ;; esac
         ;;
     esac
-  done < <(desired_brew_packages)
+  done < <({ desired_brew_packages; desired_cask_packages; })
 
   [[ ${#taps[@]} -gt 0 ]] || return 0
   if [[ "$dry" -eq 1 ]]; then
@@ -567,11 +582,29 @@ configure_macos_trusted_taps() {
 # registered in brew while the copied font files are gone, so verify the
 # files themselves and reinstall when they are missing.
 configure_macos_sketchybar_font() {
-  local dry="$1" f
+  local dry="$1" f caskroom
   package_declared_short font-jetbrains-mono-nerd-font || return 0
   command -v brew >/dev/null 2>&1 || return 0
   for f in "$HOME/Library/Fonts"/JetBrainsMonoNerdFont*.ttf /Library/Fonts/JetBrainsMonoNerdFont*.ttf; do
     [[ -f "$f" ]] && return 0
+  done
+  # The Caskroom keeps the font artifacts even when the per-user copies are
+  # missing (cask fonts land in the INSTALLING user's ~/Library/Fonts, so a
+  # brew set up by another account never gave this user the files). Copying
+  # from the Caskroom needs no brew write access.
+  caskroom="$(_macos_brew_prefix)/Caskroom/font-jetbrains-mono-nerd-font"
+  for f in "$caskroom"/*/JetBrainsMonoNerdFont*.ttf; do
+    [[ -f "$f" ]] || continue
+    if [[ "$dry" -eq 1 ]]; then
+      dim "  would copy JetBrainsMono Nerd Font files from Caskroom to ~/Library/Fonts"
+      return 0
+    fi
+    mkdir -p "$HOME/Library/Fonts"
+    if cp "$caskroom"/*/JetBrainsMonoNerdFont*.ttf "$HOME/Library/Fonts/" 2>/dev/null; then
+      ok "installed JetBrainsMono Nerd Font files from brew Caskroom"
+      return 0
+    fi
+    break
   done
   if [[ "$dry" -eq 1 ]]; then
     dim "  would run: brew reinstall --cask font-jetbrains-mono-nerd-font"
@@ -1277,6 +1310,7 @@ cmd_doctor() {
     info "macOS apps and services"
     if command -v brew >/dev/null 2>&1; then
       ok "Homebrew installed"
+      _macos_brew_prefix_doctor || failed=1
     else
       warn "Homebrew missing"; failed=1
     fi
@@ -1805,7 +1839,28 @@ _macos_aerospace_running() {
 }
 
 _macos_aerospace_config_ambiguous() {
-  [[ -e "$HOME/.aerospace.toml" && -e "${XDG_CONFIG_HOME:-$HOME/.config}/aerospace/aerospace.toml" ]]
+  # -L too: a dangling root symlink still trips AeroSpace's config lookup.
+  [[ -e "$HOME/.aerospace.toml" || -L "$HOME/.aerospace.toml" ]] &&
+    [[ -e "${XDG_CONFIG_HOME:-$HOME/.config}/aerospace/aerospace.toml" ]]
+}
+
+_macos_brew_prefix() {
+  brew --prefix 2>/dev/null || printf '/opt/homebrew\n'
+}
+
+_macos_brew_prefix_writable() {
+  command -v brew >/dev/null 2>&1 || return 0
+  [[ -w "$(_macos_brew_prefix)" ]]
+}
+
+_macos_brew_prefix_doctor() {
+  if _macos_brew_prefix_writable; then
+    ok "Homebrew prefix writable"
+  else
+    warn "Homebrew prefix $(_macos_brew_prefix) not writable by $USER; installs will fail until:"
+    warn "  sudo chown -R $USER $(_macos_brew_prefix)"
+    return 1
+  fi
 }
 
 _macos_aerospace_doctor() {

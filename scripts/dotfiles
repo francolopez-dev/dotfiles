@@ -516,9 +516,40 @@ configure_declared_services() {
 
 configure_macos_declared_services() {
   local dry="$1"
-  package_declared_short sketchybar || return 0
-  configure_macos_brew_service "$dry" sketchybar
+  configure_macos_trusted_taps "$dry"
+  package_declared_short borders && configure_macos_brew_service "$dry" borders || true
+  package_declared_short sketchybar && configure_macos_brew_service "$dry" sketchybar || true
   configure_macos_primary_bar_defaults "$dry"
+  configure_macos_dock_defaults "$dry"
+  configure_macos_aerospace "$dry"
+}
+
+configure_macos_trusted_taps() {
+  local dry="$1" pkg tap taps=() trusted=()
+  command -v brew >/dev/null 2>&1 || return 0
+  while read -r pkg; do
+    [[ -z "$pkg" ]] && continue
+    case "$pkg" in
+      */*/*)
+        tap="${pkg%/*}"
+        case " ${taps[*]} " in *" $tap "*) ;; *) taps+=("$tap") ;; esac
+        ;;
+    esac
+  done < <(desired_brew_packages)
+
+  [[ ${#taps[@]} -gt 0 ]] || return 0
+  if [[ "$dry" -eq 1 ]]; then
+    dim "  would run: brew trust ${taps[*]}"
+    return 0
+  fi
+  for tap in "${taps[@]}"; do
+    if brew trust "$tap" >/dev/null 2>&1; then
+      trusted+=("$tap")
+    else
+      warn "failed to trust declared brew tap: $tap"
+    fi
+  done
+  [[ ${#trusted[@]} -eq 0 ]] || ok "trusted declared brew tap(s): ${trusted[*]}"
 }
 
 configure_macos_brew_service() {
@@ -543,7 +574,6 @@ configure_macos_brew_service() {
     ok "brew service started: $service"
   else
     warn "failed to start brew service: $service"
-    return 1
   fi
 }
 
@@ -561,6 +591,41 @@ configure_macos_primary_bar_defaults() {
     ok "native menu bar auto-hide enabled"
   else
     warn "menu bar defaults written; live auto-hide may require System Events permission or a new login"
+  fi
+}
+
+configure_macos_dock_defaults() {
+  local dry="$1"
+  if [[ "$dry" -eq 1 ]]; then
+    dim "  would run: defaults write com.apple.dock autohide -bool true"
+    dim "  would run: defaults write com.apple.dock orientation left"
+    dim "  would run: defaults write com.apple.dock tilesize -int 47"
+    dim "  would run: killall Dock"
+    return 0
+  fi
+  defaults write com.apple.dock autohide -bool true
+  defaults write com.apple.dock orientation left
+  defaults write com.apple.dock tilesize -int 47
+  killall Dock >/dev/null 2>&1 || true
+  ok "Dock auto-hide defaults applied"
+}
+
+configure_macos_aerospace() {
+  local dry="$1"
+  [[ -d /Applications/AeroSpace.app ]] || return 0
+  if pgrep -x AeroSpace >/dev/null 2>&1; then
+    ok "AeroSpace running"
+    return 0
+  fi
+  if [[ "$dry" -eq 1 ]]; then
+    dim "  would run: open -ga AeroSpace"
+    return 0
+  fi
+  if open -ga AeroSpace >/dev/null 2>&1; then
+    ok "AeroSpace launched"
+    warn "AeroSpace may still need macOS Accessibility permission before it can manage windows"
+  else
+    warn "failed to launch AeroSpace; open it from /Applications and grant Accessibility permission if prompted"
   fi
 }
 
@@ -605,9 +670,7 @@ configure_wallpaper_rotation() {
 
   if [[ "$os" == "macos" ]]; then
     if [[ "$WALLPAPER_ROTATION_ENABLED" == "1" ]]; then
-      dim "  macOS wallpaper scheduler is opt-in; to enable:"
-      dim "  cp ~/.local/share/dotfiles/com.dotfiles.wallpaper.plist ~/Library/LaunchAgents/"
-      dim "  launchctl load ~/Library/LaunchAgents/com.dotfiles.wallpaper.plist"
+      configure_macos_wallpaper_launchagent "$dry"
     else
       dim "  macOS wallpaper rotation disabled in $(wallpaper_config_file)"
     fi
@@ -632,6 +695,34 @@ configure_wallpaper_rotation() {
     else
       systemctl --user disable --now dotfiles-wallpaper-rotate.timer >/dev/null 2>&1 || true
     fi
+  fi
+}
+
+configure_macos_wallpaper_launchagent() {
+  local dry="$1" source_plist target_dir target_plist uid
+  source_plist="$HOME/.local/share/dotfiles/com.dotfiles.wallpaper.plist"
+  target_dir="$HOME/Library/LaunchAgents"
+  target_plist="$target_dir/com.dotfiles.wallpaper.plist"
+
+  if [[ ! -r "$source_plist" ]]; then
+    warn "macOS wallpaper LaunchAgent source missing: $source_plist"
+    return 0
+  fi
+  if [[ "$dry" -eq 1 ]]; then
+    dim "  would install LaunchAgent: $target_plist"
+    dim "  would run: launchctl bootstrap gui/$(id -u) $target_plist"
+    return 0
+  fi
+
+  mkdir -p "$target_dir"
+  cp "$source_plist" "$target_plist"
+  uid="$(id -u)"
+  launchctl bootout "gui/$uid/com.dotfiles.wallpaper" >/dev/null 2>&1 || true
+  if launchctl bootstrap "gui/$uid" "$target_plist" >/dev/null 2>&1; then
+    launchctl kickstart -k "gui/$uid/com.dotfiles.wallpaper" >/dev/null 2>&1 || true
+    ok "macOS wallpaper LaunchAgent loaded"
+  else
+    warn "failed to load macOS wallpaper LaunchAgent: $target_plist"
   fi
 }
 
@@ -921,10 +1012,13 @@ cmd_doctor() {
       warn "Ghostty cask missing"; failed=1
     fi
     _macos_app_doctor "AeroSpace" "/Applications/AeroSpace.app" || failed=1
+    _macos_aerospace_doctor || failed=1
     _macos_app_doctor "Rectangle" "/Applications/Rectangle.app" || failed=1
     _macos_app_doctor "Raycast" "/Applications/Raycast.app" || failed=1
     _macos_brew_service_doctor borders || failed=1
     _macos_brew_service_doctor sketchybar || failed=1
+    _macos_dock_doctor || failed=1
+    _macos_wallpaper_launchagent_doctor || failed=1
     info "Wallpaper rotation"
     wallpaper_status_lines
   fi
@@ -1022,8 +1116,10 @@ cmd_status() {
       _waybar_status
       ;;
     macos)
+      _macos_aerospace_status
       _macos_brew_service_status borders
       _macos_brew_service_status sketchybar
+      _macos_dock_status
       ;;
   esac
   if [[ "$os" == "omarchy" || "$os" == "macos" ]]; then
@@ -1285,6 +1381,65 @@ _macos_brew_service_doctor() {
     ok "brew service running: $service"
   else
     warn "brew service not started: $service"
+    return 1
+  fi
+}
+
+_macos_aerospace_running() {
+  pgrep -x AeroSpace >/dev/null 2>&1
+}
+
+_macos_aerospace_doctor() {
+  if _macos_aerospace_running; then
+    ok "AeroSpace running"
+  else
+    warn "AeroSpace not running; run dotfiles update or open /Applications/AeroSpace.app"
+    return 1
+  fi
+}
+
+_macos_aerospace_status() {
+  if _macos_aerospace_running; then
+    printf '  aerospace: running\n'
+  elif [[ -d /Applications/AeroSpace.app ]]; then
+    printf '  aerospace: installed, not running\n'
+  else
+    printf '  aerospace: missing\n'
+  fi
+}
+
+_macos_dock_defaults_match() {
+  [[ "$(defaults read com.apple.dock autohide 2>/dev/null || true)" == "1" ]] || return 1
+  [[ "$(defaults read com.apple.dock orientation 2>/dev/null || true)" == "left" ]] || return 1
+  [[ "$(defaults read com.apple.dock tilesize 2>/dev/null || true)" == "47" ]]
+}
+
+_macos_dock_doctor() {
+  if _macos_dock_defaults_match; then
+    ok "Dock auto-hide defaults applied"
+  else
+    warn "Dock defaults not applied; run dotfiles update"
+    return 1
+  fi
+}
+
+_macos_dock_status() {
+  printf '  dock autohide: %s\n' "$(defaults read com.apple.dock autohide 2>/dev/null || printf 'unset')"
+  printf '  dock orientation: %s\n' "$(defaults read com.apple.dock orientation 2>/dev/null || printf 'unset')"
+  printf '  dock tilesize: %s\n' "$(defaults read com.apple.dock tilesize 2>/dev/null || printf 'unset')"
+}
+
+_macos_wallpaper_launchagent_loaded() {
+  local uid
+  uid="$(id -u)"
+  launchctl print "gui/$uid/com.dotfiles.wallpaper" >/dev/null 2>&1
+}
+
+_macos_wallpaper_launchagent_doctor() {
+  if _macos_wallpaper_launchagent_loaded; then
+    ok "macOS wallpaper LaunchAgent loaded"
+  else
+    warn "macOS wallpaper LaunchAgent not loaded; run dotfiles update"
     return 1
   fi
 }

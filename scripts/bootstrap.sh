@@ -577,7 +577,8 @@ bootstrap_summary() {
   printf '\nNeeds manual action:\n'
   if [ "$(detect_bootstrap_os)" = "macos" ]; then
     printf '  Tailscale: open Tailscale.app and log in\n'
-    printf '  macOS Accessibility: System Settings -> Privacy & Security -> Accessibility; enable AeroSpace, borders, and sketchybar if listed\n'
+    printf '  macOS Accessibility: System Settings -> Privacy & Security -> Accessibility; enable AeroSpace, borders, Rectangle, and Raycast if listed\n'
+    printf '  Raycast: set Cmd-Space in Raycast -> Settings -> Extensions -> Search -> Hotkey\n'
   else
     printf '  Tailscale: run sudo tailscale up\n'
   fi

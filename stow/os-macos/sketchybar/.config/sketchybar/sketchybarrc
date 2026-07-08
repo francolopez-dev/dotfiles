@@ -59,7 +59,7 @@ if command -v aerospace >/dev/null 2>&1; then
         icon.color="${default_color}" \
         icon.highlight_color="${CYAN}" \
         label.drawing=off \
-        click_script="aerospace workspace '${workspace}'" \
+        click_script="focused=\$(aerospace list-workspaces --focused 2>/dev/null || true); [ \"\$focused\" = '${workspace}' ] || aerospace workspace '${workspace}' >/dev/null 2>&1" \
         script="${PLUGIN_DIR}/aerospace.sh" \
       --subscribe "${item}" aerospace_workspace_change
   done

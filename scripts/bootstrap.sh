@@ -584,7 +584,7 @@ bootstrap_summary() {
   printf '  Recovery pack: build the encrypted recovery pack when ready\n'
   printf '  Atuin: run atuin login && atuin sync\n'
   printf '\nRecommended:\n'
-  printf '  open a new terminal or run exec zsh\n'
+  printf '  open a new terminal or run exec zsh -l\n'
   printf '  run dotfiles status && dotfiles doctor\n'
 }
 

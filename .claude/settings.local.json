@@ -87,7 +87,16 @@
       "Bash(DOTFILES_OS=macos bash -c '. scripts/lib/common.sh; f\\(\\) { local short=\"${1##*/}\"; brew list --formula --versions \"$short\" >/dev/null 2>&1 || brew list --cask --versions \"$short\" >/dev/null 2>&1; }; f felixkratz/formulae/borders && echo borders-installed; f raycast && echo raycast-installed; f not-a-pkg || echo missing-detected')",
       "Bash(brew info *)",
       "Bash(brew search *)",
-      "Bash(time scripts/dotfiles status)"
+      "Bash(time scripts/dotfiles status)",
+      "Bash(DOTFILES_OS=omarchy bash -c '. scripts/lib/common.sh; resolve_layers omarchy nox')",
+      "Bash(DOTFILES_OS=omarchy DOTFILES_PROFILE=profile-nox-omarchy bash -c '. scripts/lib/common.sh; . scripts/lib/packages.sh; desired_packages')",
+      "Bash(DOTFILES_OS=debian bash -c '. scripts/lib/common.sh; . scripts/lib/packages.sh; desired_packages')",
+      "Bash(DOTFILES_BOOTSTRAP_OS=omarchy bash scripts/bootstrap.sh --dry-run)",
+      "Bash(grep -E '^\\(ghostty|desktoppr\\)$')",
+      "Bash(grep -n 'mkdir -p \"$tmp_dir/bin\"' tests/bootstrap-first-run.sh)",
+      "Bash(perl -pi -e 's|chmod \\\\+x \"\\\\$tmp_dir/bin/sudo\" \"\\\\$tmp_dir/bin/pacman\"|chmod +x \"\\\\$tmp_dir/bin/sudo\" \"\\\\$tmp_dir/bin/brew\" \"\\\\$tmp_dir/bin/pacman\"|' tests/bootstrap-first-run.sh)",
+      "Bash(/bin/bash scripts/bootstrap.sh --dry-run)",
+      "Bash(/bin/bash -s -- --dry-run)"
     ]
   }
 }

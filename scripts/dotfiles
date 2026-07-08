@@ -493,6 +493,10 @@ detect_manual_refreshes() {
 
 configure_declared_services() {
   local dry="$1"
+  if [[ "$(detect_os)" == "macos" ]]; then
+    configure_macos_declared_services "$dry"
+    return 0
+  fi
   [[ "$(detect_os)" == "omarchy" ]] || return 0
   package_declared tailscale || return 0
   command -v systemctl >/dev/null 2>&1 || return 0
@@ -507,6 +511,56 @@ configure_declared_services() {
     sudo systemctl enable --now tailscaled.service
   else
     warn "tailscaled.service not started; run: sudo systemctl enable --now tailscaled.service"
+  fi
+}
+
+configure_macos_declared_services() {
+  local dry="$1"
+  package_declared_short sketchybar || return 0
+  configure_macos_brew_service "$dry" sketchybar
+  configure_macos_primary_bar_defaults "$dry"
+}
+
+configure_macos_brew_service() {
+  local dry="$1" service="$2"
+  if ! command -v brew >/dev/null 2>&1; then
+    warn "brew missing; cannot start $service service"
+    return 0
+  fi
+  if ! command -v "$service" >/dev/null 2>&1; then
+    warn "$service is declared but not installed; run dotfiles update again after package install completes"
+    return 0
+  fi
+  if _macos_brew_service_started "$service"; then
+    ok "brew service running: $service"
+    return 0
+  fi
+  if [[ "$dry" -eq 1 ]]; then
+    dim "  would run: brew services start $service"
+    return 0
+  fi
+  if brew services start "$service" >/dev/null; then
+    ok "brew service started: $service"
+  else
+    warn "failed to start brew service: $service"
+    return 1
+  fi
+}
+
+configure_macos_primary_bar_defaults() {
+  local dry="$1"
+  if [[ "$dry" -eq 1 ]]; then
+    dim "  would run: defaults write -g _HIHideMenuBar -bool true"
+    dim "  would run: defaults write -g AppleMenuBarVisibleInFullscreen -bool false"
+    dim "  would run: osascript -e 'tell application \"System Events\" to set autohide menu bar of dock preferences to true'"
+    return 0
+  fi
+  defaults write -g _HIHideMenuBar -bool true
+  defaults write -g AppleMenuBarVisibleInFullscreen -bool false
+  if osascript -e 'tell application "System Events" to set autohide menu bar of dock preferences to true' >/dev/null 2>&1; then
+    ok "native menu bar auto-hide enabled"
+  else
+    warn "menu bar defaults written; live auto-hide may require System Events permission or a new login"
   fi
 }
 
@@ -1136,6 +1190,14 @@ package_declared() {
   local pkg="$1" declared
   while read -r declared; do
     [[ "$declared" == "$pkg" ]] && return 0
+  done < <(desired_packages)
+  return 1
+}
+
+package_declared_short() {
+  local pkg="$1" declared
+  while read -r declared; do
+    [[ "${declared##*/}" == "$pkg" ]] && return 0
   done < <(desired_packages)
   return 1
 }

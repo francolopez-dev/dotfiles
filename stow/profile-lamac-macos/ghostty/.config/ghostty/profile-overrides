@@ -2,3 +2,4 @@
 # This file wins over the shared config on this machine.
 font-size = 13
 macos-option-as-alt = true
+window-decoration = true

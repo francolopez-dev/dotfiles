@@ -593,19 +593,18 @@ configure_macos_sketchybar_font() {
   # brew set up by another account never gave this user the files). Copying
   # from the Caskroom needs no brew write access.
   caskroom="$(_macos_brew_prefix)/Caskroom/font-jetbrains-mono-nerd-font"
-  for f in "$caskroom"/*/JetBrainsMonoNerdFont*.ttf; do
-    [[ -f "$f" ]] || continue
+  if [[ -n "$(find "$caskroom" -name 'JetBrainsMonoNerdFont*.ttf' 2>/dev/null | head -n 1)" ]]; then
     if [[ "$dry" -eq 1 ]]; then
       dim "  would copy JetBrainsMono Nerd Font files from Caskroom to ~/Library/Fonts"
       return 0
     fi
     mkdir -p "$HOME/Library/Fonts"
-    if cp "$caskroom"/*/JetBrainsMonoNerdFont*.ttf "$HOME/Library/Fonts/" 2>/dev/null; then
+    if find "$caskroom" -name 'JetBrainsMonoNerdFont*.ttf' -exec cp -L {} "$HOME/Library/Fonts/" \; 2>/dev/null &&
+      [[ -f "$HOME/Library/Fonts/JetBrainsMonoNerdFont-Regular.ttf" ]]; then
       ok "installed JetBrainsMono Nerd Font files from brew Caskroom"
       return 0
     fi
-    break
-  done
+  fi
   if [[ "$dry" -eq 1 ]]; then
     dim "  would run: brew reinstall --cask font-jetbrains-mono-nerd-font"
     return 0
@@ -614,6 +613,9 @@ configure_macos_sketchybar_font() {
     ok "reinstalled JetBrainsMono Nerd Font (files were missing)"
   else
     warn "JetBrainsMono Nerd Font files missing; run: brew reinstall --cask font-jetbrains-mono-nerd-font"
+    if ! _macos_brew_prefix_writable; then
+      warn "that will keep failing until: sudo chown -R $USER $(_macos_brew_prefix)"
+    fi
   fi
 }
 
@@ -890,6 +892,33 @@ configure_macos_desktop_apps() {
   configure_macos_app_launch "$dry" Raycast /Applications/Raycast.app Raycast
   configure_macos_raycast_hotkey "$dry"
   configure_macos_app_launch "$dry" Rectangle /Applications/Rectangle.app Rectangle
+  configure_macos_rectangle_defaults "$dry"
+}
+
+# Rectangle only activates shortcuts after its first-launch dialog is
+# answered; we launch it in the background so that dialog is never seen.
+# Presetting alternateDefaultShortcuts selects the recommended shortcut set.
+configure_macos_rectangle_defaults() {
+  local dry="$1"
+  [[ -d /Applications/Rectangle.app ]] || return 0
+  if defaults read com.knollsoft.Rectangle alternateDefaultShortcuts >/dev/null 2>&1; then
+    ok "Rectangle shortcuts initialized"
+    return 0
+  fi
+  if [[ "$dry" -eq 1 ]]; then
+    dim "  would run: defaults write com.knollsoft.Rectangle alternateDefaultShortcuts -bool true"
+    dim "  would run: defaults write com.knollsoft.Rectangle launchOnLogin -bool true"
+    dim "  would restart Rectangle to activate the recommended shortcuts"
+    return 0
+  fi
+  defaults write com.knollsoft.Rectangle alternateDefaultShortcuts -bool true
+  defaults write com.knollsoft.Rectangle launchOnLogin -bool true
+  if pgrep -x Rectangle >/dev/null 2>&1; then
+    killall Rectangle >/dev/null 2>&1 || true
+    sleep 1
+    open -ga Rectangle >/dev/null 2>&1 || true
+  fi
+  ok "Rectangle recommended shortcuts enabled (needs Accessibility to act)"
 }
 
 # Cmd-Space for Raycast is two prefs: Spotlight's symbolic hotkey 64 must be
@@ -1092,6 +1121,7 @@ print_next_steps() {
     printf '  macOS Accessibility: System Settings -> Privacy & Security -> Accessibility; enable AeroSpace, borders, Rectangle, Raycast, and LinearMouse\n'
     printf '    (AeroSpace/Rectangle shortcuts and LinearMouse scrolling do nothing until this is granted)\n'
     printf '  Raycast: Cmd-Space is preconfigured; if Spotlight still opens, log out and back in once\n'
+    printf '  Menu bar: System Settings -> Menu Bar -> turn on "Show menu bar background" so the native bar is readable when it slides in\n'
     printf '  Finder toolbar: re-add AirDrop via Finder -> View -> Customize Toolbar (sidebar: Finder -> Settings -> Sidebar)\n'
   elif package_declared tailscale; then
     printf '  Tailscale login: sudo tailscale up\n'
@@ -1328,6 +1358,7 @@ cmd_doctor() {
     _macos_aerospace_doctor || failed=1
     _macos_app_doctor "Rectangle" "/Applications/Rectangle.app" || failed=1
     _macos_process_doctor Rectangle Rectangle || failed=1
+    _macos_rectangle_doctor || failed=1
     _macos_app_doctor "Raycast" "/Applications/Raycast.app" || failed=1
     _macos_process_doctor Raycast Raycast || failed=1
     _macos_dotfiles_launchagent_doctor borders borders || failed=1
@@ -1438,6 +1469,7 @@ cmd_status() {
       _macos_aerospace_status
       _macos_process_status Raycast Raycast
       _macos_process_status Rectangle Rectangle
+      _macos_rectangle_status
       _macos_dotfiles_launchagent_status borders borders
       _macos_dotfiles_launchagent_status sketchybar sketchybar
       _macos_dotfiles_launchagent_status linearmouse LinearMouse
@@ -1910,6 +1942,27 @@ _macos_nerd_font_doctor() {
   done
   warn "JetBrainsMono Nerd Font files missing; run: brew reinstall --cask font-jetbrains-mono-nerd-font"
   return 1
+}
+
+_macos_rectangle_doctor() {
+  [[ -d /Applications/Rectangle.app ]] || return 0
+  if defaults read com.knollsoft.Rectangle alternateDefaultShortcuts >/dev/null 2>&1; then
+    ok "Rectangle shortcuts initialized"
+  else
+    warn "Rectangle shortcuts not initialized; run dotfiles update"
+    return 1
+  fi
+}
+
+_macos_rectangle_status() {
+  local v
+  [[ -d /Applications/Rectangle.app ]] || return 0
+  v="$(defaults read com.knollsoft.Rectangle alternateDefaultShortcuts 2>/dev/null || printf 'unset')"
+  case "$v" in
+    1) printf '  rectangle shortcuts: recommended set\n' ;;
+    0) printf '  rectangle shortcuts: spectacle-style set\n' ;;
+    *) printf '  rectangle shortcuts: unset (run dotfiles update)\n' ;;
+  esac
 }
 
 _macos_dock_defaults_match() {

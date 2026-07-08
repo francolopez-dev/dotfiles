@@ -169,7 +169,8 @@
       "WebFetch(domain:raw.githubusercontent.com)",
       "Bash(scripts/dotfiles update *)",
       "Bash(scripts/dotfiles doctor *)",
-      "Read(//opt/homebrew/Caskroom/font-jetbrains-mono-nerd-font/**)"
+      "Read(//opt/homebrew/Caskroom/font-jetbrains-mono-nerd-font/**)",
+      "Bash(defaults find *)"
     ]
   }
 }

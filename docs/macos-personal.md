@@ -100,10 +100,15 @@ disconnected by default, connected only on explicit action.
 By design the client arms a broad "VPN On Demand" policy so macOS itself
 relaunches the tunnel after reboots and crashes. To keep it manual:
 
-- `VPNOnDemandIsUserConfigured` must be `true` in the group container
-  preferences (`~/Library/Group Containers/W5364U7YZB.group.io.tailscale.ipn.macos/Library/Preferences/`),
-  otherwise the extension re-enables on-demand on every launch and undoes
-  System Settings changes and profile deletions.
+- The documented system policy
+  (`defaults write io.tailscale.ipn.macos VPNOnDemandIsUserConfigured -bool true`,
+  see tailscale.com/docs/integrations/mdm/mac) must be set, otherwise the
+  client re-enables on-demand on every extension launch and undoes System
+  Settings changes and profile deletions. `scripts/macos-defaults.sh` offers
+  this as a confirm-gated group. The extension keeps an internal marker with
+  the same name in its group container
+  (`~/Library/Group Containers/W5364U7YZB.group.io.tailscale.ipn.macos/Library/Preferences/`);
+  that one is an implementation detail — do not automate it.
 - "VPN on Demand" must be OFF in Tailscale's own Settings window (only
   Tailscale's code can rewrite its VPN configuration; there is no CLI or
   policy path).

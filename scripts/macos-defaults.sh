@@ -81,6 +81,19 @@ apply_menu_bar() {
   fi
 }
 
+apply_tailscale_policy() {
+  [ -d /Applications/Tailscale.app ] || return 0
+  # Documented system policy (tailscale.com/docs/integrations/mdm/mac):
+  # stops the client from rewriting the VPN On Demand configuration, so a
+  # manual "VPN on Demand: off" sticks. The toggle itself stays manual in
+  # the Tailscale settings UI.
+  printf '\nTailscale manual mode (documented MDM/system policy)\n'
+  show_pair 'io.tailscale.ipn.macos VPNOnDemandIsUserConfigured' "$(read_default io.tailscale.ipn.macos VPNOnDemandIsUserConfigured)" true
+  if [ "$dry" -eq 1 ] || confirm 'Apply Tailscale VPN-on-demand ownership policy?'; then
+    apply_or_print defaults write io.tailscale.ipn.macos VPNOnDemandIsUserConfigured -bool true
+  fi
+}
+
 apply_trackpad() {
   printf '\nTrackpad\n'
   show_pair 'com.apple.AppleMultitouchTrackpad Clicking' "$(read_default com.apple.AppleMultitouchTrackpad Clicking)" true
@@ -113,6 +126,7 @@ main() {
   apply_dock
   apply_finder
   apply_menu_bar
+  apply_tailscale_policy
   apply_trackpad
   show_documented_only
 }

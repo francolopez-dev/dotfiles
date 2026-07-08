@@ -104,7 +104,63 @@ defaults write "~/Library/Group Containers/W5364U7YZB.group.io.tailscale.ipn.mac
 Re-enable "VPN on Demand" in Tailscale settings for the old always-on
 behavior.
 
+## Validation matrix results (2026-07-08, second pass)
+
+| # | Test | Result |
+| --- | --- | --- |
+| 1 | Disable VOD in Tailscale UI, stays disabled | PENDING Franco (GUI-only); both the documented policy and the internal marker now say "user-owned", so the revert mechanism is disarmed |
+| 2 | Disconnect persists, no auto-reconnect | PASS at engine level: `WantRunning=false` survived multiple extension restarts over hours; NE session stays alive only because VOD is still TRUE in the config |
+| 3 | Quit completely -> no background tunnel | FAIL as expected pre-toggle: macOS relaunches the extension in ~10s while `OnDemandEnabled: TRUE`; re-test after Test 1 |
+| 4 | Reopen app -> still disconnected, VOD off | PENDING (needs Test 1 first) |
+| 5 | Logout/login | PENDING Franco |
+| 6 | Reboot | PENDING Franco (fold into task 28) |
+| 7 | Manual connect works | PASS (`Tailscale up` connected, peers listed) |
+| 8 | Manual disconnect stays down | PASS at engine level (see Test 2) |
+
+## Durability findings (second pass)
+- `VPNOnDemandIsUserConfigured` is a **documented, supported system policy**
+  (tailscale.com/docs/integrations/mdm/mac): "instructs Tailscale to avoid
+  modifying the on-demand configuration". Documented application for the
+  App Store build: `defaults write io.tailscale.ipn.macos
+  VPNOnDemandIsUserConfigured -bool true` — applied on lamac 2026-07-08 and
+  added to `scripts/macos-defaults.sh` as a confirm-gated group.
+- The same-named key in the group container plist is the extension's
+  INTERNAL state (set during the 1.56 migration); my first-pass write there
+  was the undocumented variant. Both are now true; only the documented
+  domain is automated/documented for reuse.
+- Tailscale app updates: both stores survive (user prefs + group container
+  persist across updates; the plist itself tracks
+  `ExtensionLastLaunchVersion` across versions). macOS updates: prefs and
+  containers persist. Tailscale logout / tailnet switch: policies are
+  device-scoped, not account-scoped — expected to persist, NOT yet
+  empirically tested; re-check after the first logout.
+- `tailscale syspolicy list` does not display this key (it lists Go-side
+  registered policies; this one is consumed by the Swift OnDemandManager).
+  Verify via `defaults read io.tailscale.ipn.macos
+  VPNOnDemandIsUserConfigured` instead.
+
+## Architecture comparison (for the manual-dial workflow)
+- **App Store build (installed)**: sandboxed app + NE app extension. VOD
+  auto-management neutralized by the documented policy; menu bar UI kept.
+  Chosen path.
+- **Standalone .pkg build (macsys)**: same Swift GUI and same
+  OnDemandManager code, but a system extension instead of an app extension
+  (its stale 1.50.1 sysext is still registered on lamac from a past
+  install). Identical VOD behavior — migrating to it would change nothing
+  for this problem.
+- **Open-source `tailscaled` (brew)**: plain root LaunchDaemon + utun. No
+  Network Extension, no VPN profile in System Settings, no on-demand
+  framework at all; `tailscale down` persists across reboots by
+  construction. Perfect manual semantics, but: no menu bar UI, sudo-owned
+  daemon always running, DNS/exit-node handling via CLI only. Contingency
+  if the App Store client ever regresses.
+
 ## Result
 Root cause established with evidence; machine-side marker applied; docs
 section added to docs/macos-personal.md; memory updated. The repo required
 no code changes (audit confirmed dotfiles are not involved).
+Second pass: the fix is now anchored on the DOCUMENTED policy (defaults on
+io.tailscale.ipn.macos) instead of only the internal group-container
+marker; macos-defaults.sh gained a confirm-gated group for it. Tests 2/7/8
+pass; 1/4/5/6 pending the GUI toggle + logout/reboot by Franco; 3 will flip
+from expected-fail to pass once the NE config's on-demand is actually off.

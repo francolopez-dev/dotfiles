@@ -79,7 +79,10 @@ sketchybar --add item front_app left \
     script="${PLUGIN_DIR}/front_app.sh" \
   --subscribe front_app front_app_switched
 
-sketchybar --add item media center \
+# Position "e" anchors right of the camera notch on the built-in display
+# (plain center would hide behind it); on external monitors it starts at the
+# center line.
+sketchybar --add item media e \
   --set media \
     icon.color="${GREEN}" \
     label.color="${TEXT}" \

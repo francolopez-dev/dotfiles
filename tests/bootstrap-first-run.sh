@@ -41,6 +41,14 @@ set -euo pipefail
 exec "$@"
 EOF
 
+# Tripwire: this test simulates Omarchy; nothing in it may ever reach the real
+# Homebrew (on 2026-07-07 an unpinned invocation installed real packages).
+cat >"$tmp_dir/bin/brew" <<'EOF'
+#!/usr/bin/env bash
+echo "FATAL: test fixture tried to invoke brew: $*" >&2
+exit 97
+EOF
+
 cat >"$tmp_dir/bin/pacman" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
@@ -127,7 +135,7 @@ fi
 exec "\$real_git" "\$@"
 EOF
 
-chmod +x "$tmp_dir/bin/sudo" "$tmp_dir/bin/pacman" "$tmp_dir/bin/stow" "$tmp_dir/bin/paru" "$tmp_dir/bin/git"
+chmod +x "$tmp_dir/bin/sudo" "$tmp_dir/bin/brew" "$tmp_dir/bin/pacman" "$tmp_dir/bin/stow" "$tmp_dir/bin/paru" "$tmp_dir/bin/git"
 touch "$tmp_dir/pacman-state/brave-bin" "$tmp_dir/pacman-state/zen-browser-bin"
 
 for run in 1 2; do
@@ -211,6 +219,7 @@ if ! PATH="$tmp_dir/bin:$PATH" \
   HOME="$tmp_dir/success-home" \
   DOTFILES_DIR="$tmp_dir/success-home/dotfiles" \
   DOTFILES_PACMAN_SYNC_DIR="$tmp_dir/pacman-success-sync" \
+  DOTFILES_OS=omarchy \
   DOTFILES_ASSUME_YES=1 \
   DOTFILES_STOW_CONFLICTS=backup \
     "$tmp_dir/success-home/dotfiles/scripts/dotfiles" update >"$detached_output" 2>&1; then

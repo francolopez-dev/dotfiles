@@ -101,6 +101,11 @@ Phase 8 — post-migration improvements
 - [x] 30 sketchybar-primary-bar (repo + mac-local, M) — hide native menu bar,
       bar opacity/blur, aerospace per-monitor top gap; reboot check folds
       into 28
+- [x] 31 sketchybar-notch-polish (repo, S) — media island to position `e`
+      so the notch never covers it
+- [x] 32 tailscale-manual-mode (mac-local + docs, M) — root-caused VPN
+      on-demand auto-reconnect; manual-only workflow; one GUI toggle left
+      for Franco (see task file)
 
 Size: S = small mechanical change, any model. M = needs judgment; use a
 stronger model. Phase 7 tasks mutate a real machine: strongest model, human

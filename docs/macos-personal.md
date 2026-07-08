@@ -92,6 +92,36 @@ dotfiles wallpaper open-local
 macOS uses `desktoppr` when available, with an AppleScript fallback. The
 LaunchAgent scheduler is opt-in; see `docs/wallpapers.md`.
 
+## Tailscale (manual-only)
+
+Tailscale.app (App Store build) is used as a traditional dial-up VPN:
+disconnected by default, connected only on explicit action.
+
+By design the client arms a broad "VPN On Demand" policy so macOS itself
+relaunches the tunnel after reboots and crashes. To keep it manual:
+
+- `VPNOnDemandIsUserConfigured` must be `true` in the group container
+  preferences (`~/Library/Group Containers/W5364U7YZB.group.io.tailscale.ipn.macos/Library/Preferences/`),
+  otherwise the extension re-enables on-demand on every launch and undoes
+  System Settings changes and profile deletions.
+- "VPN on Demand" must be OFF in Tailscale's own Settings window (only
+  Tailscale's code can rewrite its VPN configuration; there is no CLI or
+  policy path).
+- "Start Tailscale on login" stays off (`TailscaleStartOnLogin = 0`).
+
+Connect/disconnect manually via the menu bar app or:
+
+```bash
+/Applications/Tailscale.app/Contents/MacOS/Tailscale up
+/Applications/Tailscale.app/Contents/MacOS/Tailscale down
+```
+
+Verify the state that macOS acts on with
+`scutil --nc show "Tailscale" | grep OnDemandEnabled` — FALSE means the OS
+will not resurrect the tunnel. Full history, evidence, and the
+open-source-variant contingency live in
+`backlog/macos-lamac/task-32-tailscale-manual-mode.md`.
+
 ## AI Tooling
 
 Ollama.app owns the CLI and models on macOS. `~/.ollama` is local state and is

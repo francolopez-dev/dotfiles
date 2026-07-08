@@ -8,10 +8,12 @@ vec3 sRGBToLinear(vec3 c) {
 }
 
 // --- CONFIGURATION ---
-const float DURATION = 0.16; // in seconds
-const float TRAIL_LENGTH = 0.55;
-const float BLUR = 2.0; // blur size in pixels (for antialiasing)
-const float THRESHOLD_MIN_DISTANCE = 0.08; // min distance to show trail (units of cursor height)
+const float DURATION = 0.24; // in seconds
+const float TRAIL_LENGTH = 0.85;
+const float BLUR = 4.0; // blur size in pixels (for antialiasing)
+const float CURSOR_SHADOW_BLUR = 10.0;
+const float CURSOR_SHADOW_ALPHA = 0.38;
+const float THRESHOLD_MIN_DISTANCE = 0.02; // min distance to show trail (units of cursor height)
 
 // --- CONSTANTS for easing functions ---
 const float PI = 3.14159265359;
@@ -220,6 +222,11 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord){
         // Punch hole
         newColor = mix(newColor, fragColor, step(sdfCurrentCursor, 0.));
     }
+
+    float shadowDistance = abs(sdfCurrentCursor);
+    float cursorShadow = 1.0 - smoothstep(0.0, normalize(vec2(CURSOR_SHADOW_BLUR, CURSOR_SHADOW_BLUR), 0.).x, shadowDistance);
+    cursorShadow *= step(0.0, sdfCurrentCursor);
+    newColor = mix(newColor, TRAIL_COLOR, cursorShadow * CURSOR_SHADOW_ALPHA);
 
     fragColor = newColor;
 }

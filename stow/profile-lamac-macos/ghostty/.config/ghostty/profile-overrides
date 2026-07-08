@@ -1,5 +1,5 @@
 # Profile Ghostty overrides for lamac (MacBook Pro 14" M2 Pro).
 # This file wins over the shared config on this machine.
-font-size = 13
+font-size = 16
 macos-option-as-alt = true
 window-decoration = true

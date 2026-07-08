@@ -567,14 +567,28 @@ configure_macos_brew_service() {
     return 0
   fi
   if [[ "$dry" -eq 1 ]]; then
-    dim "  would run: brew services start $service"
+    dim "  would run: brew services restart $(_macos_brew_service_formula "$service")"
     return 0
   fi
-  if brew services start "$service" >/dev/null; then
-    ok "brew service started: $service"
+  if brew services restart "$(_macos_brew_service_formula "$service")" >/dev/null; then
+    sleep 2
+    if _macos_brew_service_started "$service"; then
+      ok "brew service running: $service"
+    else
+      warn "brew service failed after restart: $service"
+      _macos_brew_service_log_hint "$service"
+    fi
   else
-    warn "failed to start brew service: $service"
+    warn "failed to restart brew service: $service"
+    _macos_brew_service_log_hint "$service"
   fi
+}
+
+_macos_brew_service_formula() {
+  case "$1" in
+    borders|sketchybar) printf 'felixkratz/formulae/%s\n' "$1" ;;
+    *) printf '%s\n' "$1" ;;
+  esac
 }
 
 configure_macos_primary_bar_defaults() {
@@ -614,7 +628,12 @@ configure_macos_aerospace() {
   local dry="$1"
   [[ -d /Applications/AeroSpace.app ]] || return 0
   if pgrep -x AeroSpace >/dev/null 2>&1; then
-    ok "AeroSpace running"
+    if command -v aerospace >/dev/null 2>&1 && aerospace list-workspaces --all >/dev/null 2>&1; then
+      ok "AeroSpace running and responding"
+    else
+      warn "AeroSpace is running but not responding to CLI checks"
+      warn "check macOS Accessibility: System Settings -> Privacy & Security -> Accessibility"
+    fi
     return 0
   fi
   if [[ "$dry" -eq 1 ]]; then
@@ -624,6 +643,7 @@ configure_macos_aerospace() {
   if open -ga AeroSpace >/dev/null 2>&1; then
     ok "AeroSpace launched"
     warn "AeroSpace may still need macOS Accessibility permission before it can manage windows"
+    warn "check: System Settings -> Privacy & Security -> Accessibility"
   else
     warn "failed to launch AeroSpace; open it from /Applications and grant Accessibility permission if prompted"
   fi
@@ -781,6 +801,7 @@ print_next_steps() {
   printf '\nNext steps:\n'
   if [[ "$os" == "macos" ]]; then
     printf '  Tailscale: open Tailscale.app and log in\n'
+    printf '  macOS Accessibility: System Settings -> Privacy & Security -> Accessibility; enable AeroSpace, borders, and sketchybar if listed\n'
   elif package_declared tailscale; then
     printf '  Tailscale login: sudo tailscale up\n'
   fi
@@ -1368,19 +1389,60 @@ _macos_app_doctor() {
 }
 
 _macos_brew_service_started() {
-  local service="$1"
-  if command -v brew >/dev/null 2>&1 && brew services list 2>/dev/null | awk -v service="$service" '$1 == service && $2 == "started" { found = 1 } END { exit found ? 0 : 1 }'; then
-    return 0
+  local service="$1" line
+  line="$(_macos_brew_service_line "$service")"
+  if [[ -n "$line" ]]; then
+    [[ "$(_macos_brew_service_state_from_line "$line")" == "started" ]]
+    return
   fi
   [[ -f "$HOME/Library/LaunchAgents/homebrew.mxcl.$service.plist" ]] && pgrep -x "$service" >/dev/null 2>&1
 }
 
-_macos_brew_service_doctor() {
+_macos_brew_service_line() {
   local service="$1"
+  command -v brew >/dev/null 2>&1 || return 0
+  brew services list 2>/dev/null | awk -v service="$service" '$1 == service { print; found = 1 } END { exit found ? 0 : 1 }' || true
+}
+
+_macos_brew_service_state_from_line() {
+  local line="$1" _name state _rest
+  read -r _name state _rest <<<"$line"
+  printf '%s\n' "$state"
+}
+
+_macos_brew_service_error_log() {
+  case "$1" in
+    borders) printf '%s\n' /opt/homebrew/var/log/borders/borders.err.log ;;
+    sketchybar) printf '%s\n' /opt/homebrew/var/log/sketchybar/sketchybar.err.log ;;
+    *) return 1 ;;
+  esac
+}
+
+_macos_brew_service_log_hint() {
+  local service="$1" line log
+  line="$(_macos_brew_service_line "$service")"
+  [[ -z "$line" ]] || warn "brew services state: $line"
+  log="$(_macos_brew_service_error_log "$service" || true)"
+  [[ -n "$log" ]] || return 0
+  warn "inspect service log: $log"
+  if [[ -s "$log" ]]; then
+    tail -n 12 "$log" 2>/dev/null | sed 's/^/  /' >&2 || true
+  fi
+}
+
+_macos_brew_service_doctor() {
+  local service="$1" line state
+  line="$(_macos_brew_service_line "$service")"
+  state="$(_macos_brew_service_state_from_line "$line")"
   if _macos_brew_service_started "$service"; then
     ok "brew service running: $service"
+  elif [[ -n "$line" ]]; then
+    warn "brew service $service is $state"
+    _macos_brew_service_log_hint "$service"
+    return 1
   else
     warn "brew service not started: $service"
+    _macos_brew_service_log_hint "$service"
     return 1
   fi
 }
@@ -1391,16 +1453,27 @@ _macos_aerospace_running() {
 
 _macos_aerospace_doctor() {
   if _macos_aerospace_running; then
-    ok "AeroSpace running"
+    if command -v aerospace >/dev/null 2>&1 && aerospace list-workspaces --all >/dev/null 2>&1; then
+      ok "AeroSpace running and responding"
+    else
+      warn "AeroSpace running but CLI checks failed; verify Accessibility permission"
+      warn "System Settings -> Privacy & Security -> Accessibility"
+      return 1
+    fi
   else
     warn "AeroSpace not running; run dotfiles update or open /Applications/AeroSpace.app"
+    warn "then verify: System Settings -> Privacy & Security -> Accessibility"
     return 1
   fi
 }
 
 _macos_aerospace_status() {
   if _macos_aerospace_running; then
-    printf '  aerospace: running\n'
+    if command -v aerospace >/dev/null 2>&1 && aerospace list-workspaces --all >/dev/null 2>&1; then
+      printf '  aerospace: running/responding\n'
+    else
+      printf '  aerospace: running, CLI check failed; check Accessibility permission\n'
+    fi
   elif [[ -d /Applications/AeroSpace.app ]]; then
     printf '  aerospace: installed, not running\n'
   else
@@ -1450,9 +1523,12 @@ _macos_brew_service_status() {
     printf '  %s: unknown (brew missing)\n' "$service"
     return 0
   fi
-  line="$(brew services list 2>/dev/null | awk -v service="$service" '$1 == service { print; found = 1 } END { exit found ? 0 : 1 }' || true)"
+  line="$(_macos_brew_service_line "$service")"
   if [[ -n "$line" ]]; then
     printf '  %s\n' "$line"
+    if [[ "$(_macos_brew_service_state_from_line "$line")" == error* ]]; then
+      printf '  %s log: %s\n' "$service" "$(_macos_brew_service_error_log "$service" || true)"
+    fi
   elif [[ -f "$HOME/Library/LaunchAgents/homebrew.mxcl.$service.plist" ]] && pgrep -x "$service" >/dev/null 2>&1; then
     printf '  %s: started (LaunchAgent/process)\n' "$service"
   elif [[ -f "$HOME/Library/LaunchAgents/homebrew.mxcl.$service.plist" ]]; then

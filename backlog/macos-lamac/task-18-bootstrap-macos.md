@@ -1,6 +1,6 @@
 # Task 18 — bootstrap.sh macOS branch
 
-Status: todo
+Status: done
 Scope: repo-only
 Depends on: task-02, task-03
 Size: M
@@ -57,3 +57,13 @@ Single commit; revert.
 Dry-run on lamac completes with an accurate plan; on a Mac without brew the
 script stops with the brew.sh instruction; Linux branches byte-identical in
 behavior.
+
+## Result
+macos prereq branch (requires brew with stop-and-instruct, installs
+git/stow/zsh/bash, 3.2-safe); bash guard restructured to fix the fresh-Mac
+chicken-and-egg: continue under 3.2 until prereqs install brew bash, then
+re-exec — including the piped curl|bash case, where $0 is the shell binary
+(caught live: naive -f "$0" exec'd /bin/bash as a script), handled via
+_bootstrap_is_script_file + minimal clone. Mac-aware summary (Tailscale.app).
+Validated 2026-07-07 on lamac: file + piped dry-runs complete under
+/bin/bash 3.2; omarchy fixture tests pass unchanged.

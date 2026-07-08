@@ -6,14 +6,29 @@
 # stow layers for this machine, and symlinks `dotfiles` onto PATH.
 set -Eeuo pipefail
 
-if [ "${BASH_VERSINFO[0]}" -lt 4 ]; then
-  for b in /opt/homebrew/bin/bash /usr/local/bin/bash; do
-    if [ -x "$b" ] && [ -z "${DOTFILES_BASH_REEXEC:-}" ]; then
-      DOTFILES_BASH_REEXEC=1 exec "$b" "$0" "$@"
+# bash >= 4 is required for the full run, but a fresh Mac only has 3.2 and
+# gets modern bash FROM the prerequisites this script installs. So: re-exec
+# now if a modern bash already exists (and we were started from a file);
+# otherwise continue under 3.2 — main() re-execs right after prerequisites,
+# before any bash-4 code path (mapfile etc.) can run.
+# In piped mode (curl | bash) $0 is the shell itself, not this script.
+_bootstrap_is_script_file() {
+  case "${0##*/}" in
+    bash|sh|zsh|dash) return 1 ;;
+  esac
+  [ -f "$0" ]
+}
+
+if [ "${BASH_VERSINFO[0]}" -lt 4 ] && [ -z "${DOTFILES_BASH_REEXEC:-}" ]; then
+  for _b in /opt/homebrew/bin/bash /usr/local/bin/bash; do
+    if [ -x "$_b" ] && _bootstrap_is_script_file; then
+      DOTFILES_BASH_REEXEC=1 exec "$_b" "$0" "$@"
     fi
   done
-  printf 'err this tool needs bash >= 4; on macOS run: brew install bash\n' >&2
-  exit 1
+  if [ "$(uname -s)" != "Darwin" ]; then
+    printf 'err this tool needs bash >= 4\n' >&2
+    exit 1
+  fi
 fi
 
 REPO_URL="${DOTFILES_REPO_URL:-https://github.com/jfrancolopez/dotfiles.git}"
@@ -234,6 +249,50 @@ install_bootstrap_prereqs() {
       say "bootstrap prerequisites present after pacman"
       if [[ $pacman_status -ne 0 ]]; then
         warn "pacman reported an error after installing prerequisites; continuing because required packages are present"
+      fi
+      return 0
+      ;;
+    macos)
+      # Written for /bin/bash 3.2: this branch runs before the modern-bash
+      # re-exec on a fresh Mac. No mapfile, no ${var,,}.
+      local mac_prereqs="git stow zsh bash" still_missing=()
+      if ! command -v brew >/dev/null 2>&1; then
+        if [ -x /opt/homebrew/bin/brew ]; then
+          eval "$(/opt/homebrew/bin/brew shellenv)"
+        elif [ -x /usr/local/bin/brew ]; then
+          eval "$(/usr/local/bin/brew shellenv)"
+        fi
+      fi
+      if ! command -v brew >/dev/null 2>&1; then
+        if [ "$DRY_RUN" -eq 1 ]; then
+          warn "dry-run: Homebrew is not installed on this Mac"
+          return 0
+        fi
+        die \
+          "Homebrew is required to install bootstrap prerequisites on macOS." \
+          "Install it from https://brew.sh, then rerun bootstrap."
+      fi
+      for pkg in $mac_prereqs; do
+        brew list --formula --versions "$pkg" >/dev/null 2>&1 || missing+=("$pkg")
+      done
+      [ ${#missing[@]} -eq 0 ] && return 0
+      say "Installing bootstrap prerequisites with brew: ${missing[*]}"
+      if [ "$DRY_RUN" -eq 1 ]; then
+        warn "dry-run: would run brew install ${missing[*]}"
+        return 0
+      fi
+      if ! brew install "${missing[@]}"; then
+        die \
+          "brew failed installing bootstrap prerequisites: ${missing[*]}" \
+          "Fix brew (try: brew doctor), then rerun bootstrap."
+      fi
+      for pkg in $mac_prereqs; do
+        brew list --formula --versions "$pkg" >/dev/null 2>&1 || still_missing+=("$pkg")
+      done
+      if [ ${#still_missing[@]} -gt 0 ]; then
+        die \
+          "Prerequisites still missing after brew install: ${still_missing[*]}" \
+          "Install them manually, then rerun bootstrap."
       fi
       return 0
       ;;
@@ -516,7 +575,11 @@ bootstrap_summary() {
   printf '  managed shell config applied\n'
   printf '  packages checked and stow applied\n'
   printf '\nNeeds manual action:\n'
-  printf '  Tailscale: run sudo tailscale up\n'
+  if [ "$(detect_bootstrap_os)" = "macos" ]; then
+    printf '  Tailscale: open Tailscale.app and log in\n'
+  else
+    printf '  Tailscale: run sudo tailscale up\n'
+  fi
   printf '  GitHub SSH: run dotfiles git setup-ssh\n'
   printf '  Recovery pack: build the encrypted recovery pack when ready\n'
   printf '  Atuin: run atuin login && atuin sync\n'
@@ -525,8 +588,49 @@ bootstrap_summary() {
   printf '  run dotfiles status && dotfiles doctor\n'
 }
 
+# Minimal clone so a piped run (curl | bash under bash 3.2) has a tracked
+# bootstrap.sh file to re-exec. run_bootstrap_repo_flow handles the rest.
+ensure_minimal_checkout() {
+  [ -d "$DOTFILES_DIR/.git" ] && return 0
+  if [ -e "$DOTFILES_DIR" ]; then
+    die \
+      "Found $DOTFILES_DIR, but it is not a Git checkout." \
+      "Move it aside or set DOTFILES_DIR to another path, then rerun bootstrap."
+  fi
+  say "Cloning $REPO_URL -> $DOTFILES_DIR (to continue under modern bash)"
+  git clone "$REPO_URL" "$DOTFILES_DIR"
+}
+
+reexec_with_modern_bash() {
+  [ "${BASH_VERSINFO[0]}" -ge 4 ] && return 0
+  if [ -n "${DOTFILES_BASH_REEXEC:-}" ]; then
+    die "bash >= 4 is still unavailable after re-exec." \
+        "Run: brew install bash, then rerun bootstrap."
+  fi
+  if [ "$DRY_RUN" -eq 1 ]; then
+    warn "dry-run: continuing under bash 3.2; a real run installs brew bash first"
+    return 0
+  fi
+  local _b target=""
+  if _bootstrap_is_script_file; then
+    target="$0"
+  else
+    ensure_minimal_checkout
+    target="$DOTFILES_DIR/scripts/bootstrap.sh"
+  fi
+  for _b in /opt/homebrew/bin/bash /usr/local/bin/bash; do
+    if [ -x "$_b" ]; then
+      say "Re-executing bootstrap under $_b"
+      DOTFILES_BASH_REEXEC=1 exec "$_b" "$target" "$@"
+    fi
+  done
+  die "bash >= 4 is required to continue." \
+      "Run: brew install bash, then rerun bootstrap."
+}
+
 main() {
   install_bootstrap_prereqs
+  reexec_with_modern_bash "$@"
   install_zshrc_guard
   run_bootstrap_repo_flow
   bootstrap_summary

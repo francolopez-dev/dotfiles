@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+user_name="${SUDO_USER:-$USER}"
+
+info() { printf '==> %s\n' "$*"; }
+warn() { printf 'warn %s\n' "$*" >&2; }
+
+require_cmd() {
+  command -v "$1" >/dev/null 2>&1 || { warn "missing command: $1"; exit 1; }
+}
+
+require_cmd sudo
+require_cmd systemctl
+require_cmd virsh
+
+info "Enabling libvirtd.service"
+sudo systemctl enable --now libvirtd.service
+
+if id -nG "$user_name" | tr ' ' '\n' | grep -qx libvirt; then
+  info "$user_name is already in the libvirt group"
+else
+  info "Adding $user_name to the libvirt group"
+  sudo usermod -aG libvirt "$user_name"
+  warn "Log out or reboot before relying on non-root libvirt access"
+fi
+
+if ! sudo virsh -c qemu:///system net-info default >/dev/null 2>&1; then
+  info "Defining default libvirt NAT network"
+  tmp="$(mktemp)"
+  trap 'rm -f "$tmp"' EXIT
+  cat >"$tmp" <<'XML'
+<network>
+  <name>default</name>
+  <forward mode='nat'/>
+  <bridge name='virbr0' stp='on' delay='0'/>
+  <ip address='192.168.122.1' netmask='255.255.255.0'>
+    <dhcp>
+      <range start='192.168.122.2' end='192.168.122.254'/>
+    </dhcp>
+  </ip>
+</network>
+XML
+  sudo virsh -c qemu:///system net-define "$tmp"
+fi
+
+info "Starting and autostarting default libvirt NAT network"
+sudo virsh -c qemu:///system net-start default >/dev/null 2>&1 || true
+sudo virsh -c qemu:///system net-autostart default
+
+info "Current libvirt networks"
+sudo virsh -c qemu:///system net-list --all

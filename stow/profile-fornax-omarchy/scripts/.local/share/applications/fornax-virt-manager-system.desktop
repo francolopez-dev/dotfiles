@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Virt Manager (System)
+Comment=Manage FORNAX system libvirt VMs
+Exec=virt-manager -c qemu:///system
+Icon=virt-manager
+Terminal=false
+Categories=System;Emulator;

@@ -2,8 +2,9 @@
 
 ## Purpose
 
-FORNAX is the Omarchy laptop with Linux on `nvme1n1` and an existing Windows
-installation on `nvme0n1`.
+FORNAX is the Omarchy laptop with Linux and an existing Windows installation on
+separate internal NVMe disks. Do not rely on `/dev/nvmeXnY` numbering; it has
+already changed across boots.
 
 Use cases:
 
@@ -21,12 +22,13 @@ VMs, mount NTFS, edit fstab, edit bootloader entries, or bind GPUs to VFIO.
 Observed from `lscpu`, `lspci`, and `lsblk`:
 
 ```text
-CPU:       Intel Core Ultra 9 275HX, 24 cores, VT-x present
-iGPU:      Intel Arrow Lake-S Graphics, PCI 00:02.0, driver i915
-dGPU:      NVIDIA GeForce RTX 5080 Max-Q / Mobile, PCI 02:00.0, driver nvidia
-dGPU audio: NVIDIA HD Audio, PCI 02:00.1, driver snd_hda_intel
-Linux SSD: nvme1n1, LUKS + btrfs, mounted as Linux root/home
-Windows SSD: nvme0n1, existing Windows install, NTFS label Windows-SSD
+CPU:          Intel Core Ultra 9 275HX, 24 cores, VT-x present
+iGPU:         Intel Arrow Lake-S Graphics, PCI 00:02.0, driver i915
+dGPU:         NVIDIA GeForce RTX 5080 Max-Q / Mobile, PCI 02:00.0, driver nvidia
+dGPU audio:   NVIDIA HD Audio, PCI 02:00.1, driver snd_hda_intel
+Linux SSD:    currently nvme0n1, LUKS + btrfs, mounted as Linux root/home
+Windows SSD:  currently nvme1n1, existing Windows install, NTFS label Windows-SSD
+IOMMU group:  NVIDIA 02:00.0 and 02:00.1 are isolated together in group 12
 ```
 
 Stable Windows disk path observed on FORNAX:
@@ -35,8 +37,8 @@ Stable Windows disk path observed on FORNAX:
 /dev/disk/by-id/nvme-WD_PC_SN8000S_SDEPNRK-1T00-1101_25100E4A5Y08
 ```
 
-Re-check this path before using it. Do not rely on `/dev/nvme0n1` staying the
-same across boots.
+Re-check this path before using it. Do not rely on `/dev/nvme0n1` or
+`/dev/nvme1n1` staying the same across boots.
 
 ## Recommended Approach
 
@@ -44,9 +46,10 @@ Best default plan:
 
 - Use native Windows boot for gaming.
 - Use normal libvirt/QEMU VMs for Ubuntu Server and disposable coding systems.
-- If Windows VM access is needed, first try a non-GPU-passthrough raw Windows
+- If Windows VM access is needed, first use the non-GPU-passthrough raw Windows
   disk VM for work apps only.
-- Treat GPU passthrough as a separate research project.
+- Treat NVIDIA GPU passthrough as an explicit boot-mode experiment, not the
+  default VM path.
 
 Why:
 
@@ -67,7 +70,41 @@ Why:
   firmware, boot, TPM, Secure Boot, or VM hardware changes.
 - Prefer native boot for gaming.
 - Raw disk VM access is advanced, risky, and not automatic.
-- GPU passthrough is future research and not automatic.
+- GPU passthrough is not automatic. Use it only from an explicit VFIO boot mode.
+
+## Stowed FORNAX Files
+
+The recoverable profile state lives under `stow/profile-fornax-omarchy/`:
+
+```text
+stow/profile-fornax-omarchy/libvirt/.config/libvirt/libvirt.conf
+stow/profile-fornax-omarchy/scripts/.local/bin/fornax-virt-status
+stow/profile-fornax-omarchy/scripts/.local/bin/fornax-libvirt-setup
+stow/profile-fornax-omarchy/scripts/.local/bin/fornax-gpu-passthrough-status
+stow/profile-fornax-omarchy/scripts/.local/bin/fornax-windows-raw-nvme-define
+stow/profile-fornax-omarchy/scripts/.local/share/applications/fornax-virt-manager-system.desktop
+stow/profile-fornax-omarchy/scripts/.local/share/applications/fornax-windows-raw-nvme.desktop
+```
+
+`libvirt.conf` sets the user-level libvirt default URI to `qemu:///system` on
+FORNAX only. Root-owned libvirt state under `/etc/libvirt` and bootloader state
+under `/boot` are intentionally not normal Stow targets; recreate them with the
+profile scripts after reinstall.
+
+After a fresh FORNAX reinstall:
+
+```bash
+dotfiles update
+fornax-libvirt-setup
+```
+
+Then log out or reboot so the `libvirt` group membership applies.
+
+Status/audit command:
+
+```bash
+fornax-virt-status
+```
 
 ## Profile Packages
 
@@ -114,12 +151,14 @@ ls -l /dev/disk/by-id/
 sudo blkid
 ```
 
-Expected high-level layout on FORNAX:
+Current observed high-level layout on FORNAX:
 
 ```text
-nvme1n1  Linux disk
-nvme0n1  Windows disk
+nvme0n1  Linux disk
+nvme1n1  Windows disk
 ```
+
+This is informational only. Use `/dev/disk/by-id/...` for VM definitions.
 
 ## Check Virtualization Support
 
@@ -152,12 +191,10 @@ virt-install --version
 
 ## Enable Libvirt
 
-This repo does not currently manage profile-specific system services. Enable
-libvirt manually if VM management is needed:
+Enable libvirt with the stowed FORNAX helper:
 
 ```bash
-sudo systemctl enable --now libvirtd.service
-sudo usermod -aG libvirt "$USER"
+fornax-libvirt-setup
 ```
 
 Logout or reboot after adding the user to the `libvirt` group. Until then,
@@ -165,11 +202,8 @@ Logout or reboot after adding the user to the `libvirt` group. Until then,
 
 ## Default Libvirt Network
 
-```bash
-sudo virsh net-list --all
-sudo virsh net-start default
-sudo virsh net-autostart default
-```
+`fornax-libvirt-setup` defines the default NAT network if needed, starts it, and
+marks it for autostart.
 
 Confirm networking after starting it:
 
@@ -181,9 +215,12 @@ ip addr show virbr0
 ## Launch Tools
 
 ```bash
-virt-manager
+virt-manager -c qemu:///system
 virsh list --all
 ```
+
+FORNAX also has profile-only desktop launchers for `Virt Manager (System)` and
+`Windows Raw NVMe VM`.
 
 ## Ubuntu Server VM For Coding
 
@@ -298,25 +335,17 @@ Observed FORNAX Windows disk path:
 /dev/disk/by-id/nvme-WD_PC_SN8000S_SDEPNRK-1T00-1101_25100E4A5Y08
 ```
 
-Do not run this until the safety checklist above is complete. This example
-creates a UEFI Windows VM definition that points at the physical Windows disk:
+Do not run this until the safety checklist above is complete. Use the stowed
+helper to create a UEFI Windows VM definition that points at the physical
+Windows disk:
 
 ```bash
-virt-install \
-  --name windows-raw-nvme \
-  --memory 16384 \
-  --vcpus 12 \
-  --cpu host-passthrough \
-  --import \
-  --disk path=/dev/disk/by-id/nvme-WD_PC_SN8000S_SDEPNRK-1T00-1101_25100E4A5Y08,bus=virtio,format=raw,cache=none,io=native \
-  --os-variant win11 \
-  --network network=default,model=virtio \
-  --graphics spice \
-  --video virtio \
-  --boot uefi \
-  --features smm=on \
-  --tpm backend.type=emulator,backend.version=2.0,model=tpm-crb
+fornax-windows-raw-nvme-define
 ```
+
+The helper refuses to continue if the stable Windows disk path is missing, if
+any partition on that disk is mounted, or if the VM already exists. It requires
+typing `DEFINE` before running `virt-install`.
 
 Important Windows raw-disk caveats:
 
@@ -333,7 +362,8 @@ install drivers from inside Windows. Keep that as a manual step.
 ## GPU Passthrough Research
 
 GPU passthrough is not the recommended first option on FORNAX. Native Windows
-boot is better for gaming.
+boot is better for gaming. If used, prefer a boot-time VFIO mode over live
+detach/reattach.
 
 Known GPU devices:
 
@@ -347,6 +377,24 @@ The theoretical passthrough target is the NVIDIA device pair `02:00.0` and
 `02:00.1`, while Linux remains on the Intel iGPU. This only works well if the
 laptop firmware and display routing allow the NVIDIA GPU to be detached from the
 host cleanly.
+
+Current status helper:
+
+```bash
+fornax-gpu-passthrough-status
+```
+
+The raw Windows VM helper can define a GPU-attached variant only when both NVIDIA
+devices are already bound to `vfio-pci`:
+
+```bash
+fornax-windows-raw-nvme-define --with-nvidia
+```
+
+If either device is still bound to Linux drivers such as `nvidia` or
+`snd_hda_intel`, the helper refuses to define the passthrough VM. This is
+intentional: bootloader/UKI changes should be tested manually and kept
+recoverable.
 
 Audit IOMMU support and device grouping:
 
@@ -365,8 +413,9 @@ If IOMMU is not enabled, the usual Intel kernel parameters are:
 intel_iommu=on iommu=pt
 ```
 
-Do not add those from this repo yet. First audit the active bootloader and test
-manually.
+Do not make those the default from this repo. The active boot path is Limine with
+a UKI, and `/boot/limine.conf` is auto-generated. Test any VFIO boot mode
+manually and keep the normal Omarchy entry bootable.
 
 Passthrough normally requires the NVIDIA GPU and its audio function to bind to
 `vfio-pci` before the host NVIDIA driver claims them:

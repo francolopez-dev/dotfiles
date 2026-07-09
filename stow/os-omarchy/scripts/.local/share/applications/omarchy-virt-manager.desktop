@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Virtual Machines
+Comment=Manage system libvirt virtual machines
+Exec=virt-manager -c qemu:///system
+Terminal=false
+Categories=System;Emulator;
+Keywords=vm;virtual;virt-manager;libvirt;qemu;kvm;

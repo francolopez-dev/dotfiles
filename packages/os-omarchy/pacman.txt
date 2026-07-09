@@ -20,17 +20,18 @@ socat
 restic
 age
 
-# Reusable libvirt/QEMU toolkit for Omarchy development VMs.
-qemu-full
+# Shared libvirt/QEMU Windows VM and RDP workflow for Omarchy desktops.
+qemu-desktop
 libvirt
 virt-manager
+virt-viewer
+virt-install
 edk2-ovmf
 swtpm
 dnsmasq
-iptables
-virt-viewer
-virt-install
-guestfs-tools
 spice-vdagent
-dmidecode
+spice-gtk
+freerdp
+remmina
 osinfo-db
+dmidecode

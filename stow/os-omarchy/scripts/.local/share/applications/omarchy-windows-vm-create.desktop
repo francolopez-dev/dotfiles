@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Create Windows VM
+Comment=Create a Windows VM with an interactive libvirt wizard
+Exec=xdg-terminal-exec -e omarchy-windows-vm-create
+Terminal=false
+Categories=System;Emulator;
+Keywords=windows;vm;create;virt-install;libvirt;qemu;

@@ -5,14 +5,16 @@ user_name="${SUDO_USER:-$USER}"
 
 info() { printf '==> %s\n' "$*"; }
 warn() { printf 'warn %s\n' "$*" >&2; }
+die() { printf 'err %s\n' "$*" >&2; exit 1; }
 
 require_cmd() {
-  command -v "$1" >/dev/null 2>&1 || { warn "missing command: $1"; exit 1; }
+  command -v "$1" >/dev/null 2>&1 || die "missing command: $1"
 }
 
 require_cmd sudo
 require_cmd systemctl
 require_cmd virsh
+require_cmd usermod
 
 info "Enabling libvirtd.service"
 sudo systemctl enable --now libvirtd.service
@@ -22,7 +24,7 @@ if id -nG "$user_name" | tr ' ' '\n' | grep -qx libvirt; then
 else
   info "Adding $user_name to the libvirt group"
   sudo usermod -aG libvirt "$user_name"
-  warn "Log out or reboot before relying on non-root libvirt access"
+  warn "Log out or reboot for libvirt group membership to apply."
 fi
 
 if ! sudo virsh -c qemu:///system net-info default >/dev/null 2>&1; then
@@ -44,9 +46,13 @@ XML
   sudo virsh -c qemu:///system net-define "$tmp"
 fi
 
-info "Starting and autostarting default libvirt NAT network"
+info "Starting default libvirt NAT network"
 sudo virsh -c qemu:///system net-start default >/dev/null 2>&1 || true
+
+info "Enabling default libvirt NAT network autostart"
 sudo virsh -c qemu:///system net-autostart default
 
 info "Current libvirt networks"
 sudo virsh -c qemu:///system net-list --all
+
+info "Done. Log out or reboot if this command added your user to the libvirt group."

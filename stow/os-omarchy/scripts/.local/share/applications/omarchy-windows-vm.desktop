@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Windows VM
+Comment=Start and connect to the default Windows VM
+Exec=xdg-terminal-exec -e omarchy-windows-vm rdp
+Terminal=false
+Categories=System;Emulator;Network;
+Keywords=windows;vm;rdp;remmina;freerdp;libvirt;

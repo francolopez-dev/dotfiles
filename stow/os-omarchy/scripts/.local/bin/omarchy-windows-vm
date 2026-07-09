@@ -1,0 +1,147 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+connection="qemu:///system"
+mode="start"
+vm_name="windows"
+config_file="${XDG_CONFIG_HOME:-$HOME/.config}/dotfiles/windows-vm.conf"
+
+usage() {
+  cat <<'EOF'
+Usage: omarchy-windows-vm [mode] [vm-name]
+
+Modes:
+  start     Start the VM and print its IP (default)
+  rdp       Start the VM and connect over RDP when possible
+  console   Start the VM and open virt-viewer
+  ip        Print the VM IP from libvirt DHCP leases
+
+Examples:
+  omarchy-windows-vm
+  omarchy-windows-vm rdp
+  omarchy-windows-vm console work-windows
+EOF
+}
+
+info() { printf '==> %s\n' "$*"; }
+warn() { printf 'warn %s\n' "$*" >&2; }
+die() { printf 'err %s\n' "$*" >&2; exit 1; }
+
+require_cmd() {
+  command -v "$1" >/dev/null 2>&1 || die "missing command: $1"
+}
+
+if [[ -f "$config_file" ]]; then
+  # shellcheck source=/dev/null
+  source "$config_file"
+  vm_name="${WINDOWS_VM_NAME:-$vm_name}"
+fi
+
+if [[ $# -gt 0 ]]; then
+  case "$1" in
+    start|rdp|console|ip) mode="$1"; shift ;;
+    -h|--help) usage; exit 0 ;;
+  esac
+fi
+
+if [[ $# -gt 0 ]]; then
+  vm_name="$1"
+fi
+
+rdp_client="${WINDOWS_VM_RDP_CLIENT:-remmina}"
+rdp_user="${WINDOWS_VM_RDP_USER:-}"
+
+require_cmd virsh
+
+vm_state() {
+  virsh -c "$connection" domstate "$vm_name" 2>/dev/null || true
+}
+
+vm_ip() {
+  virsh -c "$connection" domifaddr "$vm_name" --source lease 2>/dev/null | awk '$4 ~ /^[0-9]/ { sub("/.*", "", $4); print $4; exit }'
+}
+
+start_vm() {
+  local state
+  state="$(vm_state)"
+  [[ -n "$state" ]] || die "VM not found: $vm_name"
+  if [[ "$state" == "shut off" ]]; then
+    info "Starting $vm_name"
+    virsh -c "$connection" start "$vm_name" >/dev/null
+  else
+    info "$vm_name state: $state"
+  fi
+}
+
+wait_for_ip() {
+  local ip=""
+  for _ in {1..30}; do
+    ip="$(vm_ip)"
+    [[ -n "$ip" ]] && { printf '%s\n' "$ip"; return 0; }
+    sleep 2
+  done
+  return 1
+}
+
+print_ip_help() {
+  cat <<EOF
+No libvirt DHCP IP found for $vm_name.
+
+Troubleshooting:
+- Check that the default libvirt network is active: virsh -c $connection net-list --all
+- Open the console: omarchy-windows-vm console $vm_name
+- Check Windows networking inside the guest.
+- Install VirtIO NetKVM drivers or temporarily change the NIC model to e1000e in virt-manager.
+- You can also check from Windows with: ipconfig
+EOF
+}
+
+case "$mode" in
+  ip)
+    ip="$(vm_ip)"
+    [[ -n "$ip" ]] || { print_ip_help; exit 1; }
+    printf '%s\n' "$ip"
+    ;;
+  start)
+    start_vm
+    if ip="$(wait_for_ip)"; then
+      info "$vm_name IP: $ip"
+    else
+      print_ip_help
+    fi
+    ;;
+  console)
+    start_vm
+    require_cmd virt-viewer
+    virt-viewer -c "$connection" "$vm_name"
+    ;;
+  rdp)
+    start_vm
+    if ! ip="$(wait_for_ip)"; then
+      print_ip_help
+      exit 1
+    fi
+    info "$vm_name IP: $ip"
+    case "$rdp_client" in
+      freerdp|xfreerdp)
+        require_cmd xfreerdp
+        if [[ -n "$rdp_user" ]]; then
+          xfreerdp "/u:$rdp_user" "/v:$ip" /dynamic-resolution /clipboard
+        else
+          xfreerdp "/v:$ip" /dynamic-resolution /clipboard
+        fi
+        ;;
+      remmina|*)
+        if command -v remmina >/dev/null 2>&1; then
+          remmina -c "rdp://$ip" >/dev/null 2>&1 &
+        else
+          warn "remmina not found; use: xfreerdp /u:USERNAME /v:$ip /dynamic-resolution /clipboard"
+        fi
+        ;;
+    esac
+    ;;
+  *)
+    usage
+    exit 1
+    ;;
+esac

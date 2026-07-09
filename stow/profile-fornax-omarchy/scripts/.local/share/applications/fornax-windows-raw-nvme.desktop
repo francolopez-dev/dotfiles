@@ -1,8 +1,0 @@
-[Desktop Entry]
-Type=Application
-Name=Windows Raw NVMe VM
-Comment=Open the FORNAX Windows raw NVMe VM console
-Exec=virt-viewer -c qemu:///system windows-raw-nvme
-Icon=computer
-Terminal=false
-Categories=System;Emulator;

@@ -20,8 +20,9 @@ socat
 restic
 age
 
-# Keyboard/mouse sharing with the Macs (peer-to-peer KVM, docs/kvm-sharing.md).
-lan-mouse
+# lan-mouse (KVM sharing, docs/kvm-sharing.md) is deliberately NOT declared
+# here: Omarchy's package snapshot can lag on incompatible protocol versions,
+# so `dotfiles update` installs a pinned upstream binary on every peer instead.
 
 # Shared libvirt/QEMU Windows VM and RDP workflow for Omarchy desktops.
 qemu-desktop

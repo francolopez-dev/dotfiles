@@ -6,7 +6,10 @@ After=graphical-session.target
 BindsTo=graphical-session.target
 
 [Service]
-ExecStart=/usr/bin/lan-mouse daemon
+# Dotfiles-pinned binary, not the pacman one: Omarchy's package snapshot can
+# lag behind (0.10.x has no `daemon` subcommand and a pre-DTLS protocol that
+# cannot talk to 0.11+ peers). `dotfiles update` installs the pinned version.
+ExecStart=%h/.local/share/dotfiles/bin/lan-mouse daemon
 Restart=on-failure
 RestartSec=3
 

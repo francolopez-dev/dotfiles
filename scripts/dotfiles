@@ -593,36 +593,93 @@ configure_declared_services() {
 
 # Lan Mouse peers (docs/kvm-sharing.md): the user unit ships in the
 # os-omarchy stow layer, but only machines whose profile stows a peer config
-# get the service enabled, so unpaired machines stay silent.
+# get the binary installed and the service enabled, so unpaired machines stay
+# silent. The binary is the pinned upstream release, NOT the pacman package:
+# Omarchy's package snapshot can lag on a pre-DTLS protocol version that
+# cannot interoperate with 0.11+ peers, and peers must match.
 configure_omarchy_lanmouse() {
   local dry="$1"
-  package_declared lan-mouse || return 0
-  if ! command -v lan-mouse >/dev/null 2>&1; then
-    warn "lan-mouse is declared but not installed; run dotfiles update again after package install completes"
-    return 0
-  fi
-  if [[ ! -e "$HOME/.config/lan-mouse/config.toml" ]]; then
-    dim "  lan-mouse installed but this profile stows no peer config; see docs/kvm-sharing.md"
-    return 0
-  fi
+  [[ -e "$HOME/.config/lan-mouse/config.toml" ]] || return 0
+  _omarchy_lanmouse_install_bin "$dry" || return 0
   if ! systemd_user_ready; then
     warn "user systemd manager is not reachable; lan-mouse.service will be enabled on next update/login"
     return 0
   fi
-  if systemd_user_unit_active lan-mouse.service; then
+  if systemd_user_unit_active lan-mouse.service && \
+     [[ "$(_omarchy_lanmouse_installed_version)" == "$_LANMOUSE_VERSION" ]]; then
     ok "lan-mouse service running"
     return 0
   fi
   if [[ "$dry" -eq 1 ]]; then
-    dim "  would run: systemctl --user enable --now lan-mouse.service"
+    dim "  would run: systemctl --user enable --now lan-mouse.service (and restart it)"
     dim "  would offer: sudo ufw allow 4242/udp comment 'lan-mouse'"
     return 0
   fi
   configure_omarchy_lanmouse_firewall
-  if systemctl --user enable --now lan-mouse.service >/dev/null 2>&1; then
-    ok "lan-mouse service enabled"
+  systemctl --user daemon-reload >/dev/null 2>&1 || true
+  systemctl --user enable lan-mouse.service >/dev/null 2>&1 || true
+  if systemctl --user restart lan-mouse.service >/dev/null 2>&1; then
+    sleep 2
+    if systemd_user_unit_active lan-mouse.service; then
+      ok "lan-mouse service running"
+    else
+      warn "lan-mouse.service started but is not staying up; inspect: journalctl --user -u lan-mouse.service -n 20"
+    fi
   else
-    warn "failed to enable lan-mouse.service; inspect: journalctl --user -u lan-mouse.service"
+    warn "failed to start lan-mouse.service; inspect: journalctl --user -u lan-mouse.service -n 20"
+  fi
+}
+
+_omarchy_lanmouse_bin() { printf '%s/.local/share/dotfiles/bin/lan-mouse\n' "$HOME"; }
+
+_omarchy_lanmouse_installed_version() {
+  "$(_omarchy_lanmouse_bin)" --version 2>/dev/null | awk 'NR==1 {print $2}'
+}
+
+_omarchy_lanmouse_install_bin() {
+  local dry="$1" arch asset sha url tmp bin
+  bin="$(_omarchy_lanmouse_bin)"
+  if [[ -x "$bin" && "$(_omarchy_lanmouse_installed_version)" == "$_LANMOUSE_VERSION" ]]; then
+    ok "lan-mouse $_LANMOUSE_VERSION installed (dotfiles-pinned)"
+    return 0
+  fi
+  arch="$(uname -m)"
+  case "$arch" in
+    x86_64) asset="lan-mouse-linux-x86_64"; sha="$_LANMOUSE_SHA256_LINUX_X86_64" ;;
+    aarch64) asset="lan-mouse-linux-arm64"; sha="$_LANMOUSE_SHA256_LINUX_ARM64" ;;
+    *) warn "unsupported Linux architecture for lan-mouse: $arch"; return 1 ;;
+  esac
+  url="https://github.com/feschber/lan-mouse/releases/download/v$_LANMOUSE_VERSION/$asset"
+  if [[ "$dry" -eq 1 ]]; then
+    dim "  would install lan-mouse $_LANMOUSE_VERSION to $bin from $url"
+    return 0
+  fi
+
+  info "Installing lan-mouse $_LANMOUSE_VERSION ($asset)"
+  tmp="$(mktemp -d)"
+  if ! curl -fsSL -o "$tmp/$asset" "$url"; then
+    warn "lan-mouse download failed: $url"
+    rm -rf "$tmp"
+    return 1
+  fi
+  if [[ "$(sha256sum "$tmp/$asset" | awk '{print $1}')" != "$sha" ]]; then
+    warn "lan-mouse download failed checksum verification; not installing"
+    rm -rf "$tmp"
+    return 1
+  fi
+  chmod +x "$tmp/$asset"
+  mkdir -p "$(dirname "$bin")"
+  if ! mv -f "$tmp/$asset" "$bin"; then
+    warn "could not install lan-mouse to $bin"
+    rm -rf "$tmp"
+    return 1
+  fi
+  rm -rf "$tmp"
+  if [[ "$(_omarchy_lanmouse_installed_version)" == "$_LANMOUSE_VERSION" ]]; then
+    ok "lan-mouse $_LANMOUSE_VERSION installed (dotfiles-pinned)"
+  else
+    warn "lan-mouse installed but version check failed; inspect $bin"
+    return 1
   fi
 }
 
@@ -830,12 +887,15 @@ configure_macos_dotfiles_launchagent() {
   fi
 }
 
-# Lan Mouse has no Homebrew cask, so the pinned upstream release bundle is
-# installed directly whenever this machine's layers stow a peer config
-# (docs/kvm-sharing.md). Bump the version and both checksums together.
+# lan-mouse is installed from the pinned upstream release on every platform
+# (docs/kvm-sharing.md): macOS has no Homebrew cask, and Omarchy's package
+# snapshot can lag on an incompatible pre-DTLS protocol version — peers must
+# run matching versions. Bump the version and ALL checksums together.
 _LANMOUSE_VERSION="0.11.0"
 _LANMOUSE_SHA256_ARM64="5ff9965d05be7f125b1d75b9e7259d874ec98aa086ce40012522bc25406500a9"
 _LANMOUSE_SHA256_INTEL="d24c38ccf50061ab710826003c19d10e1243415ffa18f421d4498b2b858c8b64"
+_LANMOUSE_SHA256_LINUX_X86_64="c43d211ec1af3eaea0cd585ac5c415776000355c3fcb9742fa2513f32dab55ba"
+_LANMOUSE_SHA256_LINUX_ARM64="e0520efe44902c05a7c048124a498313f32b5106189102e72ab0ca9e61096d35"
 
 configure_macos_lanmouse() {
   local dry="$1"
@@ -2007,16 +2067,16 @@ _lanmouse_doctor() {
   info "KVM sharing (lan-mouse)"
   case "$(detect_os)" in
     omarchy)
-      if command -v lan-mouse >/dev/null 2>&1; then
-        ok "lan-mouse installed"
+      if [[ "$(_omarchy_lanmouse_installed_version)" == "$_LANMOUSE_VERSION" ]]; then
+        ok "lan-mouse $_LANMOUSE_VERSION installed (dotfiles-pinned)"
       else
-        warn "lan-mouse missing; run dotfiles update"
-        return 1
+        warn "dotfiles-pinned lan-mouse $_LANMOUSE_VERSION missing at $(_omarchy_lanmouse_bin); run dotfiles update"
+        failed=1
       fi
       if systemd_user_unit_active lan-mouse.service; then
         ok "lan-mouse service active"
       else
-        warn "lan-mouse.service not active; run dotfiles update (or: systemctl --user enable --now lan-mouse.service)"
+        warn "lan-mouse.service not active; run dotfiles update (or: systemctl --user restart lan-mouse.service)"
         failed=1
       fi
       ;;

@@ -16,8 +16,7 @@ fingerprints are authorized in both directions.
   waynergy + Synergy 1 setup and its raw keycode remapping.
 - All traffic is DTLS-encrypted with per-machine TLS certificates; peers are
   authorized by certificate fingerprint (no open input port).
-- Plain TOML config that stows per machine profile, plus an official Arch
-  `extra` repo package.
+- Plain TOML config that stows per machine profile.
 
 ## Where Things Live
 
@@ -26,14 +25,22 @@ fingerprints are authorized in both directions.
 | Peer config (per machine) | `stow/profile-<host>-<os>/lan-mouse/.config/lan-mouse/config.toml` |
 | Omarchy user service | `stow/os-omarchy/lan-mouse/.config/systemd/user/lan-mouse.service` |
 | macOS LaunchAgent | `stow/os-macos/launchagents/.../com.dotfiles.lanmouse.plist` |
-| Arch package | `packages/os-omarchy/pacman.txt` (`lan-mouse`) |
-| macOS app | pinned release install in `scripts/dotfiles` (`_LANMOUSE_VERSION`) |
+| Omarchy binary (dotfiles-pinned) | `~/.local/share/dotfiles/bin/lan-mouse` |
+| macOS app (dotfiles-pinned) | `/Applications/Lan Mouse.app` |
+| Version pin + checksums | `scripts/dotfiles` (`_LANMOUSE_VERSION`, `_LANMOUSE_SHA256_*`) |
 | TLS cert + key (never in Git) | `~/.config/lan-mouse/lan-mouse.pem` |
 
-`dotfiles update` does the rest: installs the package (pacman) or the pinned
-app bundle (macOS, no Homebrew cask exists), loads the service, and offers the
-ufw rule on Omarchy. A machine whose profile stows no lan-mouse config is left
-untouched.
+The binary is installed from the pinned, checksummed upstream release on
+EVERY platform — deliberately not pacman/brew. Omarchy's package snapshot has
+shipped 0.10.x, which predates the DTLS protocol and the `daemon` subcommand
+and cannot talk to 0.11+ peers; pinning one version in the repo guarantees
+all peers speak the same protocol. If a pacman `lan-mouse` is installed,
+remove it so the stale GUI cannot shadow the pinned one:
+`sudo pacman -Rns lan-mouse`.
+
+`dotfiles update` does the rest: installs the pinned binary/app, loads the
+service, and offers the ufw rule on Omarchy. A machine whose profile stows no
+lan-mouse config is left untouched.
 
 ## Pairing A New Machine
 
@@ -82,8 +89,9 @@ warning. Two strategies, combinable:
   `dotfiles update`. The GUI saves through the stow symlink and REWRITES the
   repo config (comments stripped), so after a GUI session review `git diff`
   and commit or checkout the file. Prefer editing the TOML directly.
-- Upgrades are pinned: bump `_LANMOUSE_VERSION` and both `_LANMOUSE_SHA256_*`
-  checksums in `scripts/dotfiles`, then `dotfiles update`.
+- Upgrades are pinned: bump `_LANMOUSE_VERSION` and ALL `_LANMOUSE_SHA256_*`
+  checksums in `scripts/dotfiles`, then `dotfiles update` on every peer —
+  versions must match across machines (protocol compatibility).
 
 ## Omarchy Notes
 

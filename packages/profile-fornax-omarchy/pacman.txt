@@ -1,19 +1,5 @@
 # fornax (work Lenovo) pacman packages, on top of global + os-omarchy.
 
-# Virtualization toolkit for this profile.
-qemu-full
-libvirt
-virt-manager
-edk2-ovmf
-swtpm
-dnsmasq
-iptables
-virt-viewer
-virt-install
-guestfs-tools
-spice-vdagent
-dmidecode
-
 # Local LLM tooling for FORNAX only.
 ollama-cuda
 lmstudio-bin

@@ -6,6 +6,10 @@ FORNAX is the Omarchy laptop with Linux and an existing Windows installation on
 separate internal NVMe disks. Do not rely on `/dev/nvmeXnY` numbering; it has
 already changed across boots.
 
+General Omarchy libvirt setup and normal Debian development VMs are documented in
+[`../omarchy-virtualization.md`](../omarchy-virtualization.md). This document is
+only for FORNAX-specific Windows/raw-disk and NVIDIA passthrough notes.
+
 Use cases:
 
 - Native boot into Windows for gaming.
@@ -106,14 +110,13 @@ Status/audit command:
 fornax-virt-status
 ```
 
-## Profile Packages
+## Package Layer
 
-Virtualization packages are declared in the profile layer, not global or OS
-layers:
+Reusable virtualization packages are declared in the Omarchy OS layer so normal
+development VMs are available on any Omarchy machine:
 
 ```text
-packages/profile-fornax-omarchy/pacman.txt
-packages/profile-nox-omarchy/pacman.txt
+packages/os-omarchy/pacman.txt
 ```
 
 Current toolkit:
@@ -131,6 +134,7 @@ virt-install
 guestfs-tools
 spice-vdagent
 dmidecode
+osinfo-db
 ```
 
 Notes:
@@ -138,7 +142,8 @@ Notes:
 - `dnsmasq` and `iptables` support libvirt default NAT networking.
 - `edk2-ovmf` provides UEFI firmware for modern guests.
 - `swtpm` supports Windows 11 style TPM-backed VM setups.
-- `virt-install` gives a repeatable CLI path for Ubuntu Server VMs.
+- `virt-install` gives a repeatable CLI path for Debian/Ubuntu Server VMs.
+- `osinfo-db` provides guest OS metadata used by `virt-install`.
 - `guestfs-tools` is useful for inspecting VM disk images; use carefully.
 - `spice-vdagent` is mainly for Linux guests, not the Windows host.
 

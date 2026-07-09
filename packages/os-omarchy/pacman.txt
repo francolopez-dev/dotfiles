@@ -19,3 +19,18 @@ satty
 socat
 restic
 age
+
+# Reusable libvirt/QEMU toolkit for Omarchy development VMs.
+qemu-full
+libvirt
+virt-manager
+edk2-ovmf
+swtpm
+dnsmasq
+iptables
+virt-viewer
+virt-install
+guestfs-tools
+spice-vdagent
+dmidecode
+osinfo-db

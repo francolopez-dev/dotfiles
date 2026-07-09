@@ -20,6 +20,9 @@ socat
 restic
 age
 
+# Keyboard/mouse sharing with the Macs (peer-to-peer KVM, docs/kvm-sharing.md).
+lan-mouse
+
 # Shared libvirt/QEMU Windows VM and RDP workflow for Omarchy desktops.
 qemu-desktop
 libvirt

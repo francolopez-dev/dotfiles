@@ -168,4 +168,4 @@ More docs: [first-time-setup.md](first-time-setup.md), [first-time-system.md](fi
 [omarchy-virtualization.md](omarchy-virtualization.md), [macos-first-time-setup.md](macos-first-time-setup.md),
 [macos-personal.md](macos-personal.md), [git-github-cheatsheet.md](git-github-cheatsheet.md),
 [autostart.md](autostart.md), [wallpapers.md](wallpapers.md), [terminal-ux.md](terminal-ux.md),
-and [where-to-edit.md](where-to-edit.md).
+[kvm-sharing.md](kvm-sharing.md), and [where-to-edit.md](where-to-edit.md).

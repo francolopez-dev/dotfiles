@@ -1,0 +1,33 @@
+# Lan Mouse peer config for lamac (MacBook).
+# The Omarchy machines are the primary seats and sit to the LEFT of this
+# screen. Sharing is peer-to-peer: whichever machine's physical mouse crosses
+# its screen edge captures the other, so this file also lets the mac drive an
+# Omarchy machine when its fingerprint below is filled in. Workflow:
+# docs/kvm-sharing.md.
+
+# Press these together to force input back to this machine.
+release_bind = ["KeyLeftCtrl", "KeyLeftShift", "KeyLeftMeta", "KeyLeftAlt"]
+
+port = 4242
+
+# Peers allowed to send input TO this machine, keyed by TLS cert fingerprint.
+# After the first `dotfiles update` on an Omarchy machine, `dotfiles doctor`
+# there prints its fingerprint; paste it here and commit:
+#   "aa:bb:...:ff" = "fornax"
+[authorized_fingerprints]
+
+[[clients]]
+# mDNS name resolves on the same LAN; add stable IPs (e.g. Tailscale
+# 100.x.y.z) to `ips` so roaming between sites needs no config change.
+hostname = "fornax.local"
+position = "left"
+activate_on_startup = true
+ips = []
+port = 4242
+
+[[clients]]
+hostname = "nox.local"
+position = "left"
+activate_on_startup = true
+ips = []
+port = 4242

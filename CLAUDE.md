@@ -112,6 +112,8 @@ dotfiles apply
 - Alacritty: `stow/global/alacritty/.config/alacritty/alacritty.toml`.
 - Atuin: `stow/os-omarchy/atuin/.config/atuin/config.toml`.
 - Omarchy monitor scale: profile `20-monitors.conf`, never the OS layer.
+- KVM sharing (lan-mouse) peers/positions: profile
+  `lan-mouse/.config/lan-mouse/config.toml`; workflow in `docs/kvm-sharing.md`.
 
 ## Safety
 

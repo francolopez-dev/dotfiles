@@ -429,6 +429,10 @@ refresh_after_apply() {
       run_refresh_cmd "$dry" "sketchybar reloaded" sketchybar --reload || true
     fi
   fi
+  # lan-mouse only reads its peer config at startup.
+  if [[ "$(detect_os)" == "macos" ]] && pgrep -x lan-mouse >/dev/null 2>&1 && _macos_dotfiles_launchagent_loaded lanmouse; then
+    run_refresh_cmd "$dry" "lan-mouse restarted" launchctl kickstart -k "gui/$(id -u)/com.dotfiles.lanmouse" || true
+  fi
 
   detect_manual_refreshes needs_manual
   if [[ ${#needs_manual[@]} -gt 0 ]]; then
@@ -544,7 +548,7 @@ refresh_omarchy_session() {
     eval "$needs_manual_ref+=(hyprpaper)"
   fi
 
-  for unit in xdg-desktop-portal.service xdg-desktop-portal-hyprland.service mako.service swaync.service; do
+  for unit in xdg-desktop-portal.service xdg-desktop-portal-hyprland.service mako.service swaync.service lan-mouse.service; do
     if systemd_user_unit_active "$unit"; then
       run_refresh_cmd "$dry" "$unit restarted" systemctl --user try-restart "$unit" || true
     fi
@@ -570,6 +574,7 @@ configure_declared_services() {
     return 0
   fi
   [[ "$(detect_os)" == "omarchy" ]] || return 0
+  configure_omarchy_lanmouse "$dry" || true
   package_declared tailscale || return 0
   command -v systemctl >/dev/null 2>&1 || return 0
   command -v tailscaled >/dev/null 2>&1 || command -v tailscale >/dev/null 2>&1 || return 0
@@ -586,6 +591,58 @@ configure_declared_services() {
   fi
 }
 
+# Lan Mouse peers (docs/kvm-sharing.md): the user unit ships in the
+# os-omarchy stow layer, but only machines whose profile stows a peer config
+# get the service enabled, so unpaired machines stay silent.
+configure_omarchy_lanmouse() {
+  local dry="$1"
+  package_declared lan-mouse || return 0
+  if ! command -v lan-mouse >/dev/null 2>&1; then
+    warn "lan-mouse is declared but not installed; run dotfiles update again after package install completes"
+    return 0
+  fi
+  if [[ ! -e "$HOME/.config/lan-mouse/config.toml" ]]; then
+    dim "  lan-mouse installed but this profile stows no peer config; see docs/kvm-sharing.md"
+    return 0
+  fi
+  if ! systemd_user_ready; then
+    warn "user systemd manager is not reachable; lan-mouse.service will be enabled on next update/login"
+    return 0
+  fi
+  if systemd_user_unit_active lan-mouse.service; then
+    ok "lan-mouse service running"
+    return 0
+  fi
+  if [[ "$dry" -eq 1 ]]; then
+    dim "  would run: systemctl --user enable --now lan-mouse.service"
+    dim "  would offer: sudo ufw allow 4242/udp comment 'lan-mouse'"
+    return 0
+  fi
+  configure_omarchy_lanmouse_firewall
+  if systemctl --user enable --now lan-mouse.service >/dev/null 2>&1; then
+    ok "lan-mouse service enabled"
+  else
+    warn "failed to enable lan-mouse.service; inspect: journalctl --user -u lan-mouse.service"
+  fi
+}
+
+# Omarchy ships ufw enabled; a peer can only send input here once incoming
+# DTLS on 4242/udp is allowed. Runs only on the first service enable so
+# routine updates never prompt for sudo.
+configure_omarchy_lanmouse_firewall() {
+  command -v ufw >/dev/null 2>&1 || return 0
+  systemctl is-active --quiet ufw.service 2>/dev/null || return 0
+  if confirm "Allow incoming lan-mouse traffic (4242/udp) through ufw?"; then
+    if sudo ufw allow 4242/udp comment 'lan-mouse' >/dev/null 2>&1; then
+      ok "ufw allows 4242/udp (lan-mouse)"
+    else
+      warn "failed to add ufw rule; run: sudo ufw allow 4242/udp comment 'lan-mouse'"
+    fi
+  else
+    warn "skipped ufw rule; peers cannot reach this machine until: sudo ufw allow 4242/udp comment 'lan-mouse'"
+  fi
+}
+
 configure_macos_declared_services() {
   local dry="$1"
   configure_macos_trusted_taps "$dry"
@@ -593,6 +650,7 @@ configure_macos_declared_services() {
   package_declared_short borders && configure_macos_dotfiles_launchagent "$dry" borders || true
   package_declared_short sketchybar && configure_macos_dotfiles_launchagent "$dry" sketchybar || true
   package_declared_short linearmouse && configure_macos_dotfiles_launchagent "$dry" linearmouse LinearMouse /Applications/LinearMouse.app || true
+  configure_macos_lanmouse "$dry" || true
   configure_macos_primary_bar_defaults "$dry"
   configure_macos_menubar_background "$dry"
   configure_macos_dock_defaults "$dry"
@@ -769,6 +827,89 @@ configure_macos_dotfiles_launchagent() {
   else
     warn "failed to load dotfiles LaunchAgent: $target_plist"
     _macos_dotfiles_launchagent_log_hint "$service"
+  fi
+}
+
+# Lan Mouse has no Homebrew cask, so the pinned upstream release bundle is
+# installed directly whenever this machine's layers stow a peer config
+# (docs/kvm-sharing.md). Bump the version and both checksums together.
+_LANMOUSE_VERSION="0.11.0"
+_LANMOUSE_SHA256_ARM64="5ff9965d05be7f125b1d75b9e7259d874ec98aa086ce40012522bc25406500a9"
+_LANMOUSE_SHA256_INTEL="d24c38ccf50061ab710826003c19d10e1243415ffa18f421d4498b2b858c8b64"
+
+configure_macos_lanmouse() {
+  local dry="$1"
+  [[ -e "$HOME/.config/lan-mouse/config.toml" ]] || return 0
+  _macos_lanmouse_install_app "$dry" || return 0
+  configure_macos_dotfiles_launchagent "$dry" lanmouse lan-mouse "/Applications/Lan Mouse.app"
+  [[ "$dry" -eq 1 ]] || _macos_lanmouse_accessibility_hint
+}
+
+_macos_lanmouse_installed_version() {
+  "/Applications/Lan Mouse.app/Contents/MacOS/lan-mouse" --version 2>/dev/null | awk 'NR==1 {print $2}'
+}
+
+_macos_lanmouse_install_app() {
+  local dry="$1" arch asset sha url tmp app="/Applications/Lan Mouse.app"
+  if [[ -d "$app" && "$(_macos_lanmouse_installed_version)" == "$_LANMOUSE_VERSION" ]]; then
+    ok "Lan Mouse $_LANMOUSE_VERSION installed"
+    return 0
+  fi
+  arch="$(uname -m)"
+  case "$arch" in
+    arm64) asset="lan-mouse-macos-arm64.zip"; sha="$_LANMOUSE_SHA256_ARM64" ;;
+    x86_64) asset="lan-mouse-macos-intel.zip"; sha="$_LANMOUSE_SHA256_INTEL" ;;
+    *) warn "unsupported macOS architecture for Lan Mouse: $arch"; return 1 ;;
+  esac
+  url="https://github.com/feschber/lan-mouse/releases/download/v$_LANMOUSE_VERSION/$asset"
+  if [[ "$dry" -eq 1 ]]; then
+    dim "  would install Lan Mouse $_LANMOUSE_VERSION to $app from $url"
+    return 0
+  fi
+
+  info "Installing Lan Mouse $_LANMOUSE_VERSION ($asset)"
+  tmp="$(mktemp -d)"
+  if ! curl -fsSL -o "$tmp/$asset" "$url"; then
+    warn "Lan Mouse download failed: $url"
+    rm -rf "$tmp"
+    return 1
+  fi
+  if [[ "$(shasum -a 256 "$tmp/$asset" | awk '{print $1}')" != "$sha" ]]; then
+    warn "Lan Mouse download failed checksum verification; not installing"
+    rm -rf "$tmp"
+    return 1
+  fi
+  if ! ditto -x -k "$tmp/$asset" "$tmp/extract" >/dev/null 2>&1 || [[ ! -d "$tmp/extract/Lan Mouse.app" ]]; then
+    warn "Lan Mouse archive did not unpack to the expected app bundle"
+    rm -rf "$tmp"
+    return 1
+  fi
+  xattr -rd com.apple.quarantine "$tmp/extract/Lan Mouse.app" >/dev/null 2>&1 || true
+  # Stop a running copy before swapping the bundle under it.
+  launchctl bootout "gui/$(id -u)/com.dotfiles.lanmouse" >/dev/null 2>&1 || true
+  pkill -x lan-mouse >/dev/null 2>&1 || true
+  if ! rm -rf "$app" || ! ditto "$tmp/extract/Lan Mouse.app" "$app"; then
+    warn "could not install to $app (permissions?); move it manually from $tmp/extract"
+    return 1
+  fi
+  rm -rf "$tmp"
+  if [[ "$(_macos_lanmouse_installed_version)" == "$_LANMOUSE_VERSION" ]]; then
+    ok "Lan Mouse $_LANMOUSE_VERSION installed"
+  else
+    warn "Lan Mouse installed but version check failed; inspect $app"
+    return 1
+  fi
+}
+
+# Input capture/emulation need the one-time Accessibility grant; the daemon
+# logs the refusal, which is the only reliable unprivileged signal.
+_macos_lanmouse_accessibility_hint() {
+  local log="$HOME/Library/Logs/dotfiles/lanmouse.err.log"
+  [[ -s "$log" ]] || return 0
+  if tail -n 20 "$log" 2>/dev/null | grep -q 'accessibility permission is required'; then
+    warn "Lan Mouse needs the one-time Accessibility grant to send/receive input"
+    warn "System Settings -> Privacy & Security -> Accessibility -> enable 'lan-mouse'"
+    warn "then restart it: launchctl kickstart -k gui/$(id -u)/com.dotfiles.lanmouse"
   fi
 }
 
@@ -1509,6 +1650,7 @@ cmd_doctor() {
     else
       warn "hyprctl missing or not available outside Hyprland"
     fi
+    _lanmouse_doctor || failed=1
     info "Wallpaper rotation"
     wallpaper_status_lines
   elif [[ "$(detect_os)" == "macos" ]]; then
@@ -1547,6 +1689,7 @@ cmd_doctor() {
     _macos_finder_doctor || failed=1
     _macos_input_doctor || failed=1
     _macos_wallpaper_launchagent_doctor || failed=1
+    _lanmouse_doctor || failed=1
     info "Wallpaper rotation"
     wallpaper_status_lines
   fi
@@ -1641,6 +1784,7 @@ cmd_status() {
   case "$os" in
     omarchy)
       _tailscaled_daemon_status
+      _lanmouse_status
       _waybar_status
       ;;
     macos)
@@ -1651,6 +1795,7 @@ cmd_status() {
       _macos_dotfiles_launchagent_status borders borders
       _macos_dotfiles_launchagent_status sketchybar sketchybar
       _macos_dotfiles_launchagent_status linearmouse LinearMouse
+      _lanmouse_status
       _macos_dock_status
       _macos_finder_status
       _macos_input_status
@@ -1842,6 +1987,62 @@ _aur_helper_status() {
     missing) printf '  AUR helper: missing\n' ;;
     broken:*) warn "AUR helper broken: ${health#broken: }" ;;
   esac
+}
+
+# --- lan-mouse (KVM sharing) helpers --------------------------------------
+# Only machines whose layers stow a peer config report on lan-mouse.
+_lanmouse_configured() { [[ -e "$HOME/.config/lan-mouse/config.toml" ]]; }
+
+_lanmouse_cert_fingerprint() {
+  local pem="$HOME/.config/lan-mouse/lan-mouse.pem"
+  [[ -r "$pem" ]] || return 1
+  command -v openssl >/dev/null 2>&1 || return 1
+  openssl x509 -in "$pem" -noout -fingerprint -sha256 2>/dev/null |
+    sed 's/^.*=//' | tr '[:upper:]' '[:lower:]'
+}
+
+_lanmouse_doctor() {
+  _lanmouse_configured || return 0
+  local failed=0 fp
+  info "KVM sharing (lan-mouse)"
+  case "$(detect_os)" in
+    omarchy)
+      if command -v lan-mouse >/dev/null 2>&1; then
+        ok "lan-mouse installed"
+      else
+        warn "lan-mouse missing; run dotfiles update"
+        return 1
+      fi
+      if systemd_user_unit_active lan-mouse.service; then
+        ok "lan-mouse service active"
+      else
+        warn "lan-mouse.service not active; run dotfiles update (or: systemctl --user enable --now lan-mouse.service)"
+        failed=1
+      fi
+      ;;
+    macos)
+      _macos_app_doctor "Lan Mouse" "/Applications/Lan Mouse.app" || return 1
+      _macos_dotfiles_launchagent_doctor lanmouse lan-mouse || failed=1
+      _macos_lanmouse_accessibility_hint
+      ;;
+  esac
+  if fp="$(_lanmouse_cert_fingerprint)"; then
+    printf '  this machine fingerprint: %s\n' "$fp"
+    dim "  authorize it on each peer profile config: stow/profile-*/lan-mouse (docs/kvm-sharing.md)"
+  else
+    dim "  no TLS certificate yet; it is generated on first daemon start"
+  fi
+  return "$failed"
+}
+
+_lanmouse_status() {
+  _lanmouse_configured || return 0
+  if pgrep -x lan-mouse >/dev/null 2>&1; then
+    printf '  lan-mouse (KVM): running\n'
+  else
+    printf '  lan-mouse (KVM): not running\n'
+    printf '  next step: dotfiles update\n'
+  fi
 }
 
 _tailscaled_daemon_status() {

@@ -17,6 +17,9 @@ stow/global/neovim/.config/nvim/lazy-lock.json
 *.tar.gz.age
 *.age
 
+# TLS/key material (e.g. lan-mouse.pem) must never be committed.
+*.pem
+
 # Logs
 logs/
 *.log

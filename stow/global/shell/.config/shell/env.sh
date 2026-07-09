@@ -5,11 +5,17 @@
 # Homebrew is normally initialized from ~/.zprofile on macOS login shells, but
 # interactive non-login shells (for example `exec zsh`) skip that file.
 if [ "$(uname -s 2>/dev/null)" = "Darwin" ]; then
+  _dotfiles_brew=
   if [ -x /opt/homebrew/bin/brew ]; then
-    eval "$(/opt/homebrew/bin/brew shellenv)"
+    _dotfiles_brew=/opt/homebrew/bin/brew
   elif [ -x /usr/local/bin/brew ]; then
-    eval "$(/usr/local/bin/brew shellenv)"
+    _dotfiles_brew=/usr/local/bin/brew
   fi
+
+  if [ -n "$_dotfiles_brew" ]; then
+    _dotfiles_brew_env="$(cd "$HOME" && "$_dotfiles_brew" shellenv 2>/dev/null)" && eval "$_dotfiles_brew_env"
+  fi
+  unset _dotfiles_brew _dotfiles_brew_env
 fi
 
 # Add user script directories to PATH if present.

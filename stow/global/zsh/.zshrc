@@ -20,6 +20,12 @@ plugins=(git docker-compose python nmap)
 [[ -d "$ZSH/plugins/gcloud" ]] && plugins+=(gcloud)
 [[ -d "$ZSH/plugins/vscode" ]] && plugins+=(vscode)
 
+# Skip compaudit's insecure-directory check: on Macs where two accounts share
+# one Homebrew, brew's completion dirs are owned by the other account and the
+# ownership check can never pass for both users (it also breaks p10k instant
+# prompt with startup spam). All admins on managed machines are trusted.
+ZSH_DISABLE_COMPFIX=true
+
 #makes my files usable even before you install oh-my-zsh
 if [[ -r "$ZSH/oh-my-zsh.sh" ]]; then
   source "$ZSH/oh-my-zsh.sh"

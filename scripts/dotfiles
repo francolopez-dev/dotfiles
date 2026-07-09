@@ -202,8 +202,10 @@ _brew_install_or_hint() {
   if [[ "$status" -ne 0 ]]; then
     warn "brew install failed (exit $status)"
     if ! _macos_brew_prefix_writable; then
-      warn "Homebrew prefix $(_macos_brew_prefix) is not writable by $USER (installed by another user?); fix with:"
-      warn "  sudo chown -R $USER $(_macos_brew_prefix)"
+      warn "Homebrew prefix $(_macos_brew_prefix) is not writable by $USER (owned by another account)"
+      warn "single-account Mac: sudo chown -R $USER $(_macos_brew_prefix)"
+      warn "shared Mac (several accounts use brew; chown would break the other account):"
+      warn "  sudo chgrp -R admin $(_macos_brew_prefix) && sudo chmod -R g+w $(_macos_brew_prefix)"
       warn "then rerun: dotfiles update"
     fi
     for n in "$@"; do
@@ -397,6 +399,7 @@ cmd_update() {
     ok "update complete"
   fi
   [[ $dry -eq 0 ]] && print_next_steps
+  return 0
 }
 
 refresh_after_apply() {
@@ -499,40 +502,12 @@ refresh_desktop_caches() {
 refresh_shell_caches() {
   local dry="$1"
   if command -v zsh >/dev/null 2>&1 && [[ -f "$HOME/.zshrc" ]]; then
-    refresh_zsh_compaudit "$dry"
     if [[ "$dry" -eq 1 ]]; then
       dim "  would refresh zsh completion dump"
     else
       rm -f "$HOME"/.zcompdump* 2>/dev/null || true
       ok "zsh completion cache cleared"
     fi
-  fi
-}
-
-_zsh_compaudit_insecure() {
-  zsh -c 'autoload -Uz compaudit && compaudit' 2>/dev/null || true
-}
-
-# Group/other-writable completion dirs make oh-my-zsh refuse to load them and
-# spam every new shell (which in turn trips the p10k instant-prompt warning).
-# Homebrew casks symlink app-bundle completions with loose perms; tighten them.
-refresh_zsh_compaudit() {
-  local dry="$1" insecure line failed=0
-  insecure="$(_zsh_compaudit_insecure)"
-  [[ -n "$insecure" ]] || return 0
-  if [[ "$dry" -eq 1 ]]; then
-    dim "  would fix insecure zsh completion permissions (chmod g-w,o-w):"
-    while IFS= read -r line; do dim "    $line"; done <<<"$insecure"
-    return 0
-  fi
-  while IFS= read -r line; do
-    [[ -n "$line" ]] || continue
-    chmod g-w,o-w "$line" 2>/dev/null || failed=1
-  done <<<"$insecure"
-  if [[ "$failed" -eq 0 && -z "$(_zsh_compaudit_insecure)" ]]; then
-    ok "zsh completion permissions fixed (compaudit clean)"
-  else
-    warn "compaudit still reports insecure completion paths; run: compaudit | xargs chmod g-w,o-w"
   fi
 }
 
@@ -825,6 +800,8 @@ configure_macos_menubar_background() {
     warn "menu bar background: automation failed before; flip it once manually:"
     warn "  open \"x-apple.systempreferences:com.apple.ControlCenter-Settings.extension\"  -> turn ON 'Show menu bar background'"
     warn "  then: printf enabled > $marker"
+    warn "or grant the terminal Automation + Accessibility (System Settings -> Privacy & Security), then retry:"
+    warn "  rm $marker && dotfiles update"
     return 0
   fi
   if [[ "$dry" -eq 1 ]]; then
@@ -1454,14 +1431,6 @@ cmd_doctor() {
   else
     warn "Powerlevel10k config missing at ~/.p10k.zsh"
   fi
-  if command -v zsh >/dev/null 2>&1; then
-    if [[ -z "$(_zsh_compaudit_insecure)" ]]; then
-      ok "zsh compaudit clean"
-    else
-      warn "zsh compaudit reports insecure completion dirs (new shells warn on start); run dotfiles update"
-      failed=1
-    fi
-  fi
   remote="$(git -C "$DOTFILES_DIR" remote get-url origin 2>/dev/null || true)"
   case "$remote" in
     git@github.com:*) ok "GitHub remote uses SSH" ;;
@@ -2086,8 +2055,9 @@ _macos_brew_prefix_doctor() {
   if _macos_brew_prefix_writable; then
     ok "Homebrew prefix writable"
   else
-    warn "Homebrew prefix $(_macos_brew_prefix) not writable by $USER; installs will fail until:"
-    warn "  sudo chown -R $USER $(_macos_brew_prefix)"
+    warn "Homebrew prefix $(_macos_brew_prefix) not writable by $USER; installs will fail until one of:"
+    warn "  single-account Mac: sudo chown -R $USER $(_macos_brew_prefix)"
+    warn "  shared Mac: sudo chgrp -R admin $(_macos_brew_prefix) && sudo chmod -R g+w $(_macos_brew_prefix)"
     return 1
   fi
 }

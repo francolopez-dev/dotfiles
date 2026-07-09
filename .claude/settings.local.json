@@ -185,7 +185,10 @@
       "Bash(sed -n '/^set deadline to/,/^return \"notfound\"/p' scripts/dotfiles)",
       "Bash(osacompile -o /private/tmp/claude-501/-Users-franco-lopez-dotfiles/b15286f0-c48c-4593-a892-f2eb55cba797/scratchpad/menubar.scpt /private/tmp/claude-501/-Users-franco-lopez-dotfiles/b15286f0-c48c-4593-a892-f2eb55cba797/scratchpad/menubar.applescript)",
       "Bash(command -v mas)",
-      "Bash(mas search *)"
+      "Bash(mas search *)",
+      "Bash(grep -n 'oh-my-zsh.sh\\\\|ZSH_DISABLE_COMPFIX\\\\|instant_prompt\\\\|source $ZSH\\\\|source \"$ZSH' stow/global/zsh/.zshrc)",
+      "Bash(zsh -n stow/global/zsh/.zshrc)",
+      "Bash(echo \"dry-run exit: $?\")"
     ]
   }
 }

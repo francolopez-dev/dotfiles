@@ -756,8 +756,14 @@ configure_macos_dotfiles_launchagent() {
     sleep 2
     if _macos_dotfiles_launchagent_running "$service" "$process"; then
       ok "dotfiles LaunchAgent running: $service"
+      if _macos_dotfiles_launchagent_background_blocked "$service"; then
+        _macos_dotfiles_launchagent_background_hint "$service"
+      fi
     else
       warn "dotfiles LaunchAgent loaded but process is not running: $service"
+      if _macos_dotfiles_launchagent_background_blocked "$service"; then
+        _macos_dotfiles_launchagent_background_hint "$service"
+      fi
       _macos_dotfiles_launchagent_log_hint "$service"
     fi
   else
@@ -1940,6 +1946,33 @@ _macos_dotfiles_launchagent_running() {
   _macos_dotfiles_launchagent_loaded "$service" && pgrep -x "$process" >/dev/null 2>&1
 }
 
+_macos_dotfiles_launchagent_background_blocked() {
+  local service="$1" label btm_id
+  command -v sfltool >/dev/null 2>&1 || return 1
+  label="$(_macos_dotfiles_launchagent_label "$service")"
+  btm_id="8.$label"
+  sfltool dumpbtm 2>/dev/null | awk -v id="$btm_id" '
+    /^ #[0-9]+:/ { disposition = ""; found = 0 }
+    $1 == "Disposition:" { disposition = $0 }
+    $1 == "Identifier:" && $2 == id {
+      found = 1
+      if (disposition ~ /disallowed/) blocked = 1
+      next
+    }
+    found && $1 == "Disposition:" {
+      if ($0 ~ /disallowed/) blocked = 1
+      found = 0
+    }
+    END { exit blocked ? 0 : 1 }
+  '
+}
+
+_macos_dotfiles_launchagent_background_hint() {
+  local service="$1"
+  warn "macOS Background Items is blocking $service at login"
+  warn "enable the Unknown Developer/bash item in System Settings -> General -> Login Items & Extensions"
+}
+
 _macos_dotfiles_launchagent_log_hint() {
   local service="$1" log
   log="$(_macos_dotfiles_launchagent_log "$service")"
@@ -1953,12 +1986,22 @@ _macos_dotfiles_launchagent_doctor() {
   local service="$1" process="$2"
   if _macos_dotfiles_launchagent_running "$service" "$process"; then
     ok "dotfiles LaunchAgent running: $service"
+    if _macos_dotfiles_launchagent_background_blocked "$service"; then
+      _macos_dotfiles_launchagent_background_hint "$service"
+      return 1
+    fi
   elif _macos_dotfiles_launchagent_loaded "$service"; then
     warn "dotfiles LaunchAgent loaded but process is not running: $service"
+    if _macos_dotfiles_launchagent_background_blocked "$service"; then
+      _macos_dotfiles_launchagent_background_hint "$service"
+    fi
     _macos_dotfiles_launchagent_log_hint "$service"
     return 1
   else
     warn "dotfiles LaunchAgent not loaded: $service"
+    if _macos_dotfiles_launchagent_background_blocked "$service"; then
+      _macos_dotfiles_launchagent_background_hint "$service"
+    fi
     _macos_dotfiles_launchagent_log_hint "$service"
     return 1
   fi
@@ -1969,11 +2012,23 @@ _macos_dotfiles_launchagent_status() {
   file="$(_macos_dotfiles_launchagent_file "$service")"
   if _macos_dotfiles_launchagent_running "$service" "$process"; then
     printf '  %s: dotfiles LaunchAgent running (%s)\n' "$service" "$file"
+    if _macos_dotfiles_launchagent_background_blocked "$service"; then
+      printf '  %s warning: macOS Background Items is blocking launch at next login\n' "$service"
+      printf '  %s fix: enable Unknown Developer/bash in Login Items & Extensions\n' "$service"
+    fi
   elif _macos_dotfiles_launchagent_loaded "$service"; then
     printf '  %s: dotfiles LaunchAgent loaded, process not running (%s)\n' "$service" "$file"
     printf '  %s log: %s\n' "$service" "$(_macos_dotfiles_launchagent_log "$service")"
+    if _macos_dotfiles_launchagent_background_blocked "$service"; then
+      printf '  %s warning: macOS Background Items is blocking launch at next login\n' "$service"
+      printf '  %s fix: enable Unknown Developer/bash in Login Items & Extensions\n' "$service"
+    fi
   elif [[ -f "$file" ]]; then
     printf '  %s: dotfiles LaunchAgent installed, not loaded (%s)\n' "$service" "$file"
+    if _macos_dotfiles_launchagent_background_blocked "$service"; then
+      printf '  %s warning: macOS Background Items is blocking this LaunchAgent\n' "$service"
+      printf '  %s fix: enable Unknown Developer/bash in Login Items & Extensions, then run dotfiles update\n' "$service"
+    fi
   else
     printf '  %s: dotfiles LaunchAgent not installed\n' "$service"
   fi
@@ -2246,6 +2301,9 @@ _macos_wallpaper_launchagent_doctor() {
   local exit_code
   if ! _macos_wallpaper_launchagent_loaded; then
     warn "macOS wallpaper LaunchAgent not loaded; run dotfiles update"
+    if _macos_dotfiles_launchagent_background_blocked wallpaper; then
+      _macos_dotfiles_launchagent_background_hint wallpaper
+    fi
     return 1
   fi
   # Loaded is not healthy: launchd keeps a failing job loaded (e.g. exit 78
@@ -2254,6 +2312,10 @@ _macos_wallpaper_launchagent_doctor() {
   case "$exit_code" in
     ""|0|"(never exited)")
       ok "macOS wallpaper LaunchAgent loaded"
+      if _macos_dotfiles_launchagent_background_blocked wallpaper; then
+        _macos_dotfiles_launchagent_background_hint wallpaper
+        return 1
+      fi
       ;;
     *)
       warn "macOS wallpaper LaunchAgent failing (last exit code = $exit_code)"

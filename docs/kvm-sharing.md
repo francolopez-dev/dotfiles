@@ -56,11 +56,18 @@ first `dotfiles update` — until then the Mac ignores them by design.
 
 ## Moving Between Sites
 
-The client entries use mDNS names (`lamac.local`, `fornax.local`), which
-resolve on any shared LAN with zero per-site config. If a site blocks mDNS, or
-for cross-network use, add stable IPs (e.g. Tailscale `100.x.y.z`) to the
-`ips` list in the profile config and commit — the config follows the machine
-everywhere.
+lan-mouse resolves hostnames with its own DNS client, which cannot do mDNS
+(`.local`) lookups (upstream issue #234), so the `ips` list is what actually
+connects — it tries every entry, and unreachable ones are only a retried
+warning. Two strategies, combinable:
+
+- Per site: append the peer's LAN IP to `ips` in the profile config and
+  commit once per site (mac: `ipconfig getifaddr en0`; Omarchy:
+  `ip -4 -brief addr`). The current home-LAN IP of `lamac` is already seeded
+  in both Omarchy profiles.
+- Once: add each machine's Tailscale IP (`100.x.y.z`) — stable everywhere,
+  no per-site edits. Preferred as soon as Tailscale runs on the Mac again
+  (backlog task 33).
 
 ## macOS Notes
 

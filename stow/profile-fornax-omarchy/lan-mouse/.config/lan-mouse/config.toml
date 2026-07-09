@@ -14,10 +14,12 @@ port = 4242
 "bb:4e:be:51:4e:18:0b:b1:db:60:32:18:32:f4:44:b9:64:7f:0c:ee:10:c1:bd:2f:1f:65:88:b8:1d:72:68:86" = "lamac"
 
 [[clients]]
-# mDNS name resolves on the same LAN; add stable IPs (e.g. Tailscale
-# 100.x.y.z) to `ips` so roaming between sites needs no config change.
-hostname = "lamac.local"
+# lan-mouse's resolver cannot do mDNS (.local) lookups, so `ips` is the
+# mechanism that actually connects (it tries every entry). Append the peer's
+# IP at each new site — or its Tailscale 100.x.y.z once, which works
+# everywhere. The hostname is a label plus a plain-DNS attempt.
+hostname = "lamac"
 position = "right"
 activate_on_startup = true
-ips = []
+ips = ["192.168.145.167"]
 port = 4242

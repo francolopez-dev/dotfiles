@@ -17,16 +17,19 @@ port = 4242
 [authorized_fingerprints]
 
 [[clients]]
-# mDNS name resolves on the same LAN; add stable IPs (e.g. Tailscale
-# 100.x.y.z) to `ips` so roaming between sites needs no config change.
-hostname = "fornax.local"
+# lan-mouse's resolver cannot do mDNS (.local) lookups, so `ips` is the
+# mechanism that actually connects (it tries every entry). Append each peer's
+# IP per site — or its Tailscale 100.x.y.z once, which works everywhere. The
+# hostname is a label plus a plain-DNS attempt. Get an Omarchy machine's IP
+# with: ip -4 -brief addr
+hostname = "fornax"
 position = "left"
 activate_on_startup = true
 ips = []
 port = 4242
 
 [[clients]]
-hostname = "nox.local"
+hostname = "nox"
 position = "left"
 activate_on_startup = true
 ips = []

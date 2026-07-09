@@ -7,7 +7,6 @@ exec-on-workspace-change = ['/bin/bash', '-c',
     'sketchybar --trigger aerospace_workspace_change FOCUSED_WORKSPACE=$AEROSPACE_FOCUSED_WORKSPACE'
 ]
 
-
 enable-normalization-flatten-containers = true
 enable-normalization-opposite-orientation-for-nested-containers = true
 
@@ -37,10 +36,10 @@ outer.bottom = 5
 'C_Work' = 'Built-in Retina Display'       # Communication
 'Email' = 'Built-in Retina Display'        # Personal & Work (Outlook-Thunderbird)
 'I_Ai-Tools' = 'Built-in Retina Display'   # AI tools (ChatGPT)
-'w' = 'Built-in Retina Display'            # extra left 1
-'x' = 'Built-in Retina Display'            # extra left 2 
-'y' = 'Built-in Retina Display'            # extra left 3
-'z' = 'Built-in Retina Display'            # extra left 4
+ 'w' = 'Built-in Retina Display'            # extra left 1
+# 'x' = 'Built-in Retina Display'            # extra left 2 
+# 'y' = 'Built-in Retina Display'            # extra left 3
+# 'z' = 'Built-in Retina Display'            # extra left 4
 'P_Safari' = 'LU28R55'                     # Browser Personal
 'B_Work' = 'LU28R55'                        # Firefox / Chrome / Dev
 'Dev' = 'LU28R55'                           # Firefox / Chrome / Dev
@@ -74,9 +73,9 @@ ctrl-cmd-1 = 'workspace C_Work'
 ctrl-cmd-2 = 'workspace Email'
 ctrl-cmd-3 = 'workspace I_Ai-Tools'
 ctrl-cmd-4 = 'workspace w'
-ctrl-cmd-5 = 'workspace x'
-ctrl-cmd-6 = 'workspace y'
-ctrl-cmd-7 = 'workspace z'
+# ctrl-cmd-5 = 'workspace x'
+# ctrl-cmd-6 = 'workspace y'
+# ctrl-cmd-7 = 'workspace z'
 
 ctrl-1 = 'workspace B_Work'
 ctrl-2 = 'workspace P_Safari'
@@ -91,9 +90,9 @@ ctrl-shift-cmd-1 = 'move-node-to-workspace C_Work --focus-follows-window'
 ctrl-shift-cmd-2 = 'move-node-to-workspace Email --focus-follows-window'
 ctrl-shift-cmd-3 = 'move-node-to-workspace I_Ai-Tools --focus-follows-window'
 ctrl-shift-cmd-4 = 'move-node-to-workspace w --focus-follows-window'
-ctrl-shift-cmd-5 = 'move-node-to-workspace x --focus-follows-window'
-ctrl-shift-cmd-6 = 'move-node-to-workspace y --focus-follows-window'
-ctrl-shift-cmd-7 = 'move-node-to-workspace z --focus-follows-window'
+# ctrl-shift-cmd-5 = 'move-node-to-workspace x --focus-follows-window'
+# ctrl-shift-cmd-6 = 'move-node-to-workspace y --focus-follows-window'
+# ctrl-shift-cmd-7 = 'move-node-to-workspace z --focus-follows-window'
 
 ctrl-shift-1 = 'move-node-to-workspace B_Work --focus-follows-window'
 ctrl-shift-2 = 'move-node-to-workspace P_Safari --focus-follows-window'
@@ -212,7 +211,7 @@ ctrl-alt-r = "reload-config"
 
 [[on-window-detected]]
 if.app-id = 'com.microsoft.teams'
-run = 'move-node-to-workspace C_Work'
+run = 'layout floating'
 
 [[on-window-detected]]
 if.app-id = 'com.microsoft.teams2'
@@ -220,7 +219,7 @@ run = 'move-node-to-workspace C_Work'
 
 [[on-window-detected]]
 if.app-id = 'com.apple.reminders'
-run = 'move-node-to-workspace C_Work'
+run = 'layout floating'
 
 [[on-window-detected]]
 if.app-id = 'com.apple.finder'
@@ -233,7 +232,7 @@ run = 'move-node-to-workspace Email'
 
 [[on-window-detected]]
 if.app-id = 'com.openai.chatgpt'
-run = 'move-node-to-workspace I_Ai-Tools'
+run = 'layout floating'
 
 [[on-window-detected]]
 if.app-id = 'com.apple.MobileSMS'
@@ -250,19 +249,15 @@ run = 'move-node-to-workspace B_Work'
 
 [[on-window-detected]]
 if.app-id = 'com.google.Chrome'
-run = 'move-node-to-workspace B_Work'
-
-# [[on-window-detected]]
-# if.app-id = 'com.microsoft.VSCode'
-# run = 'move-node-to-workspace Dev'
+run = 'layout floating'
 
 [[on-window-detected]]
 if.app-id = 'com.neovide.neovide'
 run = 'move-node-to-workspace Dev'
 
-# [[on-window-detected]]
-# if.app-id = 'md.obsidian'
-# run = 'move-node-to-workspace Dev'
+ [[on-window-detected]]
+ if.app-id = 'com.mitchellh.ghostty'
+ run = 'layout floating'
 
 [[on-window-detected]]
 if.app-id = 'notion.id'
@@ -271,8 +266,8 @@ run = 'layout floating'
 
 [[on-window-detected]]
 if.app-id = 'com.panic.Transmit'
-run = 'move-node-to-workspace T_Tools'
-
+#run = 'move-node-to-workspace T_Tools'
+run = 'layout floating'
 [[on-window-detected]]
 if.app-id = 'com.github.GitHubClient'
 run = 'move-node-to-workspace T_Tools'
@@ -280,4 +275,3 @@ run = 'move-node-to-workspace T_Tools'
 [[on-window-detected]]
 if.app-id = 'com.docker.docker'
 run = 'move-node-to-workspace T_Tools'
-

@@ -198,7 +198,28 @@
       "Bash(launchctl bootout *)",
       "Bash(launchctl bootstrap *)",
       "Bash(launchctl kickstart *)",
-      "Bash(~/.local/bin/dotfiles-wallpaper status *)"
+      "Bash(~/.local/bin/dotfiles-wallpaper status *)",
+      "Bash(tailscale status *)",
+      "Bash(ping -c 1 -t 2 fornax)",
+      "Bash(ping -c 1 -t 2 nox)",
+      "WebFetch(domain:jfrancolopez.com)",
+      "WebFetch(domain:archlinux.org)",
+      "Bash(curl -s https://api.github.com/repos/feschber/lan-mouse/releases/latest)",
+      "Bash(curl -sL -o lan-mouse-macos-arm64.zip https://github.com/feschber/lan-mouse/releases/download/v0.11.0/lan-mouse-macos-arm64.zip)",
+      "Bash(shasum -a 256 lan-mouse-macos-arm64.zip)",
+      "Bash(unzip -o -q lan-mouse-macos-arm64.zip)",
+      "Bash(xattr -rd com.apple.quarantine \"Lan Mouse.app\")",
+      "Bash(\"./Lan Mouse.app/Contents/MacOS/lan-mouse\" --help)",
+      "Bash(\"./Lan Mouse.app/Contents/MacOS/lan-mouse\" --version)",
+      "Bash(openssl x509 *)",
+      "Bash(\"./Lan Mouse.app/Contents/MacOS/lan-mouse\" cli --help)",
+      "Bash(curl -sL -o lan-mouse-macos-intel.zip https://github.com/feschber/lan-mouse/releases/download/v0.11.0/lan-mouse-macos-intel.zip)",
+      "Bash(shasum -a 256 lan-mouse-macos-intel.zip)",
+      "Bash(echo \"EXIT: $?\")",
+      "Bash(scripts/validate-bootstrap.sh)",
+      "Bash(lsof -nP -iUDP:4242)",
+      "Bash(sed -n '/Stow state/,+3p')",
+      "Bash(DOTFILES_FULL_HOOK=1 scripts/validate-bootstrap.sh)"
     ]
   }
 }

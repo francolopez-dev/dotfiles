@@ -1,0 +1,3 @@
+# Mac App Store apps: one numeric app id per line, app name in a comment.
+# Installed with `mas install <id>`; requires a signed-in App Store account.
+1611378436  # Pure Paste

@@ -1,7 +1,10 @@
 # macOS casks installed after formulae (mirrors pacman-then-AUR ordering).
-# Ghostty is the standard terminal on managed Macs; do not add a second
-# managed terminal here.
+# Ghostty is the primary terminal on managed Macs; Alacritty is the declared
+# secondary/fallback terminal (its config ships in the global stow layer).
+# If a cask fails over a manually installed app, adopt it:
+#   brew install --cask --adopt <name>
 ghostty
+alacritty
 nikitabobko/tap/aerospace
 rectangle
 raycast
@@ -17,7 +20,35 @@ linearmouse
 font-jetbrains-mono-nerd-font
 font-fira-code-nerd-font
 
-# zen: Zen.app was installed manually on lamac; `brew install --cask zen`
-# fails over an existing app. To adopt it into brew later, run:
-#   brew install --cask --adopt zen
-# zen
+# browsers
+brave-browser
+zen
+
+# AI apps (CLI tools like opencode live in brew.txt)
+chatgpt
+claude
+claude-code
+ollama-app
+superwhisper
+
+# dev tools
+visual-studio-code
+tableplus
+transmit
+
+# media
+vlc
+handbrake-app
+imageoptim
+shottr
+
+# utilities
+localsend
+rocket-typist
+jiggler
+appcleaner
+grandperspective
+imazing
+updf
+raspberry-pi-imager
+parallels

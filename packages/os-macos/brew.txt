@@ -20,3 +20,9 @@ duti
 # window/bar stack (run via brew services)
 felixkratz/formulae/borders
 felixkratz/formulae/sketchybar
+
+# media/download CLI
+yt-dlp
+
+# AI coding CLI (Claude Code and desktop AI apps are casks)
+opencode

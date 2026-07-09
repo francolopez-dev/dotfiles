@@ -94,7 +94,7 @@ install_missing_packages() {
 # Two-phase like omarchy's pacman-then-AUR: formulae first, casks second.
 # Never upgrades, never uninstalls, never --force.
 install_missing_macos_packages() {
-  local dry="$1" p missing_brew=() missing_cask=()
+  local dry="$1" p missing_brew=() missing_cask=() failed=0
   if ! command -v brew >/dev/null 2>&1; then
     warn "Homebrew is required on macOS; install it from https://brew.sh"
     return 1
@@ -113,7 +113,7 @@ install_missing_macos_packages() {
     if [[ "$dry" -eq 1 ]]; then
       dim "  would run: brew install ${missing_brew[*]}"
     elif confirm "Install ${#missing_brew[@]} missing formula(e)?"; then
-      _brew_install_or_hint "" "${missing_brew[@]}" || return 1
+      _brew_install_or_hint "" "${missing_brew[@]}" || failed=1
     fi
   fi
 
@@ -124,20 +124,63 @@ install_missing_macos_packages() {
   done < <(desired_cask_packages)
   if [[ ${#missing_cask[@]} -eq 0 ]]; then
     ok "all brew casks installed"
+  else
+    printf '  missing casks: %s\n' "${missing_cask[*]}"
+    if [[ "$dry" -eq 1 ]]; then
+      dim "  would run: brew install --cask ${missing_cask[*]}"
+    elif ! have_tty; then
+      warn "cask installs skipped: no TTY (cask installers may need sudo)"
+      warn "run later: brew install --cask ${missing_cask[*]}"
+    elif confirm "Install ${#missing_cask[@]} missing cask(s)?"; then
+      _brew_install_or_hint --cask "${missing_cask[@]}" || failed=1
+    fi
+  fi
+
+  install_missing_macos_mas_apps "$dry" || failed=1
+  return "$failed"
+}
+
+# Mac App Store apps from mas.txt (one numeric id per line, name in a
+# trailing comment). mas needs a signed-in App Store account; failures warn
+# and are retried on the next update.
+install_missing_macos_mas_apps() {
+  local dry="$1" id installed missing=()
+  local ids=()
+  while read -r id; do
+    [[ -z "$id" ]] && continue
+    ids+=("$id")
+  done < <(desired_mas_packages)
+  [[ ${#ids[@]} -gt 0 ]] || return 0
+  info "Checking App Store apps"
+  if ! command -v mas >/dev/null 2>&1; then
+    warn "mas not installed yet; rerun dotfiles update after brew installs it"
     return 0
   fi
-  printf '  missing casks: %s\n' "${missing_cask[*]}"
+  installed="$(mas list 2>/dev/null | awk '{print $1}')"
+  for id in "${ids[@]}"; do
+    grep -Fxq "$id" <<<"$installed" || missing+=("$id")
+  done
+  if [[ ${#missing[@]} -eq 0 ]]; then
+    ok "all App Store apps installed"
+    return 0
+  fi
+  printf '  missing App Store app id(s): %s\n' "${missing[*]}"
   if [[ "$dry" -eq 1 ]]; then
-    dim "  would run: brew install --cask ${missing_cask[*]}"
+    dim "  would run: mas install ${missing[*]}"
     return 0
   fi
   if ! have_tty; then
-    warn "cask installs skipped: no TTY (cask installers may need sudo)"
-    warn "run later: brew install --cask ${missing_cask[*]}"
+    warn "App Store installs skipped: no TTY"
+    warn "run later: mas install ${missing[*]}"
     return 0
   fi
-  if confirm "Install ${#missing_cask[@]} missing cask(s)?"; then
-    _brew_install_or_hint --cask "${missing_cask[@]}" || return 1
+  if confirm "Install ${#missing[@]} App Store app(s)?"; then
+    if mas install "${missing[@]}"; then
+      ok "App Store apps installed"
+    else
+      warn "mas install failed; sign into the App Store app, then rerun dotfiles update"
+      return 1
+    fi
   fi
 }
 
@@ -296,7 +339,7 @@ cmd_update() {
   if [[ "$(detect_os)" == "omarchy" ]]; then
     printf '  1. git pull --ff-only\n  2. install pacman profile packages\n  3. install paru/AUR profile packages\n  4. re-stow layers (conflict wizard; never silently overwritten)\n  5. targeted desktop/system refreshes\n'
   elif [[ "$(detect_os)" == "macos" ]]; then
-    printf '  1. git pull --ff-only\n  2. install brew formulae\n  3. install brew casks\n  4. re-stow layers (conflict wizard; never silently overwritten)\n  5. targeted refreshes\n'
+    printf '  1. git pull --ff-only\n  2. install brew formulae\n  3. install brew casks + App Store apps\n  4. re-stow layers (conflict wizard; never silently overwritten)\n  5. targeted refreshes\n'
   else
     printf '  1. git pull --ff-only\n  2. install missing packages\n  3. re-stow layers (conflict wizard; never silently overwritten)\n  4. targeted system refreshes\n'
   fi
@@ -838,6 +881,29 @@ OSA
   esac
 }
 
+_macos_mas_doctor() {
+  local id installed missing=()
+  local ids=()
+  while read -r id; do
+    [[ -n "$id" ]] && ids+=("$id")
+  done < <(desired_mas_packages)
+  [[ ${#ids[@]} -gt 0 ]] || return 0
+  if ! command -v mas >/dev/null 2>&1; then
+    warn "mas missing; declared App Store apps are unmanaged"
+    return 1
+  fi
+  installed="$(mas list 2>/dev/null | awk '{print $1}')"
+  for id in "${ids[@]}"; do
+    grep -Fxq "$id" <<<"$installed" || missing+=("$id")
+  done
+  if [[ ${#missing[@]} -eq 0 ]]; then
+    ok "all App Store apps installed"
+  else
+    warn "missing App Store app id(s): ${missing[*]}; sign into the App Store, then run dotfiles update"
+    return 1
+  fi
+}
+
 _macos_menubar_background_doctor() {
   local marker
   marker="$(_macos_menubar_background_marker)"
@@ -1237,6 +1303,7 @@ print_next_steps() {
   printf '\nNext steps:\n'
   if [[ "$os" == "macos" ]]; then
     printf '  Tailscale: open Tailscale.app and log in\n'
+    printf '  App Store: sign in so declared App Store apps (mas.txt) can install\n'
     printf '  macOS Accessibility: System Settings -> Privacy & Security -> Accessibility; enable AeroSpace, borders, Rectangle, Raycast, and LinearMouse\n'
     printf '    (AeroSpace/Rectangle shortcuts and LinearMouse scrolling do nothing until this is granted)\n'
     printf '  Raycast: Cmd-Space is preconfigured; if Spotlight still opens, log out and back in once\n'
@@ -1493,6 +1560,7 @@ cmd_doctor() {
     _macos_dotfiles_launchagent_doctor sketchybar sketchybar || failed=1
     _macos_dotfiles_launchagent_doctor linearmouse LinearMouse || failed=1
     _macos_nerd_font_doctor || failed=1
+    _macos_mas_doctor || failed=1
     _macos_menubar_background_doctor || failed=1
     _macos_dock_doctor || failed=1
     _macos_finder_doctor || failed=1

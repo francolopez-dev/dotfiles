@@ -31,6 +31,8 @@ desired_brew_packages() { resolve_package_files brew | package_file_items | dedu
 
 desired_cask_packages() { resolve_package_files cask | package_file_items | dedupe_packages; }
 
+desired_mas_packages() { resolve_package_files mas | package_file_items | dedupe_packages; }
+
 # pkg_manager — echoes the native installer command base for this OS.
 # On macOS this is the formula installer; casks use `brew install --cask`.
 pkg_manager() {
@@ -291,6 +293,13 @@ validate_macos_package_declarations() {
   done < <(comm -12 \
     <(desired_brew_packages | sed 's|.*/||' | sort -u) \
     <(desired_cask_packages | sed 's|.*/||' | sort -u))
+  while read -r pkg; do
+    [[ -z "$pkg" ]] && continue
+    if ! [[ "$pkg" =~ ^[0-9]+$ ]]; then
+      warn "mas.txt entries must be numeric App Store ids: $pkg"
+      failed=1
+    fi
+  done < <(desired_mas_packages)
   return "$failed"
 }
 

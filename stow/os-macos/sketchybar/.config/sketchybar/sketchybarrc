@@ -41,6 +41,18 @@ sketchybar --remove '/.*/' >/dev/null 2>&1
 sketchybar --add event aerospace_workspace_change
 sketchybar --add event spotify_change com.spotify.client.PlaybackStateChanged
 
+# AeroSpace launches in parallel at login and the workspace dots are only
+# enumerated here, so wait (bounded) until its CLI responds; otherwise a
+# reboot race leaves the bar with no workspace items.
+if command -v aerospace >/dev/null 2>&1; then
+  aerospace_tries=0
+  until aerospace list-workspaces --all >/dev/null 2>&1; do
+    aerospace_tries=$((aerospace_tries + 1))
+    [ "${aerospace_tries}" -ge 30 ] && break
+    sleep 0.5
+  done
+fi
+
 if command -v aerospace >/dev/null 2>&1; then
   workspace_index=0
   aerospace list-workspaces --all | while IFS= read -r workspace; do

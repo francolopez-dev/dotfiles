@@ -79,7 +79,9 @@ warning. Two strategies, combinable:
 - The bundle also ships a menu-bar GUI (open `/Applications/Lan Mouse.app`).
   Stop the managed daemon first or the port is taken:
   `launchctl bootout gui/$(id -u)/com.dotfiles.lanmouse`; re-enable with
-  `dotfiles update`.
+  `dotfiles update`. The GUI saves through the stow symlink and REWRITES the
+  repo config (comments stripped), so after a GUI session review `git diff`
+  and commit or checkout the file. Prefer editing the TOML directly.
 - Upgrades are pinned: bump `_LANMOUSE_VERSION` and both `_LANMOUSE_SHA256_*`
   checksums in `scripts/dotfiles`, then `dotfiles update`.
 

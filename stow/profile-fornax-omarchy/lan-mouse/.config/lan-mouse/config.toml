@@ -2,6 +2,10 @@
 # The MacBook (lamac) sits to the RIGHT of this machine: move the cursor off
 # the right edge to control it. Pairing workflow and troubleshooting:
 # docs/kvm-sharing.md.
+#
+# NOTE: the Lan Mouse GUI saves through the stow symlink and rewrites this
+# file (comments stripped). Prefer editing here + `dotfiles apply`; after any
+# GUI session, review `git diff` and commit or checkout the result.
 
 # Press these together to force input back to this machine.
 release_bind = ["KeyLeftCtrl", "KeyLeftShift", "KeyLeftMeta", "KeyLeftAlt"]

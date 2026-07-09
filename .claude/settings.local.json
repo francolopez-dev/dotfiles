@@ -188,7 +188,17 @@
       "Bash(mas search *)",
       "Bash(grep -n 'oh-my-zsh.sh\\\\|ZSH_DISABLE_COMPFIX\\\\|instant_prompt\\\\|source $ZSH\\\\|source \"$ZSH' stow/global/zsh/.zshrc)",
       "Bash(zsh -n stow/global/zsh/.zshrc)",
-      "Bash(echo \"dry-run exit: $?\")"
+      "Bash(echo \"dry-run exit: $?\")",
+      "Bash(launchctl print *)",
+      "Read(//private/tmp/**)",
+      "Bash(xargs -I{} date -r {})",
+      "Bash(/bin/bash -lc 'command -v desktoppr; command -v dotfiles-wallpaper')",
+      "Bash(plutil -lint stow/os-macos/wallpapers/.local/share/dotfiles/com.dotfiles.wallpaper.plist)",
+      "Bash(cp ~/.local/share/dotfiles/com.dotfiles.wallpaper.plist ~/Library/LaunchAgents/com.dotfiles.wallpaper.plist)",
+      "Bash(launchctl bootout *)",
+      "Bash(launchctl bootstrap *)",
+      "Bash(launchctl kickstart *)",
+      "Bash(~/.local/bin/dotfiles-wallpaper status *)"
     ]
   }
 }

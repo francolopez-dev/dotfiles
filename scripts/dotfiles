@@ -2243,12 +2243,24 @@ _macos_wallpaper_launchagent_loaded() {
 }
 
 _macos_wallpaper_launchagent_doctor() {
-  if _macos_wallpaper_launchagent_loaded; then
-    ok "macOS wallpaper LaunchAgent loaded"
-  else
+  local exit_code
+  if ! _macos_wallpaper_launchagent_loaded; then
     warn "macOS wallpaper LaunchAgent not loaded; run dotfiles update"
     return 1
   fi
+  # Loaded is not healthy: launchd keeps a failing job loaded (e.g. exit 78
+  # when it cannot open its log paths), so surface the last exit code.
+  exit_code="$(launchctl print "gui/$(id -u)/com.dotfiles.wallpaper" 2>/dev/null | awk -F' = ' '/last exit code/ { print $2; exit }')"
+  case "$exit_code" in
+    ""|0|"(never exited)")
+      ok "macOS wallpaper LaunchAgent loaded"
+      ;;
+    *)
+      warn "macOS wallpaper LaunchAgent failing (last exit code = $exit_code)"
+      warn "inspect: $HOME/Library/Logs/dotfiles/wallpaper.err.log"
+      return 1
+      ;;
+  esac
 }
 
 _macos_brew_service_status() {

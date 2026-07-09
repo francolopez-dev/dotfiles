@@ -293,6 +293,18 @@ scheduler_status() {
   esac
 }
 
+last_rotation_human() {
+  local last
+  [[ -r "$LAST_FILE" ]] || { printf 'never\n'; return 0; }
+  last="$(sed -n '1p' "$LAST_FILE")"
+  [[ "$last" =~ ^[0-9]+$ ]] || { printf 'unknown\n'; return 0; }
+  if [[ "$(uname -s)" == "Darwin" ]]; then
+    date -r "$last" '+%Y-%m-%d %H:%M:%S'
+  else
+    date -d "@$last" '+%Y-%m-%d %H:%M:%S' 2>/dev/null || printf '%s\n' "$last"
+  fi
+}
+
 status_wallpaper() {
   local current scheduler
   load_config
@@ -303,6 +315,7 @@ status_wallpaper() {
   printf 'interval: %s\n' "$WALLPAPER_ROTATION_INTERVAL"
   printf 'mode: %s\n' "$WALLPAPER_ROTATION_MODE"
   printf 'scheduler: %s\n' "${scheduler:-unknown}"
+  printf 'last rotation: %s\n' "$(last_rotation_human)"
   printf 'repo_dir: %s\n' "$WALLPAPER_REPO_DIR"
   printf 'repo_wallpapers: %s\n' "$(count_wallpapers_in "$WALLPAPER_REPO_DIR")"
   printf 'local_dir: %s\n' "$WALLPAPER_LOCAL_DIR"

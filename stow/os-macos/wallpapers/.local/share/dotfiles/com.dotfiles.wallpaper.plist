@@ -8,15 +8,14 @@
   <array>
     <string>/bin/bash</string>
     <string>-lc</string>
-    <string>$HOME/.local/bin/dotfiles-wallpaper rotate</string>
+    <string>mkdir -p "$HOME/Library/Logs/dotfiles"; exec "$HOME/.local/bin/dotfiles-wallpaper" rotate >>"$HOME/Library/Logs/dotfiles/wallpaper.out.log" 2>>"$HOME/Library/Logs/dotfiles/wallpaper.err.log"</string>
   </array>
+  <!-- Tick faster than the rotation interval; the engine gates on
+       WALLPAPER_ROTATION_INTERVAL itself, so a 5-minute tick gives
+       on-time rotations without double-rotating. -->
   <key>StartInterval</key>
-  <integer>1800</integer>
+  <integer>300</integer>
   <key>RunAtLoad</key>
   <true/>
-  <key>StandardOutPath</key>
-  <string>/tmp/com.dotfiles.wallpaper.out</string>
-  <key>StandardErrorPath</key>
-  <string>/tmp/com.dotfiles.wallpaper.err</string>
 </dict>
 </plist>

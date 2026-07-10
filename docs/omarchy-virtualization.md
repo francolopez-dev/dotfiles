@@ -106,6 +106,12 @@ Raw disk mode does not require a Windows ISO when booting an existing install.
 The wizard can optionally attach a Windows ISO or repair ISO if you explicitly
 choose that after selecting the raw disk.
 
+Raw disk mode attaches the existing disk as SATA/AHCI storage. This is slower
+than VirtIO but safer for native Windows installs, because Windows usually can
+boot AHCI without extra preparation. Attaching an existing Windows boot disk as
+VirtIO can cause `INACCESSIBLE_BOOT_DEVICE` unless the VirtIO storage driver was
+installed and enabled as a boot driver inside Windows first.
+
 Raw disk mode requires typing this exact phrase:
 
 ```text

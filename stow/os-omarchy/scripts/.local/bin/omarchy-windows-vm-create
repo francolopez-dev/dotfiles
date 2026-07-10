@@ -164,12 +164,14 @@ vcpus="$(prompt_number "vCPUs" 4)"
 memory_mib=$((ram_gb * 1024))
 
 disk_arg=""
+storage_controller_arg=""
 if [[ "$storage_mode" == "qcow2" ]]; then
   disk_size_gb="$(prompt_number "Disk size in GB" 100)"
   mkdir -p "$storage_root/disks"
   disk_path="$storage_root/disks/$vm_name.qcow2"
   [[ ! -e "$disk_path" ]] || die "disk already exists: $disk_path"
   disk_arg="path=$disk_path,size=$disk_size_gb,bus=virtio,format=qcow2,cache=none,discard=unmap"
+  storage_controller_arg="type=scsi,model=virtio-scsi"
 else
   cat <<EOF
 
@@ -185,7 +187,7 @@ EOF
 
   confirmation="$(prompt "Type confirmation phrase exactly")"
   [[ "$confirmation" == "$confirm_phrase" ]] || die "confirmation phrase did not match; aborting"
-  disk_arg="path=$raw_path,bus=virtio,format=raw,cache=none,discard=unmap"
+  disk_arg="path=$raw_path,bus=sata,format=raw,cache=none,discard=unmap"
 
   attach_windows_iso="$(prompt "Attach Windows ISO or repair media?" "n")"
   case "$attach_windows_iso" in
@@ -217,7 +219,9 @@ args+=(--os-variant "$windows_os_variant")
 args+=(--network "network=default,model=virtio")
 args+=(--graphics "spice,listen=none")
 args+=(--video qxl)
-args+=(--controller "type=scsi,model=virtio-scsi")
+if [[ -n "$storage_controller_arg" ]]; then
+  args+=(--controller "$storage_controller_arg")
+fi
 args+=(--input "tablet,bus=usb")
 args+=(--boot uefi)
 args+=(--tpm "backend.type=emulator,backend.version=2.0,model=tpm-crb")
@@ -237,7 +241,7 @@ cat <<EOF
 
 Next steps:
 - For a new qcow2 VM, install Windows from the ISO.
-- For raw disk mode without an ISO, Windows should boot from the selected disk.
+- For raw disk mode without an ISO, Windows should boot from the selected disk using SATA/AHCI storage.
 - If Windows has no network, temporarily switch NIC to e1000e in virt-manager or attach/install VirtIO NetKVM drivers.
 - Install SPICE guest tools inside Windows for clipboard, mouse, and resize behavior.
 - After Windows enables RDP, run: omarchy-windows-vm rdp $vm_name

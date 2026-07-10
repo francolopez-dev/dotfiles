@@ -575,6 +575,7 @@ configure_declared_services() {
   fi
   [[ "$(detect_os)" == "omarchy" ]] || return 0
   configure_omarchy_lanmouse "$dry" || true
+  configure_omarchy_kdeconnect "$dry" || true
   package_declared tailscale || return 0
   command -v systemctl >/dev/null 2>&1 || return 0
   command -v tailscaled >/dev/null 2>&1 || command -v tailscale >/dev/null 2>&1 || return 0
@@ -627,6 +628,62 @@ configure_omarchy_lanmouse() {
     fi
   else
     warn "failed to start lan-mouse.service; inspect: journalctl --user -u lan-mouse.service -n 20"
+  fi
+}
+
+# KDE Connect (clipboard sync companion, docs/kvm-sharing.md): kdeconnectd is
+# dbus-activated on KDE but does not start reliably under Hyprland, so the
+# stowed user unit keeps it alive; discovery also needs its ufw ports open.
+configure_omarchy_kdeconnect() {
+  local dry="$1"
+  package_declared kdeconnect || return 0
+  if [[ ! -x /usr/lib/kdeconnectd ]]; then
+    warn "kdeconnect is declared but not installed; run dotfiles update again after package install completes"
+    return 0
+  fi
+  if ! systemd_user_ready; then
+    warn "user systemd manager is not reachable; kdeconnectd.service will be enabled on next update/login"
+    return 0
+  fi
+  if systemd_user_unit_active kdeconnectd.service; then
+    ok "kdeconnectd service running"
+    return 0
+  fi
+  if [[ "$dry" -eq 1 ]]; then
+    dim "  would run: systemctl --user enable --now kdeconnectd.service (and restart it)"
+    dim "  would offer: sudo ufw allow 1714:1764/{tcp,udp} comment 'kdeconnect'"
+    return 0
+  fi
+  configure_omarchy_kdeconnect_firewall
+  systemctl --user daemon-reload >/dev/null 2>&1 || true
+  systemctl --user enable kdeconnectd.service >/dev/null 2>&1 || true
+  if systemctl --user restart kdeconnectd.service >/dev/null 2>&1; then
+    sleep 2
+    if systemd_user_unit_active kdeconnectd.service; then
+      ok "kdeconnectd service running"
+    else
+      warn "kdeconnectd.service started but is not staying up; inspect: journalctl --user -u kdeconnectd.service -n 20"
+    fi
+  else
+    warn "failed to start kdeconnectd.service; inspect: journalctl --user -u kdeconnectd.service -n 20"
+  fi
+}
+
+# KDE Connect discovery and transfers need 1714-1764 tcp+udp open for
+# incoming traffic. Runs only on the first service enable so routine updates
+# never prompt for sudo.
+configure_omarchy_kdeconnect_firewall() {
+  command -v ufw >/dev/null 2>&1 || return 0
+  systemctl is-active --quiet ufw.service 2>/dev/null || return 0
+  if confirm "Allow incoming KDE Connect traffic (1714:1764 tcp+udp) through ufw?"; then
+    if sudo ufw allow 1714:1764/tcp comment 'kdeconnect' >/dev/null 2>&1 &&
+       sudo ufw allow 1714:1764/udp comment 'kdeconnect' >/dev/null 2>&1; then
+      ok "ufw allows 1714:1764 tcp+udp (kdeconnect)"
+    else
+      warn "failed to add ufw rules; run: sudo ufw allow 1714:1764/tcp comment 'kdeconnect' && sudo ufw allow 1714:1764/udp comment 'kdeconnect'"
+    fi
+  else
+    warn "skipped ufw rules; peers cannot discover this machine until: sudo ufw allow 1714:1764/tcp comment 'kdeconnect' && sudo ufw allow 1714:1764/udp comment 'kdeconnect'"
   fi
 }
 
@@ -1714,6 +1771,14 @@ cmd_doctor() {
       warn "hyprctl missing or not available outside Hyprland"
     fi
     _lanmouse_doctor || failed=1
+    if package_declared kdeconnect; then
+      if systemd_user_unit_active kdeconnectd.service; then
+        ok "kdeconnectd service active"
+      else
+        warn "kdeconnectd.service not active; run dotfiles update (or: systemctl --user restart kdeconnectd.service)"
+        failed=1
+      fi
+    fi
     info "Wallpaper rotation"
     wallpaper_status_lines
   elif [[ "$(detect_os)" == "macos" ]]; then
@@ -1851,6 +1916,7 @@ cmd_status() {
     omarchy)
       _tailscaled_daemon_status
       _lanmouse_status
+      _kdeconnect_status
       _waybar_status
       ;;
     macos)
@@ -2108,6 +2174,16 @@ _lanmouse_status() {
     printf '  lan-mouse (KVM): running\n'
   else
     printf '  lan-mouse (KVM): not running\n'
+    printf '  next step: dotfiles update\n'
+  fi
+}
+
+_kdeconnect_status() {
+  package_declared kdeconnect || return 0
+  if pgrep -x kdeconnectd >/dev/null 2>&1; then
+    printf '  kdeconnect (clipboard): running\n'
+  else
+    printf '  kdeconnect (clipboard): not running\n'
     printf '  next step: dotfiles update\n'
   fi
 }

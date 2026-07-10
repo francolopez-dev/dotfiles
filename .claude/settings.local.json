@@ -245,7 +245,27 @@
       "Bash(grep -E '\\\\.rs$')",
       "Bash(curl -s https://raw.githubusercontent.com/feschber/lan-mouse/v0.11.0/src/listen.rs)",
       "Bash(open -ga \"KDE Connect\")",
-      "Bash(echo \"EXIT=$?\")"
+      "Bash(echo \"EXIT=$?\")",
+      "Bash(curl -s https://raw.githubusercontent.com/feschber/lan-mouse/v0.11.0/input-capture/src/macos.rs)",
+      "Bash(curl -s https://raw.githubusercontent.com/feschber/lan-mouse/main/input-capture/src/macos.rs)",
+      "Bash(curl -s https://raw.githubusercontent.com/feschber/lan-mouse/v0.11.0/input-emulation/src/wlroots.rs)",
+      "Bash(curl -s https://raw.githubusercontent.com/feschber/lan-mouse/main/input-emulation/src/wlroots.rs)",
+      "Bash(curl -s \"https://api.github.com/repos/feschber/lan-mouse/pulls/460/files?per_page=20\")",
+      "Bash(/opt/homebrew/bin/kdeconnect --refresh)",
+      "Bash(/opt/homebrew/bin/kdeconnect -a)",
+      "Bash(/opt/homebrew/bin/kdeconnect -l)",
+      "Bash(/usr/libexec/ApplicationFirewall/socketfilterfw --getglobalstate)",
+      "Bash(curl -s \"https://api.github.com/search/issues?q=repo:feschber/lan-mouse+scroll+wayland&per_page=8\")",
+      "Bash(curl -s \"https://api.github.com/search/issues?q=repo:hyprwm/Hyprland+virtual+pointer+scroll&per_page=8\")",
+      "Bash(curl -s \"https://api.github.com/repos/feschber/lan-mouse/pulls/425\")",
+      "Bash(curl -s \"https://api.github.com/repos/hyprwm/Hyprland/pulls/15319\")",
+      "Bash(curl -s \"https://api.github.com/repos/hyprwm/Hyprland/releases?per_page=5\")",
+      "Bash(killall kdeconnectd *)",
+      "Bash(nohup \"/Applications/KDE Connect.app/Contents/MacOS/kdeconnectd\")",
+      "Bash(\"/Applications/KDE Connect.app/Contents/MacOS/kdeconnectd\")",
+      "Bash(kill 94080)",
+      "Bash(killall kdeconnect-app *)",
+      "Bash(nc -vz -w 3 192.168.145.36 1716)"
     ]
   }
 }

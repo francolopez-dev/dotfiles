@@ -110,13 +110,18 @@ packages include KDE Connect as the clipboard companion — TLS-encrypted,
 packaged on both platforms (`kdeconnect` in Arch extra, `kde-connect` brew
 cask), and it also brings file drops between peers.
 
+`dotfiles update` manages the daemons on both sides: on Omarchy it enables
+the stowed `kdeconnectd.service` (kdeconnectd does not start reliably under
+Hyprland) and offers the ufw rules (1714:1764 tcp+udp, needed for incoming
+discovery regardless of the peer's firewall state); on macOS it runs
+kdeconnectd via the `com.dotfiles.kdeconnectd` LaunchAgent (the app does not
+reliably respawn it).
+
 One-time pairing per machine pair:
 
-1. Omarchy: allow its ports first —
-   `sudo ufw allow 1714:1764/tcp comment 'kdeconnect' && sudo ufw allow
-   1714:1764/udp comment 'kdeconnect'`. If the daemon is not running after
-   install, start/autostart it: `dotfiles autostart add /usr/lib/kdeconnectd`.
-2. macOS: open `/Applications/KDE Connect.app` (menu bar icon).
+1. Run `dotfiles update` on both machines; accept the ufw prompt on Omarchy.
+2. macOS only: if the peer never appears, check System Settings -> Privacy &
+   Security -> Local Network -> KDE Connect is allowed.
 3. Pair from either side (macOS menu bar -> device -> Pair, or
    `kdeconnect-cli --refresh && kdeconnect-cli -a && kdeconnect-cli --pair -n
    <name>` on Omarchy) and accept on the other machine.

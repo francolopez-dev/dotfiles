@@ -102,6 +102,30 @@ warning. Two strategies, combinable:
   open port.
 - Config changes: `dotfiles apply` restarts the service.
 
+## Clipboard Sync (KDE Connect)
+
+lan-mouse is input-only: clipboard support is an unimplemented roadmap item
+and the community PR for it was rejected (upstream #438), so the declared
+packages include KDE Connect as the clipboard companion — TLS-encrypted,
+packaged on both platforms (`kdeconnect` in Arch extra, `kde-connect` brew
+cask), and it also brings file drops between peers.
+
+One-time pairing per machine pair:
+
+1. Omarchy: allow its ports first —
+   `sudo ufw allow 1714:1764/tcp comment 'kdeconnect' && sudo ufw allow
+   1714:1764/udp comment 'kdeconnect'`. If the daemon is not running after
+   install, start/autostart it: `dotfiles autostart add /usr/lib/kdeconnectd`.
+2. macOS: open `/Applications/KDE Connect.app` (menu bar icon).
+3. Pair from either side (macOS menu bar -> device -> Pair, or
+   `kdeconnect-cli --refresh && kdeconnect-cli -a && kdeconnect-cli --pair -n
+   <name>` on Omarchy) and accept on the other machine.
+4. Enable the Clipboard plugin on both sides (Plugin/Device settings ->
+   "Clipboard: share the clipboard between devices").
+
+Copy on one machine, paste on the other — independent of which side lan-mouse
+is currently sending input.
+
 ## Troubleshooting
 
 - Cursor will not cross: check both daemons run, the target's
@@ -113,6 +137,10 @@ warning. Two strategies, combinable:
   are relative to the machine whose file it is), commit, `dotfiles apply`.
 - Keys behaving oddly on the Mac side were fixed upstream (modifier handling,
   key repeat); if a layout issue appears, upgrade the pin before debugging.
+- Scrolling from the MAC toward Linux not working is a known upstream gap in
+  the macOS capture backend (issues #331/#450, fix pending in PR #460 as of
+  July 2026). Linux -> Mac scrolling works. Bump the pin when a release
+  containing the fix ships.
 
 ## Rejected Alternatives (July 2026)
 

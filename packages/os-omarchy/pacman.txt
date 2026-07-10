@@ -24,6 +24,10 @@ age
 # here: Omarchy's package snapshot can lag on incompatible protocol versions,
 # so `dotfiles update` installs a pinned upstream binary on every peer instead.
 
+# Clipboard sync companion for KVM sharing (lan-mouse has no clipboard
+# support upstream). Pairing + ufw steps: docs/kvm-sharing.md.
+kdeconnect
+
 # Shared libvirt/QEMU Windows VM and RDP workflow for Omarchy desktops.
 qemu-desktop
 libvirt

@@ -43,6 +43,9 @@ imageoptim
 shottr
 
 # utilities
+# kde-connect pairs with the Omarchy machines for clipboard sync alongside
+# lan-mouse KVM sharing (docs/kvm-sharing.md).
+kde-connect
 localsend
 rocket-typist
 jiggler

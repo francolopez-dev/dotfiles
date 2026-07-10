@@ -13,10 +13,18 @@ packs, logs, and machine-local credentials do not live in this repo.
 - Provides one daily command: `dotfiles`.
 - Avoids Ansible, Nix, templates, and generated config frameworks.
 
-## Bootstrap A New Omarchy System
+## Quick Start
 
-Set the hostname first so the right profile is selected. Current Omarchy
-profiles are `profile-nox-omarchy` and `profile-fornax-omarchy`.
+Bootstrap is for the first run on a new machine. It clones `~/dotfiles`,
+installs prerequisites, installs Oh My Zsh, links `~/.local/bin/dotfiles`, and
+runs `dotfiles update`. It is safe to rerun. Existing config is never silently
+overwritten: pick the recommended backup option and files land in
+`~/.dotfiles-backup/YYYY-MM-DD-HHMMSS/`.
+
+### Omarchy desktop
+
+Set the hostname first so the right profile is selected (current profiles:
+`nox`, `fornax`).
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/jfrancolopez/dotfiles/refs/heads/main/scripts/bootstrap.sh | bash
@@ -25,31 +33,13 @@ dotfiles status
 dotfiles doctor
 ```
 
-Bootstrap is for first run on a new machine. It clones `~/dotfiles`, installs
-bootstrap prerequisites, installs Oh My Zsh, links `~/.local/bin/dotfiles`, and
-runs `dotfiles update`.
-
-Package policy: always prefer prebuilt binaries. Use official repository
-packages first, then official binary packages, then maintained AUR `*-bin`
-packages. Source-built AUR packages, including `*-git`, are last-resort only and
-must be explicitly allowed in validation.
-
-Some binary AUR packages can still be incompatible with current Arch libraries.
-For example, bootstrap tries `paru-bin` first, but falls back to source-built
-`paru` when the binary helper is linked to an unavailable pacman/libalpm version.
-Declared repo AUR packages are trusted bootstrap inputs and install with paru
-`--noconfirm --skipreview` when `DOTFILES_ASSUME_YES=1` is active.
-
-If Stow finds existing Omarchy config, choose the recommended backup option.
-Backups go under `~/.dotfiles-backup/YYYY-MM-DD-HHMMSS/`.
-
-## Bootstrap A New Mac
+### Mac
 
 Install Homebrew from `https://brew.sh`, then follow
 [`macos-first-time-setup.md`](macos-first-time-setup.md). The personal Mac uses
 hostname `lamac` and profile `profile-lamac-macos`.
 
-## Bootstrap A Minimal Debian/Ubuntu Server
+### Debian/Ubuntu server (minimal)
 
 Headless servers get the terminal-only experience (zsh + shared aliases +
 tmux/TDL + Neovim), never desktop packages:
@@ -59,16 +49,16 @@ curl -fsSL https://raw.githubusercontent.com/jfrancolopez/dotfiles/refs/heads/ma
 ```
 
 `--minimal` is a guard, not a separate mode: on Debian/Ubuntu the flow is
-identical to plain bootstrap (the layer system already applies only `global` +
-`os-debian`); on Omarchy/macOS it refuses to run. Details, work-vs-personal
-guidance, and SSH/update hardening: [`server-minimal.md`](server-minimal.md).
+identical to plain bootstrap; on Omarchy/macOS it refuses to run. Details,
+work-vs-personal guidance, and hardening: [`server-minimal.md`](server-minimal.md).
 
 ## Daily Use
 
 ```bash
-dotfiles status
-dotfiles update
-dotfiles apply
+dotfiles status    # machine, layers, package drift, sync state
+dotfiles update    # pull, install missing packages, re-stow layers
+dotfiles apply     # re-stow only, after editing configs locally
+dotfiles doctor    # health checks
 ```
 
 Use dry runs before risky changes:
@@ -78,110 +68,130 @@ dotfiles update --dry-run
 dotfiles apply --dry-run
 ```
 
+Forgot a shortcut or alias? The registry is searchable:
+
+```bash
+dotfiles commands search tmux
+```
+
 Fallback if PATH is broken:
 
 ```bash
 ~/dotfiles/scripts/dotfiles status
-~/dotfiles/scripts/dotfiles update --dry-run
 ```
 
-## Choose Or Switch Profile
+## Profiles
 
-The default profile comes from `hostname -s` and OS:
+The profile comes from `hostname -s` plus detected OS:
 
 ```text
 stow/profile-<hostname>-<os>/
 packages/profile-<hostname>-<os>/
 ```
 
-Examples:
-
-- `nox` on Omarchy uses `profile-nox-omarchy`.
-- `fornax` on Omarchy uses `profile-fornax-omarchy`.
-- `lamac` on macOS uses `profile-lamac-macos`.
+Examples: `profile-nox-omarchy`, `profile-fornax-omarchy`,
+`profile-lamac-macos`. If the profile directory does not exist, only `global`
+and `os-<os>` apply (this is how minimal servers work).
 
 To test another profile without renaming the machine:
 
 ```bash
-DOTFILES_PROFILE=profile-nox-omarchy dotfiles status
 DOTFILES_PROFILE=profile-nox-omarchy dotfiles apply --dry-run
 ```
 
-To permanently switch, rename the host or create the matching stow profile and
-package declaration directories.
+To switch permanently, rename the host or create the matching stow and
+package directories.
 
-## Git And SSH Fixes
+## Package Policy
 
-GitHub password authentication over HTTPS does not work anymore. Use SSH.
+Always prefer prebuilt binaries: official repository packages first, then
+official binary packages, then maintained AUR `*-bin` packages. Source builds
+(including `*-git`) are last-resort only and must be explicitly allowed in
+validation.
 
-```bash
-ssh-keygen -t ed25519 -C "email@gmail.com"
-cat ~/.ssh/id_ed25519.pub
-```
+A binary AUR helper can still lag current Arch libraries: bootstrap tries
+`paru-bin` first and falls back to source-built `paru` when the binary is
+linked against an unavailable pacman/libalpm. Declared repo AUR packages are
+trusted bootstrap inputs and install with paru `--noconfirm --skipreview` when
+`DOTFILES_ASSUME_YES=1` is active.
 
-Copy the public key, open GitHub, then go to Settings -> SSH and GPG keys -> New
-SSH key. Name it after the machine, for example `NOX Omarchy T490` or `FORNAX
-Omarchy Work Laptop`.
+On Debian/Ubuntu, package lists stay stock-repo-only; anything needing a
+third-party apt repo is a per-machine profile opt-in.
 
-Switch the repo remote to SSH:
+## Git And SSH
 
-```bash
-cd ~/dotfiles
-git remote set-url origin git@github.com:jfrancolopez/dotfiles.git
-ssh -T git@github.com
-```
-
-Expected success text is generally:
-
-```text
-Hi <username>! You've successfully authenticated...
-```
-
-Then verify push state:
+GitHub needs SSH (HTTPS password auth is gone). The guided path:
 
 ```bash
-git status --short --branch
-git push
+dotfiles git setup-ssh
 ```
 
-If update stops because the repo is dirty, inspect before changing anything:
+It walks through key generation, adding the key to GitHub, and switching the
+repo remote — prompting before every change. Manual steps and troubleshooting:
+[`git-github-cheatsheet.md`](git-github-cheatsheet.md).
+
+If `dotfiles update` finds local changes in the repo, it skips the pull and
+asks: continue without pulling (recommended), stash then pull, or reset
+(destructive, explicit confirmation only). Inspect first:
 
 ```bash
 git status --short --branch
 git diff --name-only
 ```
 
-`dotfiles update` will offer to skip pull, stash local changes, or reset only
-with explicit confirmation.
-
 ## Validate The System
+
+Any machine:
 
 ```bash
 dotfiles status
 dotfiles doctor
-hyprctl configerrors
-hyprctl monitors
-hyprctl getoption general:col.active_border
-command -v ghostty firefox atuin zoxide yazi satty tailscale
-git status --short --branch
+git -C ~/dotfiles status --short --branch
 ```
 
-Repo checks after edits:
+Omarchy only:
+
+```bash
+hyprctl configerrors
+hyprctl monitors
+command -v ghostty firefox atuin zoxide yazi satty tailscale
+```
+
+Repo checks after editing scripts or packages:
 
 ```bash
 shellcheck -x bootstrap.sh scripts/*.sh scripts/lib/*.sh
 scripts/validate-profiles.sh
 ./bootstrap.sh --dry-run --profile profile-fornax-omarchy
 ./bootstrap.sh --dry-run --profile profile-nox-omarchy
+DOTFILES_BOOTSTRAP_OS=debian ./bootstrap.sh --dry-run --minimal
 ```
 
-Walker is an Omarchy default app launcher. This repo does not install, stow, or
-configure Walker.
+Walker is an Omarchy default app launcher; this repo does not install, stow,
+or configure it.
 
-More docs: [first-time-setup.md](first-time-setup.md), [first-time-system.md](first-time-system.md),
-[omarchy-virtualization.md](omarchy-virtualization.md), [omarchy-dockurr-windows.md](omarchy-dockurr-windows.md),
-[macos-first-time-setup.md](macos-first-time-setup.md), [macos-personal.md](macos-personal.md),
-[git-github-cheatsheet.md](git-github-cheatsheet.md), [autostart.md](autostart.md),
-[wallpapers.md](wallpapers.md), [terminal-ux.md](terminal-ux.md),
-[terminal-cheatsheet.md](terminal-cheatsheet.md), [server-minimal.md](server-minimal.md),
-[kvm-sharing.md](kvm-sharing.md), and [where-to-edit.md](where-to-edit.md).
+## All Docs
+
+Setup and rebuild:
+
+- [`first-time-setup.md`](first-time-setup.md) — new Omarchy machine walkthrough.
+- [`first-time-system.md`](first-time-system.md) — OS install steps before bootstrap.
+- [`macos-first-time-setup.md`](macos-first-time-setup.md) — new Mac walkthrough.
+- [`macos-personal.md`](macos-personal.md) — personal Mac specifics.
+- [`server-minimal.md`](server-minimal.md) — headless Debian/Ubuntu servers, hardening, work vs personal.
+
+Terminal workflow:
+
+- [`terminal-cheatsheet.md`](terminal-cheatsheet.md) — aliases, tmux/TDL, git, history, diagnostics.
+- [`terminal-ux.md`](terminal-ux.md) — terminal tooling decisions and audit.
+- [`git-github-cheatsheet.md`](git-github-cheatsheet.md) — git commands and GitHub SSH.
+
+Desktop and machines:
+
+- [`where-to-edit.md`](where-to-edit.md) — which file to touch for a given change.
+- [`autostart.md`](autostart.md) — login/startup item management.
+- [`wallpapers.md`](wallpapers.md) — wallpaper rotation.
+- [`kvm-sharing.md`](kvm-sharing.md) — lan-mouse keyboard/mouse sharing between machines.
+- [`omarchy-virtualization.md`](omarchy-virtualization.md) — Windows VMs on Omarchy.
+- [`omarchy-dockurr-windows.md`](omarchy-dockurr-windows.md) — dockurr-based Windows with RDP.
+- [`omarchy-dualboot-windows.md`](omarchy-dualboot-windows.md) — native Windows dual boot (manual, optional).

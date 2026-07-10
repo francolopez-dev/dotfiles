@@ -16,6 +16,15 @@ require_cmd systemctl
 require_cmd virsh
 require_cmd usermod
 
+ensure_ufw_libvirt_rules() {
+  command -v ufw >/dev/null 2>&1 || return 0
+  sudo ufw status 2>/dev/null | grep -q '^Status: active' || return 0
+
+  info "Allowing default libvirt NAT network through ufw"
+  sudo ufw allow in on virbr0 comment 'libvirt default network' >/dev/null
+  sudo ufw route allow in on virbr0 comment 'libvirt guest forwarding' >/dev/null
+}
+
 info "Enabling libvirtd.service"
 sudo systemctl enable --now libvirtd.service
 
@@ -51,6 +60,8 @@ sudo virsh -c qemu:///system net-start default >/dev/null 2>&1 || true
 
 info "Enabling default libvirt NAT network autostart"
 sudo virsh -c qemu:///system net-autostart default
+
+ensure_ufw_libvirt_rules
 
 info "Current libvirt networks"
 sudo virsh -c qemu:///system net-list --all

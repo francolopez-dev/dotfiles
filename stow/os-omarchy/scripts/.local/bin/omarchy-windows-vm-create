@@ -222,6 +222,7 @@ args+=(--video qxl)
 if [[ -n "$storage_controller_arg" ]]; then
   args+=(--controller "$storage_controller_arg")
 fi
+args+=(--channel "unix,target.type=virtio,target.name=org.qemu.guest_agent.0")
 args+=(--input "tablet,bus=usb")
 args+=(--boot uefi)
 args+=(--tpm "backend.type=emulator,backend.version=2.0,model=tpm-crb")
@@ -243,6 +244,7 @@ Next steps:
 - For a new qcow2 VM, install Windows from the ISO.
 - For raw disk mode without an ISO, Windows should boot from the selected disk using SATA/AHCI storage.
 - If Windows has no network, temporarily switch NIC to e1000e in virt-manager or attach/install VirtIO NetKVM drivers.
+- Install the QEMU guest agent from the VirtIO ISO for better VM status and IP detection.
 - Install SPICE guest tools inside Windows for clipboard, mouse, and resize behavior.
 - After Windows enables RDP, run: omarchy-windows-vm rdp $vm_name
 - Manual edits: virt-manager -c $connection

@@ -51,6 +51,14 @@ adds your user to `libvirt`, starts the default NAT network, and enables network
 autostart. If the default NAT network is missing, it defines the standard
 libvirt NAT network.
 
+If UFW is installed and active, the helper also allows the default libvirt bridge
+through the firewall:
+
+```bash
+sudo ufw allow in on virbr0 comment 'libvirt default network'
+sudo ufw route allow in on virbr0 comment 'libvirt guest forwarding'
+```
+
 Manual equivalent:
 
 ```bash
@@ -58,6 +66,8 @@ sudo systemctl enable --now libvirtd.service
 sudo usermod -aG libvirt "$USER"
 sudo virsh -c qemu:///system net-start default
 sudo virsh -c qemu:///system net-autostart default
+sudo ufw allow in on virbr0 comment 'libvirt default network'
+sudo ufw route allow in on virbr0 comment 'libvirt guest forwarding'
 ```
 
 Check setup:
@@ -151,11 +161,72 @@ Common VirtIO drivers:
 - `NetKVM` for networking.
 - `viostor` or `vioscsi` for storage if needed.
 - balloon driver if desired.
-- guest agent if desired.
+- QEMU guest agent for better VM status and IP detection.
 
 The VirtIO ISO is not the same as SPICE guest tools. Install SPICE guest tools
 inside Windows for better mouse integration, clipboard, dynamic resize, and
 display behavior. Do not auto-download random Windows binaries from bootstrap.
+
+The wizard creates a QEMU guest-agent channel. It is harmless before the guest
+agent is installed and starts working after installing the guest-agent package
+from the VirtIO ISO inside Windows.
+
+## Network Troubleshooting
+
+The default VM network is libvirt NAT on `virbr0`:
+
+```text
+host gateway: 192.168.122.1
+guest DHCP:   192.168.122.2-192.168.122.254
+```
+
+After creating or starting a VM, check for a DHCP lease:
+
+```bash
+virsh -c qemu:///system net-dhcp-leases default
+virsh -c qemu:///system domifaddr windows --source lease
+```
+
+Use the VM name if it is not `windows`:
+
+```bash
+virsh -c qemu:///system domifaddr guinds --source lease
+```
+
+Inside Windows, verify the adapter config:
+
+```powershell
+ipconfig /all
+```
+
+Expected values:
+
+```text
+IPv4 Address . . . . . . . . . . . : 192.168.122.x
+Default Gateway . . . . . . . . . . : 192.168.122.1
+DNS Servers . . . . . . . . . . . . : 192.168.122.1
+```
+
+If Windows shows `Unidentified network`, test in this order:
+
+```powershell
+ping 192.168.122.1
+ping 1.1.1.1
+nslookup google.com
+```
+
+Interpretation:
+
+- No `192.168.122.x` address or a `169.254.x.x` address means DHCP failed.
+- Cannot ping `192.168.122.1` means guest-to-host bridge connectivity failed.
+- Can ping `192.168.122.1` but not `1.1.1.1` means host forwarding/NAT/firewall failed.
+- Can ping `1.1.1.1` but DNS fails means DNS forwarding failed.
+
+When UFW is active, rerun the setup helper to restore the libvirt allow rules:
+
+```bash
+omarchy-libvirt-setup
+```
 
 ## Recommended virt-manager Settings
 

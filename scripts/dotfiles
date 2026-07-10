@@ -606,6 +606,7 @@ configure_omarchy_lanmouse() {
     warn "user systemd manager is not reachable; lan-mouse.service will be enabled on next update/login"
     return 0
   fi
+  configure_omarchy_lanmouse_firewall "$dry"
   if systemd_user_unit_active lan-mouse.service && \
      [[ "$(_omarchy_lanmouse_installed_version)" == "$_LANMOUSE_VERSION" ]]; then
     ok "lan-mouse service running"
@@ -613,10 +614,8 @@ configure_omarchy_lanmouse() {
   fi
   if [[ "$dry" -eq 1 ]]; then
     dim "  would run: systemctl --user enable --now lan-mouse.service (and restart it)"
-    dim "  would offer: sudo ufw allow 4242/udp comment 'lan-mouse'"
     return 0
   fi
-  configure_omarchy_lanmouse_firewall
   systemctl --user daemon-reload >/dev/null 2>&1 || true
   systemctl --user enable lan-mouse.service >/dev/null 2>&1 || true
   if systemctl --user restart lan-mouse.service >/dev/null 2>&1; then
@@ -645,16 +644,15 @@ configure_omarchy_kdeconnect() {
     warn "user systemd manager is not reachable; kdeconnectd.service will be enabled on next update/login"
     return 0
   fi
+  configure_omarchy_kdeconnect_firewall "$dry"
   if systemd_user_unit_active kdeconnectd.service; then
     ok "kdeconnectd service running"
     return 0
   fi
   if [[ "$dry" -eq 1 ]]; then
     dim "  would run: systemctl --user enable --now kdeconnectd.service (and restart it)"
-    dim "  would offer: sudo ufw allow 1714:1764/{tcp,udp} comment 'kdeconnect'"
     return 0
   fi
-  configure_omarchy_kdeconnect_firewall
   systemctl --user daemon-reload >/dev/null 2>&1 || true
   systemctl --user enable kdeconnectd.service >/dev/null 2>&1 || true
   if systemctl --user restart kdeconnectd.service >/dev/null 2>&1; then
@@ -670,21 +668,14 @@ configure_omarchy_kdeconnect() {
 }
 
 # KDE Connect discovery and transfers need 1714-1764 tcp+udp open for
-# incoming traffic. Runs only on the first service enable so routine updates
-# never prompt for sudo.
+# incoming traffic.
 configure_omarchy_kdeconnect_firewall() {
-  command -v ufw >/dev/null 2>&1 || return 0
-  systemctl is-active --quiet ufw.service 2>/dev/null || return 0
-  if confirm "Allow incoming KDE Connect traffic (1714:1764 tcp+udp) through ufw?"; then
-    if sudo ufw allow 1714:1764/tcp comment 'kdeconnect' >/dev/null 2>&1 &&
-       sudo ufw allow 1714:1764/udp comment 'kdeconnect' >/dev/null 2>&1; then
-      ok "ufw allows 1714:1764 tcp+udp (kdeconnect)"
-    else
-      warn "failed to add ufw rules; run: sudo ufw allow 1714:1764/tcp comment 'kdeconnect' && sudo ufw allow 1714:1764/udp comment 'kdeconnect'"
-    fi
-  else
-    warn "skipped ufw rules; peers cannot discover this machine until: sudo ufw allow 1714:1764/tcp comment 'kdeconnect' && sudo ufw allow 1714:1764/udp comment 'kdeconnect'"
-  fi
+  local dry="$1"
+  _omarchy_ufw_offer "$dry" kdeconnect \
+    "Allow incoming KDE Connect traffic (1714:1764 tcp+udp) through ufw?" \
+    "sudo ufw allow 1714:1764/tcp comment 'kdeconnect' && sudo ufw allow 1714:1764/udp comment 'kdeconnect'" \
+    "allow 1714:1764/tcp comment kdeconnect" \
+    "allow 1714:1764/udp comment kdeconnect"
 }
 
 _omarchy_lanmouse_bin() { printf '%s/.local/share/dotfiles/bin/lan-mouse\n' "$HOME"; }
@@ -740,21 +731,53 @@ _omarchy_lanmouse_install_bin() {
   fi
 }
 
-# Omarchy ships ufw enabled; a peer can only send input here once incoming
-# DTLS on 4242/udp is allowed. Runs only on the first service enable so
-# routine updates never prompt for sudo.
-configure_omarchy_lanmouse_firewall() {
+# One-time ufw offers are tracked with a marker file instead of service
+# state: coupling them to "service not yet active" meant a machine whose
+# service came up first was never asked, leaving the port silently blocked.
+_omarchy_ufw_marker() {
+  printf '%s/dotfiles/ufw-%s\n' "${XDG_STATE_HOME:-$HOME/.local/state}" "$1"
+}
+
+# _omarchy_ufw_offer <marker-name> <question> <manual-hint> <ufw-args>...
+# Prompts once per machine (marker recorded for both yes and no) and applies
+# each comma-separated ufw rule. No-op when ufw is missing or inactive.
+_omarchy_ufw_offer() {
+  local dry="$1" name="$2" question="$3" hint="$4" marker rule failed=0
+  shift 4
+  marker="$(_omarchy_ufw_marker "$name")"
+  [[ -f "$marker" ]] && return 0
   command -v ufw >/dev/null 2>&1 || return 0
   systemctl is-active --quiet ufw.service 2>/dev/null || return 0
-  if confirm "Allow incoming lan-mouse traffic (4242/udp) through ufw?"; then
-    if sudo ufw allow 4242/udp comment 'lan-mouse' >/dev/null 2>&1; then
-      ok "ufw allows 4242/udp (lan-mouse)"
+  if [[ "$dry" -eq 1 ]]; then
+    dim "  would offer: $hint"
+    return 0
+  fi
+  if confirm "$question"; then
+    for rule in "$@"; do
+      # shellcheck disable=SC2086
+      sudo ufw $rule >/dev/null 2>&1 || failed=1
+    done
+    if [[ $failed -eq 0 ]]; then
+      ok "ufw rules ensured ($name)"
     else
-      warn "failed to add ufw rule; run: sudo ufw allow 4242/udp comment 'lan-mouse'"
+      warn "failed to add ufw rule(s); run: $hint"
+      return 0
     fi
   else
-    warn "skipped ufw rule; peers cannot reach this machine until: sudo ufw allow 4242/udp comment 'lan-mouse'"
+    warn "declined; this machine stays unreachable for $name until: $hint"
   fi
+  mkdir -p "$(dirname "$marker")"
+  printf 'answered %s\n' "$(date +%Y-%m-%d)" >"$marker"
+}
+
+# Omarchy ships ufw enabled; a peer can only send input here once incoming
+# DTLS on 4242/udp is allowed.
+configure_omarchy_lanmouse_firewall() {
+  local dry="$1"
+  _omarchy_ufw_offer "$dry" lan-mouse \
+    "Allow incoming lan-mouse traffic (4242/udp) through ufw?" \
+    "sudo ufw allow 4242/udp comment 'lan-mouse'" \
+    "allow 4242/udp comment lan-mouse"
 }
 
 configure_macos_declared_services() {

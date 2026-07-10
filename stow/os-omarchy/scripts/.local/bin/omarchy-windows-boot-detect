@@ -1,0 +1,384 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Detect a Windows Boot Manager on any EFI System Partition and optionally add
+# a confirmed Windows entry to the Linux bootloader (Limine or systemd-boot).
+#
+# Detection-only by default. Never runs from bootstrap or `dotfiles update`.
+# Never changes UEFI boot order, the default boot entry, fstab, or anything on
+# a Windows partition. Workflow docs: docs/omarchy-dualboot-windows.md.
+
+esp_parttype="c12a7328-f81f-11d2-ba4b-00a0c93ec93b"
+windows_rel_default="/EFI/Microsoft/Boot/bootmgfw.efi"
+
+mode="detect"
+pause_on_exit=0
+
+info() { printf '==> %s\n' "$*"; }
+note() { printf '    %s\n' "$*"; }
+warn() { printf 'warn %s\n' "$*" >&2; }
+die() { printf 'err %s\n' "$*" >&2; exit 1; }
+
+usage() {
+  cat <<'EOF'
+Usage: omarchy-windows-boot-detect [--dry-run | --apply] [--pause] [--help]
+
+Detect Windows Boot Manager installs on EFI System Partitions and show how to
+add a native Windows entry to the Linux bootloader. Linux stays the default.
+
+  (no flag)   Detect and report only. Nothing is written.
+  --dry-run   Same as detect. Prints exactly what --apply would write.
+  --apply     Detect, then ask for confirmation before writing one boot
+              entry. The edited config is backed up first.
+  --pause     Wait for Enter before exiting (used by the app menu entry).
+  --help      Show this help.
+
+Detection may use sudo to read /boot and to temporarily mount unmounted EFI
+partitions read-only. NTFS partitions are never mounted. Windows partitions
+are never written. UEFI boot order is never changed.
+EOF
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --dry-run) mode="dry-run"; shift ;;
+    --apply) mode="apply"; shift ;;
+    --pause) pause_on_exit=1; shift ;;
+    -h|--help) usage; exit 0 ;;
+    *) usage >&2; die "unknown option: $1" ;;
+  esac
+done
+
+on_exit() {
+  if [[ "$pause_on_exit" -eq 1 && -t 0 ]]; then
+    printf '\n'
+    read -r -p 'Press Enter to close ' || true
+  fi
+}
+trap on_exit EXIT
+
+[[ "$(uname -s)" == "Linux" ]] || die "this helper only runs on Linux"
+[[ -d /sys/firmware/efi ]] || die "system did not boot via UEFI; nothing to do"
+
+require_cmd() {
+  command -v "$1" >/dev/null 2>&1 || die "missing command: $1"
+}
+require_cmd lsblk
+require_cmd findmnt
+require_cmd mktemp
+
+as_root() {
+  if [[ "$(id -u)" -eq 0 ]]; then
+    "$@"
+  else
+    require_cmd sudo
+    sudo "$@"
+  fi
+}
+
+confirm() {
+  local reply
+  read -r -p "$1 [type yes to continue] " reply
+  [[ "$reply" == "yes" ]]
+}
+
+# --- Bootloader detection ----------------------------------------------------
+
+limine_conf=""
+for candidate in /boot/limine.conf /boot/EFI/limine/limine.conf \
+  /boot/limine/limine.conf /efi/limine.conf /boot/efi/limine.conf; do
+  if as_root test -f "$candidate"; then
+    limine_conf="$candidate"
+    break
+  fi
+done
+
+sdboot_loader=""
+for candidate in /boot/loader/loader.conf /efi/loader/loader.conf \
+  /boot/efi/loader/loader.conf; do
+  if as_root test -f "$candidate"; then
+    sdboot_loader="$candidate"
+    break
+  fi
+done
+
+grub_cfg=""
+if as_root test -f /boot/grub/grub.cfg; then
+  grub_cfg="/boot/grub/grub.cfg"
+fi
+
+bootloader="unknown"
+bootloader_conf=""
+if [[ -n "$limine_conf" && -z "$sdboot_loader" ]]; then
+  bootloader="limine"
+  bootloader_conf="$limine_conf"
+elif [[ -n "$sdboot_loader" && -z "$limine_conf" ]]; then
+  bootloader="systemd-boot"
+  bootloader_conf="$sdboot_loader"
+elif [[ -n "$limine_conf" && -n "$sdboot_loader" ]]; then
+  bootloader="ambiguous"
+elif [[ -n "$grub_cfg" ]]; then
+  bootloader="grub"
+  bootloader_conf="$grub_cfg"
+fi
+
+info "Bootloader: $bootloader${bootloader_conf:+ (config: $bootloader_conf)}"
+case "$bootloader" in
+  limine)
+    note "Limine is the Omarchy 2.0+ default."
+    ;;
+  systemd-boot)
+    note "systemd-boot (pre-2.0 Omarchy installs use this)."
+    ;;
+  ambiguous)
+    warn "found both $limine_conf and $sdboot_loader; cannot tell which one"
+    warn "actually boots this machine. Check 'bootctl status' and the docs."
+    ;;
+  grub|unknown)
+    warn "no Limine or systemd-boot config found; this helper only writes"
+    warn "entries for those. Detection still runs; see the docs for manual"
+    warn "steps and the UEFI firmware boot menu fallback."
+    ;;
+esac
+
+# --- ESP enumeration and Windows scan ----------------------------------------
+
+mapfile -t esp_devs < <(lsblk -rpno NAME,PARTTYPE 2>/dev/null \
+  | awk -v t="$esp_parttype" 'tolower($2) == t { print $1 }')
+[[ "${#esp_devs[@]}" -gt 0 ]] || die "no EFI System Partitions found via lsblk"
+
+win_devs=()
+win_disks=()
+win_partuuids=()
+win_rels=()
+win_mountnotes=()
+
+info "EFI System Partitions:"
+for dev in "${esp_devs[@]}"; do
+  disk="$(lsblk -rpno PKNAME "$dev" 2>/dev/null | head -n1)"
+  partuuid="$(lsblk -rno PARTUUID "$dev" 2>/dev/null | head -n1)"
+  mnt="$(lsblk -rno MOUNTPOINT "$dev" 2>/dev/null | head -n1)"
+  if [[ -n "$mnt" ]]; then
+    note "$dev  disk ${disk:-?}  mounted at $mnt"
+  else
+    note "$dev  disk ${disk:-?}  not mounted"
+  fi
+
+  scan_root="$mnt"
+  tmp_mount=""
+  if [[ -z "$scan_root" ]]; then
+    tmp_mount="$(mktemp -d)"
+    if ! as_root mount -o ro "$dev" "$tmp_mount" 2>/dev/null; then
+      rmdir "$tmp_mount"
+      warn "could not mount $dev read-only; skipping it"
+      continue
+    fi
+    scan_root="$tmp_mount"
+  fi
+
+  found="$(as_root find "$scan_root" -maxdepth 4 \
+    -ipath '*/microsoft/boot/bootmgfw.efi' 2>/dev/null | head -n1 || true)"
+
+  if [[ -n "$tmp_mount" ]]; then
+    as_root umount "$tmp_mount"
+    rmdir "$tmp_mount"
+  fi
+
+  if [[ -n "$found" ]]; then
+    rel="${found#"$scan_root"}"
+    win_devs+=("$dev")
+    win_disks+=("${disk:-unknown}")
+    win_partuuids+=("${partuuid:-unknown}")
+    win_rels+=("$rel")
+    if [[ -n "$tmp_mount" ]]; then
+      win_mountnotes+=("$tmp_mount (temporary read-only mount, now unmounted)")
+    else
+      win_mountnotes+=("$mnt (already mounted)")
+    fi
+  fi
+done
+
+if [[ "${#win_devs[@]}" -eq 0 ]]; then
+  info "No Windows Boot Manager detected."
+  note "Nothing to do. This machine looks Linux-only."
+  exit 0
+fi
+
+info "Windows Boot Manager detected:"
+for i in "${!win_devs[@]}"; do
+  printf '\n'
+  note "candidate $((i + 1)):"
+  note "  partition:      ${win_devs[$i]}"
+  note "  disk:           ${win_disks[$i]}"
+  note "  PARTUUID:       ${win_partuuids[$i]}"
+  note "  scanned via:    ${win_mountnotes[$i]}"
+  note "  EFI path:       ${win_rels[$i]}"
+done
+printf '\n'
+
+if command -v efibootmgr >/dev/null 2>&1; then
+  existing_nvram="$(as_root efibootmgr 2>/dev/null | grep -i windows || true)"
+  if [[ -n "$existing_nvram" ]]; then
+    info "Existing UEFI NVRAM entries mentioning Windows (firmware menu):"
+    printf '%s\n' "$existing_nvram" | sed 's/^/    /'
+  fi
+fi
+
+# --- Candidate selection ------------------------------------------------------
+
+sel=0
+if [[ "${#win_devs[@]}" -gt 1 ]]; then
+  if [[ "$mode" == "apply" ]]; then
+    info "Multiple Windows Boot Manager candidates found. Choose one:"
+    while true; do
+      read -r -p "Candidate number [1-${#win_devs[@]}]: " choice
+      if [[ "$choice" =~ ^[0-9]+$ ]] \
+        && [[ "$choice" -ge 1 && "$choice" -le "${#win_devs[@]}" ]]; then
+        sel=$((choice - 1))
+        break
+      fi
+      warn "choose a number between 1 and ${#win_devs[@]}"
+    done
+  else
+    warn "multiple candidates found; --apply will ask which one to use"
+  fi
+fi
+
+sel_dev="${win_devs[$sel]}"
+sel_partuuid="${win_partuuids[$sel]}"
+sel_rel="${win_rels[$sel]}"
+[[ -n "$sel_rel" ]] || sel_rel="$windows_rel_default"
+
+# --- Suggested entry per bootloader -------------------------------------------
+
+limine_entry() {
+  printf '/Windows\n    protocol: efi_chainload\n    path: guid(%s):%s\n' \
+    "$sel_partuuid" "$sel_rel"
+}
+
+sdboot_entry() {
+  printf 'title   Windows Boot Manager\nefi     %s\n' "$sel_rel"
+}
+
+sdboot_esp_mount=""
+sdboot_esp_dev=""
+if [[ "$bootloader" == "systemd-boot" ]]; then
+  sdboot_esp_mount="${sdboot_loader%/loader/loader.conf}"
+  sdboot_esp_dev="$(findmnt -n -o SOURCE --target "$sdboot_esp_mount" || true)"
+fi
+
+case "$bootloader" in
+  limine)
+    info "Suggested Limine entry (appended to $limine_conf):"
+    limine_entry | sed 's/^/    /'
+    note ""
+    note "Limine chainloads EFI binaries across disks via guid(PARTUUID),"
+    note "so this works even with Windows on a second NVMe. The entry is"
+    note "appended last; default_entry and timeout are not touched, so"
+    note "Omarchy stays the default boot."
+    ;;
+  systemd-boot)
+    if [[ "$sdboot_esp_dev" == "$sel_dev" ]]; then
+      info "Windows is on the same ESP as systemd-boot ($sdboot_esp_dev)."
+      note "systemd-boot usually auto-detects Windows on its own ESP and"
+      note "shows it in the menu already. If it does not, this entry can be"
+      note "written to $sdboot_esp_mount/loader/entries/windows.conf:"
+      sdboot_entry | sed 's/^/    /'
+    else
+      info "Windows is on a different ESP ($sel_dev) than systemd-boot"
+      note "($sdboot_esp_dev). systemd-boot loader entries can only launch"
+      note "EFI binaries from its own ESP, so a windows.conf here would NOT"
+      note "work and this helper will not write one. Working alternatives:"
+      note "  1. UEFI firmware one-time boot menu (safest, zero changes)."
+      note "  2. The existing 'Windows Boot Manager' NVRAM entry, if listed"
+      note "     above (pick it in the firmware boot menu)."
+      note "  3. Manual efibootmgr entry creation; see the docs. Never use"
+      note "     'efibootmgr -o' to reorder boot entries."
+      note "See docs/omarchy-dualboot-windows.md in the dotfiles repo."
+    fi
+    ;;
+  *)
+    info "No supported bootloader config to edit automatically."
+    note "Use the UEFI firmware boot menu, or follow the manual steps in"
+    note "docs/omarchy-dualboot-windows.md."
+    ;;
+esac
+
+if [[ "$mode" != "apply" ]]; then
+  printf '\n'
+  info "Detection only; nothing was written. Re-run with --apply to add the"
+  note "entry after confirmation, or follow the manual steps in the docs."
+  exit 0
+fi
+
+# --- Apply (confirmed writes only) ---------------------------------------------
+
+timestamp="$(date +%Y%m%d-%H%M%S)"
+
+case "$bootloader" in
+  limine)
+    if as_root grep -qi 'bootmgfw\.efi' "$limine_conf"; then
+      info "A Windows entry already exists in $limine_conf:"
+      as_root grep -in 'bootmgfw\.efi' "$limine_conf" | sed 's/^/    /'
+      note "Not adding a duplicate. Edit the file manually if it is wrong."
+      exit 0
+    fi
+    backup="$limine_conf.bak.$timestamp"
+    printf '\n'
+    info "Apply plan:"
+    note "backup:  cp -p $limine_conf $backup"
+    note "append to $limine_conf:"
+    limine_entry | sed 's/^/    /'
+    note "not touched: default_entry, timeout, existing entries, UEFI boot"
+    note "order, fstab, Windows partitions."
+    confirm "Append this Windows entry?" || die "aborted; nothing was written"
+    as_root cp -p "$limine_conf" "$backup"
+    { printf '\n'; limine_entry; } | as_root tee -a "$limine_conf" >/dev/null
+    info "Done. Files changed:"
+    note "$limine_conf (entry appended)"
+    note "$backup (backup, unmodified original)"
+    info "Rollback:"
+    note "sudo cp $backup $limine_conf"
+    note "or delete the /Windows block at the end of $limine_conf."
+    note "Omarchy updates can regenerate limine.conf; if the entry vanishes"
+    note "after a major update, re-run this helper."
+    ;;
+  systemd-boot)
+    [[ "$sdboot_esp_dev" == "$sel_dev" ]] \
+      || die "refusing to write: Windows is on a different ESP than \
+systemd-boot and a loader entry would not boot. Use the firmware boot menu \
+or see docs/omarchy-dualboot-windows.md."
+    entries_dir="$sdboot_esp_mount/loader/entries"
+    target="$entries_dir/windows.conf"
+    if as_root test -f "$target"; then
+      info "$target already exists:"
+      as_root cat "$target" | sed 's/^/    /'
+      note "Not overwriting. Edit or remove it manually if it is wrong."
+      exit 0
+    fi
+    backup_dir="$sdboot_esp_mount/loader/entries.bak.$timestamp"
+    printf '\n'
+    info "Apply plan:"
+    note "backup:  cp -a $entries_dir $backup_dir"
+    note "create $target with:"
+    sdboot_entry | sed 's/^/    /'
+    note "not touched: loader.conf (default entry), existing entries, UEFI"
+    note "boot order, fstab, Windows partitions."
+    confirm "Create this loader entry?" || die "aborted; nothing was written"
+    if as_root test -d "$entries_dir"; then
+      as_root cp -a "$entries_dir" "$backup_dir"
+    else
+      as_root mkdir -p "$entries_dir"
+    fi
+    sdboot_entry | as_root tee "$target" >/dev/null
+    info "Done. Files changed:"
+    note "$target (new file)"
+    note "$backup_dir (backup of previous entries)"
+    info "Rollback:"
+    note "sudo rm $target"
+    ;;
+  *)
+    die "no supported bootloader config detected; --apply cannot write \
+anything safely. See docs/omarchy-dualboot-windows.md for manual steps."
+    ;;
+esac

@@ -24,6 +24,8 @@ sudo blkid
 ls -l /dev/disk/by-id/ | grep -i nvme
 ```
 
-Native Windows boot remains the preferred path for gaming. GPU passthrough,
-Looking Glass, and VFIO GPU configuration are not part of the default dotfiles
-workflow.
+Native Windows boot remains the preferred path for gaming. Detecting the
+Windows install on the second NVMe and adding it to the Omarchy boot menu is
+covered in [`../omarchy-dualboot-windows.md`](../omarchy-dualboot-windows.md)
+(`omarchy-windows-boot-detect`). GPU passthrough, Looking Glass, and VFIO GPU
+configuration are not part of the default dotfiles workflow.

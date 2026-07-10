@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Windows Boot Detection
+Comment=Detect Windows Boot Manager and show safe dual-boot options (read-only)
+Exec=xdg-terminal-exec -e omarchy-windows-boot-detect --pause
+Terminal=false
+Categories=System;
+Keywords=windows;boot;dual;dualboot;efi;esp;limine;systemd-boot;bootmgfw;

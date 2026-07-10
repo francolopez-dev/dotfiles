@@ -266,8 +266,8 @@ run = 'layout floating'
 
 [[on-window-detected]]
 if.app-id = 'com.panic.Transmit'
-#run = 'move-node-to-workspace T_Tools'
 run = 'layout floating'
+
 [[on-window-detected]]
 if.app-id = 'com.github.GitHubClient'
 run = 'move-node-to-workspace T_Tools'
@@ -275,3 +275,7 @@ run = 'move-node-to-workspace T_Tools'
 [[on-window-detected]]
 if.app-id = 'com.docker.docker'
 run = 'move-node-to-workspace T_Tools'
+
+[[on-window-detected]]
+if.app-id = 'de.feschber.LanMouse'
+run = 'layout floating'

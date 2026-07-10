@@ -249,11 +249,15 @@ Global Omarchy launchers:
 - `Virtual Machines`: opens virt-manager.
 - `Windows VM`: starts/connects to the default Windows VM.
 - `Create Windows VM`: opens the Windows VM wizard in a terminal.
+- `Windows Boot Detection`: read-only native dual-boot detection report
+  ([`omarchy-dualboot-windows.md`](omarchy-dualboot-windows.md)).
 
 ## Not Included
 
 GPU passthrough, Looking Glass, and VFIO GPU configuration are intentionally not
-part of this default workflow. Use native Windows boot for gaming.
+part of this default workflow. Use native Windows boot for gaming; adding a
+native Windows entry to the boot menu is covered in
+[`omarchy-dualboot-windows.md`](omarchy-dualboot-windows.md).
 
 This repo also does not auto-mount Windows NTFS partitions, edit fstab, modify
 bootloader configuration, create Windows VMs automatically, or automatically

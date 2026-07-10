@@ -42,6 +42,7 @@ change true everywhere it should apply.
 | Add a Homebrew cask on all Macs | `packages/os-macos/cask.txt` |
 | Add a package on one machine | `packages/profile-<hostname>-<os>/{pacman,aur}.txt` |
 | KVM sharing peers/positions (one machine) | `stow/profile-<hostname>-<os>/lan-mouse/.config/lan-mouse/config.toml` (see `docs/kvm-sharing.md`) |
+| Windows dual-boot detection helper | `stow/os-omarchy/scripts/.local/bin/omarchy-windows-boot-detect` (see `docs/omarchy-dualboot-windows.md`) |
 
 ## Rules of thumb
 

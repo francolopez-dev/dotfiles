@@ -1,41 +1,21 @@
-# Lan Mouse peer config for lamac (MacBook).
-# The Omarchy machines are the primary seats and sit to the LEFT of this
-# screen. Sharing is peer-to-peer: whichever machine's physical mouse crosses
-# its screen edge captures the other, so this same file lets the mac act as
-# primary once fingerprints are exchanged. Workflow: docs/kvm-sharing.md.
-#
-# NOTE: the Lan Mouse GUI saves through the stow symlink and rewrites this
-# file (comments stripped). Prefer editing here + `dotfiles apply`; after any
-# GUI session, review `git diff` and commit or checkout the result.
-
-# Press these together to force input back to this machine.
-release_bind = ["KeyLeftCtrl", "KeyLeftShift", "KeyLeftMeta", "KeyLeftAlt"]
-
 port = 4242
-
-# Peers allowed to send input TO this machine, keyed by TLS cert fingerprint.
-# `dotfiles doctor` on the Omarchy machine prints its fingerprint; paste it
-# here and commit:
-#   "aa:bb:...:ff" = "fornax"
-[authorized_fingerprints]
+release_bind = [
+    "KeyLeftCtrl",
+    "KeyLeftShift",
+    "KeyLeftMeta",
+    "KeyLeftAlt",
+]
 
 [[clients]]
-# lan-mouse's resolver cannot do mDNS (.local) lookups, so `ips` is the
-# mechanism that actually connects (it tries every entry). Append each peer's
-# IP per site — or its Tailscale 100.x.y.z once, which works everywhere.
-# Get an Omarchy machine's IP with: ip -4 -brief addr
 hostname = "fornax"
+ips = ["192.168.145.36"]
 position = "left"
 activate_on_startup = true
-ips = ["192.168.145.36"]
-port = 4242
 
 [[clients]]
-# Same edge as fornax: only one client can own a position, and the last
-# activated one wins the edge. Keep nox opt-in (activate via GUI/CLI when
-# sitting with nox) so fornax reliably holds the left edge.
 hostname = "nox"
-position = "left"
-activate_on_startup = false
 ips = []
-port = 4242
+position = "left"
+
+[authorized_fingerprints]
+"bd:7d:e6:3b:d9:a0:58:1c:d8:99:c8:f5:80:84:ca:5e:18:2b:7f:d9:3f:93:85:8a:e9:dd:40:08:4d:fd:fc:2f" = "fornaxs"

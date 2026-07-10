@@ -114,6 +114,9 @@ dotfiles apply
 - Omarchy monitor scale: profile `20-monitors.conf`, never the OS layer.
 - KVM sharing (lan-mouse) peers/positions: profile
   `lan-mouse/.config/lan-mouse/config.toml`; workflow in `docs/kvm-sharing.md`.
+- Windows native dual boot (optional, manual): helper
+  `stow/os-omarchy/scripts/.local/bin/omarchy-windows-boot-detect`; runbook in
+  `docs/omarchy-dualboot-windows.md`. Never wired into `dotfiles update`.
 
 ## Safety
 

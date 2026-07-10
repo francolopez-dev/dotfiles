@@ -49,6 +49,20 @@ Install Homebrew from `https://brew.sh`, then follow
 [`macos-first-time-setup.md`](macos-first-time-setup.md). The personal Mac uses
 hostname `lamac` and profile `profile-lamac-macos`.
 
+## Bootstrap A Minimal Debian/Ubuntu Server
+
+Headless servers get the terminal-only experience (zsh + shared aliases +
+tmux/TDL + Neovim), never desktop packages:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/jfrancolopez/dotfiles/refs/heads/main/scripts/bootstrap.sh | bash -s -- --minimal
+```
+
+`--minimal` is a guard, not a separate mode: on Debian/Ubuntu the flow is
+identical to plain bootstrap (the layer system already applies only `global` +
+`os-debian`); on Omarchy/macOS it refuses to run. Details, work-vs-personal
+guidance, and SSH/update hardening: [`server-minimal.md`](server-minimal.md).
+
 ## Daily Use
 
 ```bash
@@ -168,5 +182,6 @@ More docs: [first-time-setup.md](first-time-setup.md), [first-time-system.md](fi
 [omarchy-virtualization.md](omarchy-virtualization.md), [omarchy-dockurr-windows.md](omarchy-dockurr-windows.md),
 [macos-first-time-setup.md](macos-first-time-setup.md), [macos-personal.md](macos-personal.md),
 [git-github-cheatsheet.md](git-github-cheatsheet.md), [autostart.md](autostart.md),
-[wallpapers.md](wallpapers.md), [terminal-ux.md](terminal-ux.md), [kvm-sharing.md](kvm-sharing.md),
-and [where-to-edit.md](where-to-edit.md).
+[wallpapers.md](wallpapers.md), [terminal-ux.md](terminal-ux.md),
+[terminal-cheatsheet.md](terminal-cheatsheet.md), [server-minimal.md](server-minimal.md),
+[kvm-sharing.md](kvm-sharing.md), and [where-to-edit.md](where-to-edit.md).

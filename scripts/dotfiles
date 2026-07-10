@@ -249,8 +249,31 @@ install_missing_native_packages() {
     dim "  would run: $mgr ${missing[*]}"
   elif confirm "Install ${#missing[@]} missing package(s)?"; then
     # shellcheck disable=SC2086
-    $mgr "${missing[@]}"
+    if ! $mgr "${missing[@]}"; then
+      case "$(detect_os)" in
+        debian|ubuntu) install_apt_packages_individually "$mgr" "${missing[@]}" ;;
+        *) return 1 ;;
+      esac
+    fi
   fi
+}
+
+# apt aborts the whole transaction when any requested name is unavailable
+# (eza needs Debian 13+/Ubuntu 24.04+; third-party-repo packages are missing
+# on stock installs), so retry one at a time and report what was skipped.
+install_apt_packages_individually() {
+  local mgr="$1" p unavailable=()
+  shift
+  warn "batch install failed; retrying packages one at a time"
+  for p in "$@"; do
+    # shellcheck disable=SC2086
+    $mgr "$p" || unavailable+=("$p")
+  done
+  if [[ ${#unavailable[@]} -gt 0 ]]; then
+    warn "not installable on this release/repo set (skipped): ${unavailable[*]}"
+    return 1
+  fi
+  ok "all packages installed after per-package retry"
 }
 
 install_missing_omarchy_packages() {

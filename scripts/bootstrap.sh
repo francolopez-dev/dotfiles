@@ -36,6 +36,7 @@ export DOTFILES_DIR="${DOTFILES_DIR:-$HOME/dotfiles}"
 BRANCH="${DOTFILES_BRANCH:-main}"
 BIN_DIR="$HOME/.local/bin"
 DRY_RUN=0
+MINIMAL=0
 ZSHRC_GUARD_MARKER="# dotfiles bootstrap zsh-newuser-install guard"
 
 say() { printf '\033[34m==>\033[0m %s\n' "$*"; }
@@ -143,7 +144,13 @@ show_repo_dirty_help() {
 
 usage() {
   cat <<'EOF'
-Usage: bootstrap.sh [--dry-run] [--profile profile-<host>-<os>]
+Usage: bootstrap.sh [--dry-run] [--minimal] [--profile profile-<host>-<os>]
+
+Options:
+  --minimal   Headless-server guard: proceed only on Debian/Ubuntu, where the
+              layer system already applies terminal-only config and packages.
+              Refuses to run on Omarchy/macOS so a desktop machine cannot be
+              bootstrapped by a server runbook. See docs/server-minimal.md.
 
 Environment:
   DOTFILES_REPO_URL  Git repo URL (default: jfrancolopez/dotfiles)
@@ -156,6 +163,7 @@ EOF
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --dry-run) DRY_RUN=1; shift ;;
+    --minimal) MINIMAL=1; shift ;;
     --profile)
       [[ -n "${2:-}" ]] || { warn "--profile requires a value"; exit 2; }
       export DOTFILES_PROFILE="$2"
@@ -194,6 +202,26 @@ detect_bootstrap_os() {
 if [[ "${DOTFILES_BOOTSTRAP_DIAGNOSTICS:-0}" == "1" ]]; then
   print_diagnostics "requested by DOTFILES_BOOTSTRAP_DIAGNOSTICS=1"
 fi
+
+# --minimal changes nothing about the flow: on Debian/Ubuntu the plain
+# bootstrap is already minimal (global + os-<os> layers, terminal-only apt
+# packages). The flag exists so server runbooks are explicit and cannot be
+# pasted onto a desktop machine by mistake.
+require_minimal_target() {
+  [[ "$MINIMAL" -eq 1 ]] || return 0
+  local os
+  os="$(detect_bootstrap_os)"
+  case "$os" in
+    debian|ubuntu)
+      say "Minimal server bootstrap on $os (same flow as plain bootstrap; guard only)"
+      ;;
+    *)
+      die \
+        "--minimal is for headless Debian/Ubuntu servers, but this machine detected as: $os." \
+        "Run bootstrap without --minimal on desktop machines. See docs/server-minimal.md."
+      ;;
+  esac
+}
 
 install_bootstrap_prereqs() {
   local prereqs=(git stow zsh curl bash ca-certificates) missing=() pkg
@@ -634,6 +662,7 @@ reexec_with_modern_bash() {
 }
 
 main() {
+  require_minimal_target
   install_bootstrap_prereqs
   reexec_with_modern_bash "$@"
   install_zshrc_guard

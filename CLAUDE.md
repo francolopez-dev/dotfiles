@@ -117,6 +117,11 @@ dotfiles apply
 - Windows native dual boot (optional, manual): helper
   `stow/os-omarchy/scripts/.local/bin/omarchy-windows-boot-detect`; runbook in
   `docs/omarchy-dualboot-windows.md`. Never wired into `dotfiles update`.
+- Headless Debian/Ubuntu servers: bootstrap with `--minimal` (guard only; the
+  flow is the plain bootstrap); runbook in `docs/server-minimal.md`, command
+  reference in `docs/terminal-cheatsheet.md`. Server apt lists stay terminal-
+  only and stock-repo-only; third-party-repo packages are per-machine profile
+  opt-ins. SSH/firewall hardening is documented there, never automated.
 
 ## Safety
 

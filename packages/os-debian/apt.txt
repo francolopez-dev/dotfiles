@@ -1,4 +1,11 @@
 # Debian/Ubuntu server packages installed via apt on top of global/apt.txt.
-# Note: on Debian/Ubuntu `bat` installs as `batcat`; `eza` needs Debian 13+/Ubuntu 24.04+.
+# Keep this list terminal-only and stock-repo-only. Anything that needs a
+# third-party apt repo (tailscale, docker, ...) is opt-in per machine via
+# packages/profile-<hostname>-<os>/apt.txt after that repo is configured;
+# see docs/server-minimal.md.
+# Note: on Debian/Ubuntu `bat` installs as `batcat` and `fd-find` as `fdfind`;
+# `eza` needs Debian 13+/Ubuntu 24.04+.
 ca-certificates
-tailscale
+# Automatic security updates with the packaged defaults: security pocket only,
+# no auto-reboot. Verification and tuning: docs/server-minimal.md.
+unattended-upgrades

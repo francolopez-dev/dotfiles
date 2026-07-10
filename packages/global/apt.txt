@@ -16,3 +16,10 @@ curl
 bash
 wget
 nano
+# Terminal basics available in stock Debian 11+/Ubuntu 20.04+ repos.
+# fd-find installs the binary as `fdfind` (bat as `batcat`).
+bash-completion
+tree
+rsync
+unzip
+fd-find

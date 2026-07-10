@@ -1,0 +1,136 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+compose_file="${WINDOWS_DOCKURR_COMPOSE_FILE:-$HOME/.config/windows/docker-compose.yml}"
+
+usage() {
+  cat <<'EOF'
+Usage: omarchy-windows-dockurr-rdp [launch|start] [--keep-alive]
+
+Start the Omarchy Dockurr Windows container if needed and connect with tuned
+FreeRDP settings for image quality and responsiveness.
+EOF
+}
+
+die() { printf 'err %s\n' "$*" >&2; exit 1; }
+
+require_cmd() {
+  command -v "$1" >/dev/null 2>&1 || die "missing command: $1"
+}
+
+compose_env() {
+  local key="$1"
+  awk -v key="$key" '
+    $1 == key ":" {
+      sub("^[^:]+:[[:space:]]*", "")
+      gsub(/^"|"$/, "")
+      print
+      exit
+    }
+  ' "$compose_file"
+}
+
+rdp_scale_arg() {
+  command -v hyprctl >/dev/null 2>&1 || return 0
+  command -v jq >/dev/null 2>&1 || return 0
+
+  local hypr_scale scale_percent
+  hypr_scale=$(hyprctl monitors -j | jq -r '.[] | select(.focused == true) | .scale' 2>/dev/null || true)
+  [[ -n $hypr_scale && $hypr_scale != "null" ]] || return 0
+
+  scale_percent=$(awk -v scale="$hypr_scale" 'BEGIN { print int(scale * 100) }')
+  if (( scale_percent >= 170 )); then
+    printf '/scale:180\n'
+  elif (( scale_percent >= 130 )); then
+    printf '/scale:140\n'
+  fi
+}
+
+wait_for_windows() {
+  local wait_count=0
+  until docker logs omarchy-windows 2>&1 | grep -qi "windows started successfully"; do
+    sleep 2
+    wait_count=$((wait_count + 1))
+    if (( wait_count > 60 )); then
+      die "timeout waiting for Windows startup; check: docker logs omarchy-windows"
+    fi
+  done
+}
+
+launch_windows() {
+  local keep_alive=false
+  case "${1:-}" in
+    --keep-alive|-k) keep_alive=true ;;
+    "") ;;
+    *) die "unknown option: $1" ;;
+  esac
+
+  [[ -f $compose_file ]] || die "compose file not found: $compose_file"
+  require_cmd docker
+  require_cmd xfreerdp3
+
+  local win_user win_pass container_status rdp_scale
+  win_user=$(compose_env USERNAME)
+  win_pass=$(compose_env PASSWORD)
+  [[ -n $win_user ]] || win_user="docker"
+  [[ -n $win_pass ]] || win_pass="admin"
+
+  container_status=$(docker inspect --format='{{.State.Status}}' omarchy-windows 2>/dev/null || true)
+  if [[ $container_status != "running" ]]; then
+    printf 'Starting Windows VM...\n'
+    if command -v notify-send >/dev/null 2>&1; then
+      notify-send "Windows VM" "Starting Windows VM" -t 15000
+    fi
+    docker compose -f "$compose_file" up -d
+    wait_for_windows
+  fi
+
+  rdp_scale=$(rdp_scale_arg)
+
+  rdp_args=(
+    "/u:$win_user"
+    "/p:$win_pass"
+    "/v:127.0.0.1:3389"
+    "-grab-keyboard"
+    "/sound"
+    "/microphone"
+    "/clipboard"
+    "/cert:ignore"
+    "/t:Windows VM - Omarchy"
+    "+dynamic-resolution"
+    "/bpp:32"
+    "/network:auto"
+    "/gfx:AVC444:on,AVC420:on,progressive:on,small-cache:on,frame-ack:on"
+    "/cache:bitmap:on,glyph:on,offscreen:on,persist"
+    "+aero"
+    "+window-drag"
+    "+menu-anims"
+    "/floatbar:sticky:off,default:visible,show:fullscreen"
+  )
+  [[ -z $rdp_scale ]] || rdp_args+=("$rdp_scale")
+
+  printf '%s\n' "${rdp_args[@]}" | xfreerdp3 /args-from:stdin
+
+  if [[ $keep_alive == false ]]; then
+    printf 'RDP session closed. Stopping Windows VM...\n'
+    docker compose -f "$compose_file" stop windows
+    printf 'Windows VM stopped.\n'
+  else
+    printf 'RDP session closed. Windows VM is still running.\n'
+    printf 'To stop it: docker compose -f %q stop windows\n' "$compose_file"
+  fi
+}
+
+case "${1:-launch}" in
+  launch|start)
+    shift || true
+    launch_windows "${1:-}"
+    ;;
+  -h|--help|help)
+    usage
+    ;;
+  *)
+    usage >&2
+    exit 1
+    ;;
+esac

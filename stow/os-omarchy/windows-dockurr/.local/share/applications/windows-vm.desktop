@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Windows
+Comment=Start Omarchy Dockurr Windows VM via tuned FreeRDP
+Exec=uwsm app -- omarchy-windows-dockurr-rdp launch
+Icon=/home/jfranco/.local/share/applications/icons/windows.png
+Terminal=false
+Type=Application
+Categories=System;Emulator;

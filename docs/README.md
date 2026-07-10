@@ -165,7 +165,8 @@ Walker is an Omarchy default app launcher. This repo does not install, stow, or
 configure Walker.
 
 More docs: [first-time-setup.md](first-time-setup.md), [first-time-system.md](first-time-system.md),
-[omarchy-virtualization.md](omarchy-virtualization.md), [macos-first-time-setup.md](macos-first-time-setup.md),
-[macos-personal.md](macos-personal.md), [git-github-cheatsheet.md](git-github-cheatsheet.md),
-[autostart.md](autostart.md), [wallpapers.md](wallpapers.md), [terminal-ux.md](terminal-ux.md),
-[kvm-sharing.md](kvm-sharing.md), and [where-to-edit.md](where-to-edit.md).
+[omarchy-virtualization.md](omarchy-virtualization.md), [omarchy-dockurr-windows.md](omarchy-dockurr-windows.md),
+[macos-first-time-setup.md](macos-first-time-setup.md), [macos-personal.md](macos-personal.md),
+[git-github-cheatsheet.md](git-github-cheatsheet.md), [autostart.md](autostart.md),
+[wallpapers.md](wallpapers.md), [terminal-ux.md](terminal-ux.md), [kvm-sharing.md](kvm-sharing.md),
+and [where-to-edit.md](where-to-edit.md).

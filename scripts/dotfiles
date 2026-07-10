@@ -708,6 +708,9 @@ configure_macos_declared_services() {
   package_declared_short sketchybar && configure_macos_dotfiles_launchagent "$dry" sketchybar || true
   package_declared_short linearmouse && configure_macos_dotfiles_launchagent "$dry" linearmouse LinearMouse /Applications/LinearMouse.app || true
   configure_macos_lanmouse "$dry" || true
+  # The KDE Connect app does not reliably (re)spawn its discovery daemon, so
+  # kdeconnectd is managed like the other dotfiles daemons.
+  package_declared_short kde-connect && configure_macos_dotfiles_launchagent "$dry" kdeconnectd kdeconnectd "/Applications/KDE Connect.app" || true
   configure_macos_primary_bar_defaults "$dry"
   configure_macos_menubar_background "$dry"
   configure_macos_dock_defaults "$dry"
@@ -1742,6 +1745,9 @@ cmd_doctor() {
     _macos_dotfiles_launchagent_doctor borders borders || failed=1
     _macos_dotfiles_launchagent_doctor sketchybar sketchybar || failed=1
     _macos_dotfiles_launchagent_doctor linearmouse LinearMouse || failed=1
+    if package_declared_short kde-connect; then
+      _macos_dotfiles_launchagent_doctor kdeconnectd kdeconnectd || failed=1
+    fi
     _macos_nerd_font_doctor || failed=1
     _macos_mas_doctor || failed=1
     _macos_menubar_background_doctor || failed=1
@@ -1855,6 +1861,7 @@ cmd_status() {
       _macos_dotfiles_launchagent_status borders borders
       _macos_dotfiles_launchagent_status sketchybar sketchybar
       _macos_dotfiles_launchagent_status linearmouse LinearMouse
+      _macos_dotfiles_launchagent_status kdeconnectd kdeconnectd
       _lanmouse_status
       _macos_dock_status
       _macos_finder_status

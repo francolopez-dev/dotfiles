@@ -79,21 +79,34 @@ omarchy-windows-vm-create
 
 Or open `Create Windows VM` from the Omarchy app menu.
 
-The wizard asks for VM name, Windows ISO path, RAM, vCPUs, storage mode, and an
-optional VirtIO driver ISO. It creates the VM with UEFI, TPM 2.0, SPICE display,
-QXL video, tablet input, default libvirt NAT, and VirtIO networking.
+The wizard asks for storage mode first, then VM name, RAM, vCPUs, and any media
+needed for that storage choice. It creates the VM with UEFI, TPM 2.0, SPICE
+display, QXL video, tablet input, default libvirt NAT, and VirtIO networking.
 
 ## Storage Choices
 
-Local qcow2 image is the safe default. The wizard creates a qcow2 disk under:
+Local qcow2 image is the safe default. The wizard asks for a Windows ISO and
+creates a qcow2 disk under:
 
 ```text
 ~/.local/share/libvirt/windows-vms/disks/
 ```
 
 Raw disk mode is advanced and dangerous. It is available only when explicitly
-chosen. The wizard shows `lsblk`, requires a stable `/dev/disk/by-id/...` path,
-and requires typing this exact phrase:
+chosen. The wizard inventories stable `/dev/disk/by-id/...` whole-disk paths,
+shows their partition layout, and includes an `Other / manual path` option for
+paths not listed. It rejects partition paths and unstable names such as
+`/dev/nvme0n1` or `/dev/sdX`.
+
+Choose the whole Windows disk, not the Windows NTFS partition. For a typical
+dual-boot Windows disk, the whole disk contains the EFI, Microsoft reserved,
+Windows, and recovery partitions together.
+
+Raw disk mode does not require a Windows ISO when booting an existing install.
+The wizard can optionally attach a Windows ISO or repair ISO if you explicitly
+choose that after selecting the raw disk.
+
+Raw disk mode requires typing this exact phrase:
 
 ```text
 I understand this can destroy data
@@ -105,7 +118,8 @@ Raw disk safety rules:
 - Do not hibernate Windows.
 - Fully shut down Windows before using the same install in a VM.
 - Do not mount NTFS read/write in Linux while the VM uses the disk.
-- Use stable `/dev/disk/by-id/...` paths, not `/dev/nvme0n1` or `/dev/sdX`.
+- Use a whole-disk stable `/dev/disk/by-id/...` path, not a partition path and
+  not `/dev/nvme0n1` or `/dev/sdX`.
 - Back up important data before experimenting.
 
 Inside Windows:

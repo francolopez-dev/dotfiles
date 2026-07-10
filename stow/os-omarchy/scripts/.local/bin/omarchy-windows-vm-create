@@ -45,6 +45,75 @@ prompt_file() {
   done
 }
 
+print_raw_disk_inventory() {
+  local by_id_path="$1" resolved
+  resolved="$(readlink -f "$by_id_path")"
+
+  printf '  %s -> %s\n' "$by_id_path" "$resolved"
+  lsblk -no NAME,SIZE,TYPE,FSTYPE,LABEL,MOUNTPOINTS "$resolved" | sed 's/^/    /'
+}
+
+select_raw_disk() {
+  local -a raw_disk_paths=()
+  local -A seen_raw_disks=()
+  local by_id_path resolved device_type choice raw_path index
+
+  for by_id_path in /dev/disk/by-id/nvme-* /dev/disk/by-id/*; do
+    [[ -e "$by_id_path" ]] || continue
+    [[ "$by_id_path" != /dev/disk/by-id/nvme-eui.* ]] || continue
+    [[ "$by_id_path" != *_1 ]] || continue
+    [[ "$by_id_path" != *-part* ]] || continue
+
+    resolved="$(readlink -f "$by_id_path")"
+    [[ -b "$resolved" ]] || continue
+    [[ -z "${seen_raw_disks[$resolved]:-}" ]] || continue
+    device_type="$(lsblk -dn -o TYPE "$resolved" 2>/dev/null || true)"
+    [[ "$device_type" == "disk" ]] || continue
+    seen_raw_disks[$resolved]=1
+    raw_disk_paths+=("$by_id_path")
+  done
+
+  printf '\nDetected raw disk candidates:\n' >&2
+  if ((${#raw_disk_paths[@]} == 0)); then
+    printf '  No /dev/disk/by-id whole-disk candidates found.\n' >&2
+  else
+    for index in "${!raw_disk_paths[@]}"; do
+      printf '\n  %d) ' "$((index + 1))" >&2
+      print_raw_disk_inventory "${raw_disk_paths[$index]}" >&2
+    done
+  fi
+  printf '\n  %d) Other / manual path\n' "$(( ${#raw_disk_paths[@]} + 1 ))" >&2
+
+  while true; do
+    choice="$(prompt "Choose raw disk" 1)"
+    [[ "$choice" =~ ^[0-9]+$ ]] || { warn "choose a number"; continue; }
+
+    if (( choice >= 1 && choice <= ${#raw_disk_paths[@]} )); then
+      raw_path="${raw_disk_paths[$((choice - 1))]}"
+      printf '%s\n' "$raw_path"
+      return
+    fi
+
+    if (( choice == ${#raw_disk_paths[@]} + 1 )); then
+      while true; do
+        raw_path="$(prompt "Raw disk /dev/disk/by-id path")"
+        raw_path="${raw_path/#\~/$HOME}"
+        [[ "$raw_path" == /dev/disk/by-id/* ]] || { warn "path must start with /dev/disk/by-id/"; continue; }
+        [[ "$raw_path" != *-part* ]] || { warn "choose a whole disk path, not a partition"; continue; }
+        [[ -e "$raw_path" ]] || { warn "path does not exist: $raw_path"; continue; }
+        resolved="$(readlink -f "$raw_path")"
+        [[ -b "$resolved" ]] || { warn "path is not a block device: $raw_path"; continue; }
+        device_type="$(lsblk -dn -o TYPE "$resolved" 2>/dev/null || true)"
+        [[ "$device_type" == "disk" ]] || { warn "path must resolve to a whole disk, not $device_type"; continue; }
+        printf '%s\n' "$raw_path"
+        return
+      done
+    fi
+
+    warn "choose 1 through $(( ${#raw_disk_paths[@]} + 1 ))"
+  done
+}
+
 require_cmd virsh
 require_cmd virt-install
 require_cmd lsblk
@@ -66,21 +135,9 @@ assignment, or modify an existing Windows install unless you explicitly choose
 raw disk mode and then boot that disk in the VM.
 EOF
 
-vm_name="$(prompt "VM name" "$default_name")"
-[[ -n "$vm_name" ]] || die "VM name cannot be empty"
-
-if virsh -c "$connection" dominfo "$vm_name" >/dev/null 2>&1; then
-  die "VM already exists: $vm_name"
-fi
-
-windows_iso="$(prompt_file "Windows ISO path")"
-ram_gb="$(prompt_number "RAM in GB" 8)"
-vcpus="$(prompt_number "vCPUs" 4)"
-memory_mib=$((ram_gb * 1024))
-
 printf '\nStorage mode:\n'
 printf '  1) Local qcow2 image\n'
-printf '  2) Raw block device / dedicated disk\n'
+printf '  2) Existing raw block device / dedicated disk\n'
 while true; do
   storage_choice="$(prompt "Choose storage mode" 1)"
   case "$storage_choice" in
@@ -90,6 +147,22 @@ while true; do
   esac
 done
 
+vm_name="$(prompt "VM name" "$default_name")"
+[[ -n "$vm_name" ]] || die "VM name cannot be empty"
+
+if virsh -c "$connection" dominfo "$vm_name" >/dev/null 2>&1; then
+  die "VM already exists: $vm_name"
+fi
+
+windows_iso=""
+if [[ "$storage_mode" == "qcow2" ]]; then
+  windows_iso="$(prompt_file "Windows ISO path")"
+fi
+
+ram_gb="$(prompt_number "RAM in GB" 8)"
+vcpus="$(prompt_number "vCPUs" 4)"
+memory_mib=$((ram_gb * 1024))
+
 disk_arg=""
 if [[ "$storage_mode" == "qcow2" ]]; then
   disk_size_gb="$(prompt_number "Disk size in GB" 100)"
@@ -98,23 +171,26 @@ if [[ "$storage_mode" == "qcow2" ]]; then
   [[ ! -e "$disk_path" ]] || die "disk already exists: $disk_path"
   disk_arg="path=$disk_path,size=$disk_size_gb,bus=virtio,format=qcow2,cache=none,discard=unmap"
 else
-  printf '\nDetected block devices:\n'
-  lsblk -o NAME,SIZE,TYPE,FSTYPE,LABEL,MOUNTPOINTS
   cat <<EOF
 
 Raw disk mode can destroy data if you choose the wrong device.
+Choose the whole Windows disk, not an individual partition.
 Use a stable /dev/disk/by-id/... path, not /dev/nvme0n1 or /dev/sdX.
 Required confirmation phrase: $confirm_phrase
 EOF
-  while true; do
-    raw_path="$(prompt "Raw disk /dev/disk/by-id path")"
-    [[ "$raw_path" == /dev/disk/by-id/* ]] || { warn "path must start with /dev/disk/by-id/"; continue; }
-    [[ -e "$raw_path" ]] || { warn "path does not exist: $raw_path"; continue; }
-    break
-  done
+  raw_path="$(select_raw_disk)"
+
+  printf '\nSelected raw disk:\n'
+  print_raw_disk_inventory "$raw_path"
+
   confirmation="$(prompt "Type confirmation phrase exactly")"
   [[ "$confirmation" == "$confirm_phrase" ]] || die "confirmation phrase did not match; aborting"
   disk_arg="path=$raw_path,bus=virtio,format=raw,cache=none,discard=unmap"
+
+  attach_windows_iso="$(prompt "Attach Windows ISO or repair media?" "n")"
+  case "$attach_windows_iso" in
+    y|Y|yes|YES) windows_iso="$(prompt_file "Windows ISO path")" ;;
+  esac
 fi
 
 virtio_iso=""
@@ -123,7 +199,7 @@ case "$attach_virtio" in
   y|Y|yes|YES) virtio_iso="$(prompt_file "VirtIO ISO path")" ;;
 esac
 
-start_install="$(prompt "Start installer now?" "y")"
+start_install="$(prompt "Start VM now?" "y")"
 
 args=()
 args+=(--connect "$connection")
@@ -132,7 +208,11 @@ args+=(--memory "$memory_mib")
 args+=(--vcpus "$vcpus")
 args+=(--cpu host-passthrough)
 args+=(--disk "$disk_arg")
-args+=(--cdrom "$windows_iso")
+if [[ -n "$windows_iso" ]]; then
+  args+=(--cdrom "$windows_iso")
+else
+  args+=(--import)
+fi
 args+=(--os-variant "$windows_os_variant")
 args+=(--network "network=default,model=virtio")
 args+=(--graphics "spice,listen=none")
@@ -156,7 +236,8 @@ virt-install "${args[@]}"
 cat <<EOF
 
 Next steps:
-- Install Windows from the ISO.
+- For a new qcow2 VM, install Windows from the ISO.
+- For raw disk mode without an ISO, Windows should boot from the selected disk.
 - If Windows has no network, temporarily switch NIC to e1000e in virt-manager or attach/install VirtIO NetKVM drivers.
 - Install SPICE guest tools inside Windows for clipboard, mouse, and resize behavior.
 - After Windows enables RDP, run: omarchy-windows-vm rdp $vm_name

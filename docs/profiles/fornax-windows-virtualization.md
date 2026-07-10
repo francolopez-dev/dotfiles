@@ -13,7 +13,8 @@ Before using the FORNAX Windows disk in a VM:
 - Do not hibernate Windows.
 - Fully shut down Windows before booting the same install in a VM.
 - Do not mount the Windows NTFS partition read/write in Linux while the VM uses the disk.
-- Use a stable `/dev/disk/by-id/...` path, not `/dev/nvme0n1`.
+- Use the wizard's whole-disk `/dev/disk/by-id/...` option, not the `Windows-SSD`
+  partition and not `/dev/nvme0n1`.
 - Back up important data.
 
 Identify stable disk paths:

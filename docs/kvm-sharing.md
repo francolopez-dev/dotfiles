@@ -137,10 +137,14 @@ is currently sending input.
   are relative to the machine whose file it is), commit, `dotfiles apply`.
 - Keys behaving oddly on the Mac side were fixed upstream (modifier handling,
   key repeat); if a layout issue appears, upgrade the pin before debugging.
-- Scrolling from the MAC toward Linux not working is a known upstream gap in
-  the macOS capture backend (issues #331/#450, fix pending in PR #460 as of
-  July 2026). Linux -> Mac scrolling works. Bump the pin when a release
-  containing the fix ships.
+- Scrolling from the Mac toward Omarchy not working (buttons fine, wheel AND
+  trackpad dead): root cause is HYPRLAND, not lan-mouse — it dropped scroll
+  events from virtual pointers. Fixed upstream in hyprwm/Hyprland PR #15319
+  (merged 2026-07-04); no released Hyprland contains it as of v0.55.4, so it
+  resolves with the next Hyprland release reaching Omarchy. Nothing to change
+  in lan-mouse or this repo.
+- Other macOS-side issues (modifier injection quirks, Caps Lock) are tracked
+  upstream in lan-mouse #450 / PR #460; bump the pin when a release ships.
 
 ## Rejected Alternatives (July 2026)
 

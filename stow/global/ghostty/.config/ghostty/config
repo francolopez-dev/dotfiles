@@ -52,7 +52,11 @@ window-decoration = false
 scrollback-limit = 10000
 confirm-close-surface = true
 shell-integration = detect
-shell-integration-features = cursor,sudo,title
+# ssh-terminfo installs xterm-ghostty on remote hosts via infocmp|tic (cached);
+# ssh-env falls back to TERM=xterm-256color when that install fails. Without
+# these, SSH to hosts lacking the terminfo breaks zle redraw and full-screen
+# apps (nano ignores Ctrl-X). Both need Ghostty >= 1.2.
+shell-integration-features = cursor,sudo,title,ssh-env,ssh-terminfo
 mouse-hide-while-typing = true
 cursor-click-to-move = true
 selection-clear-on-copy = true

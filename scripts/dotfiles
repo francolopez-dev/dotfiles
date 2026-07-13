@@ -1614,6 +1614,45 @@ print_next_steps() {
   printf '  Shell: open a new terminal or run exec zsh -l\n'
 }
 
+# SSH-session and legacy-layout checks that matter most on headless servers
+# but are cheap and correct everywhere. Runbook: docs/server-minimal.md.
+# shellcheck disable=SC2088  # literal ~/ in user-facing messages
+_terminal_doctor() {
+  local failed=0 link_target d name
+  if [[ -L "$HOME/.ssh" ]]; then
+    link_target="$(readlink "$HOME/.ssh")"
+    [[ "$link_target" == /* ]] || link_target="$HOME/$link_target"
+    case "$link_target" in
+      "$DOTFILES_DIR"/*)
+        err "~/.ssh is a symlink into the repo (legacy flat layout); key material there can be lost with the checkout"
+        dim "  migrate it: rerun scripts/bootstrap.sh (moves keys into a real ~/.ssh; see docs/server-minimal.md)"
+        failed=1
+        ;;
+    esac
+  fi
+  for d in "$DOTFILES_DIR"/stow/*/; do
+    [[ -d "$d" ]] || continue
+    name="$(basename "$d")"
+    case "$name" in
+      global|os-*|profile-*) ;;
+      *) warn "legacy stow package leftover: stow/$name (old flat layout; review contents, rescue anything precious, then delete)" ;;
+    esac
+  done
+  # Warn-only: TERM depends on whatever client is connected right now, so it
+  # must never flip doctor to failing on an otherwise healthy machine.
+  if [[ -n "${TERM:-}" && "$TERM" != dumb ]] && command -v infocmp >/dev/null 2>&1; then
+    if infocmp "$TERM" >/dev/null 2>&1; then
+      ok "terminfo present for TERM=$TERM"
+    else
+      warn "no terminfo for TERM=$TERM; zle redraw and full-screen apps (nano) will misbehave"
+      dim "  from your local machine: infocmp -x \"$TERM\" | ssh $(detect_hostname) -- tic -x -"
+      dim "  for this session: export TERM=xterm-256color"
+      dim "  permanent client fix (Ghostty >= 1.2): shell-integration-features ssh-terminfo,ssh-env"
+    fi
+  fi
+  return "$failed"
+}
+
 update_repo_safely() {
   local current_branch dirty choice default_branch
   dirty="$(git -C "$DOTFILES_DIR" status --porcelain)"
@@ -1781,6 +1820,9 @@ cmd_doctor() {
   else
     failed=1
   fi
+
+  info "Terminal health"
+  _terminal_doctor || failed=1
 
   info "Stow health"
   if apply_all_layers --no --verbose >/tmp/dotfiles-doctor-stow.$$ 2>&1; then

@@ -20,6 +20,12 @@ stow/global/neovim/.config/nvim/lazy-lock.json
 # TLS/key material (e.g. lan-mouse.pem) must never be committed.
 *.pem
 
+# SSH key material must never be committed. Only the ssh client config is
+# trackable under any stow ssh package; keys, authorized_keys, and known_hosts
+# stay machine-local (legacy checkouts accumulated them untracked in-repo).
+stow/**/.ssh/*
+!stow/**/.ssh/config
+
 # Logs
 logs/
 *.log

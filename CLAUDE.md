@@ -122,6 +122,10 @@ dotfiles apply
   reference in `docs/terminal-cheatsheet.md`. Server apt lists stay terminal-
   only and stock-repo-only; third-party-repo packages are per-machine profile
   opt-ins. SSH/firewall hardening is documented there, never automated.
+  Hosts on the pre-layer flat layout (`stow/shell`, folded `~/.ssh` symlink
+  with keys inside the repo): bootstrap rescues `~/.ssh` automatically; the
+  migration runbook and Ghostty-SSH/terminfo troubleshooting live in
+  `docs/server-minimal.md`.
 
 ## Safety
 

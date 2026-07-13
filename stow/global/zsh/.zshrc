@@ -1,3 +1,14 @@
+# SSH sessions only: a client terminal whose terminfo this host lacks (e.g.
+# Ghostty's xterm-ghostty) breaks zle redraw and full-screen apps (nano
+# ignores Ctrl-X). Fall back to a universally shipped entry. Local shells
+# always have their own terminfo, so this is inert on desktops. The real fix
+# is client-side (Ghostty ssh-terminfo); see docs/server-minimal.md.
+if [[ -n "${SSH_CONNECTION:-}${SSH_TTY:-}" && -n "$TERM" && "$TERM" != dumb ]] \
+    && command -v infocmp >/dev/null 2>&1 \
+    && ! infocmp "$TERM" >/dev/null 2>&1; then
+  export TERM=xterm-256color
+fi
+
 if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
   source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
 fi

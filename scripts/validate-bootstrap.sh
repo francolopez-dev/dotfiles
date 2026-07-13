@@ -16,6 +16,7 @@ bash_syntax_scripts=(
   "$repo_dir/scripts/lib/packages.sh"
   "$repo_dir/scripts/lib/stow.sh"
   "$repo_dir/tests/bootstrap-first-run.sh"
+  "$repo_dir/tests/legacy-ssh-migration.sh"
   "$repo_dir/tests/package-bootstrap.sh"
   "$repo_dir/.githooks/pre-commit"
 )
@@ -77,6 +78,7 @@ printf '==> bootstrap fixture\n'
 if requires_bootstrap_fixture; then
   run_step "bootstrap clean dry-run" bootstrap_clean_dry_run
   run_step "bootstrap first-run fixture" "$repo_dir/tests/bootstrap-first-run.sh"
+  run_step "legacy ssh migration fixture" "$repo_dir/tests/legacy-ssh-migration.sh"
 else
   printf 'skipped: no bootstrap/profile/package changes\n'
 fi

@@ -131,15 +131,89 @@ repo_dirty() {
   [[ -n "$(git -C "$DOTFILES_DIR" status --porcelain 2>/dev/null || true)" ]]
 }
 
+legacy_flat_layout() {
+  [[ -d "$DOTFILES_DIR/stow/shell" && ! -d "$DOTFILES_DIR/stow/global" ]]
+}
+
 show_repo_dirty_help() {
   warn "repo has local changes; skipping bootstrap pull to protect your work"
   git -C "$DOTFILES_DIR" status --short --branch || true
-  printf '\nRun these diagnostics:\n'
-  printf '  cd ~/dotfiles\n'
-  printf '  git status --short --branch\n'
-  printf '  git diff --name-only\n'
-  printf '\nThen run:\n'
-  printf '  ~/dotfiles/scripts/dotfiles update\n\n'
+  printf '\nReview them first (nothing is reset for you):\n'
+  printf '  git -C %s status\n' "$DOTFILES_DIR"
+  printf '  git -C %s diff\n' "$DOTFILES_DIR"
+  if legacy_flat_layout; then
+    printf '\nThis checkout still uses the old flat stow layout (stow/shell, stow/git, ...).\n'
+    printf 'Those paths no longer exist upstream, so the modified files cannot merge.\n'
+    printf 'Stash them (kept recoverable; do NOT use -u, untracked files stay put),\n'
+    printf 'then rerun the same bootstrap command you just ran:\n'
+    printf '  git -C %s stash push -m "pre-layer-migration"\n' "$DOTFILES_DIR"
+    printf 'Recover any stashed edit later with: git -C %s stash show -p\n\n' "$DOTFILES_DIR"
+  else
+    printf '\nThen commit or stash intentionally and rerun:\n'
+    printf '  git -C %s stash push -m "pre-bootstrap"\n' "$DOTFILES_DIR"
+    printf '  %s/scripts/dotfiles update\n\n' "$DOTFILES_DIR"
+  fi
+}
+
+# Pre-layer checkouts (flat stow/shell, stow/ssh, ...) stowed ssh with
+# directory folding, so ~/.ssh is a symlink into the repo and key material
+# (id_*, authorized_keys, known_hosts) accumulated untracked inside the
+# checkout. Move that material into a real ~/.ssh before any git or stow step:
+# keys must never live in the repo, and removing the checkout must never be
+# able to lock you out of the machine. Tracked files are copied so the
+# checkout stays clean for the ff-only pull; untracked files are moved;
+# nothing is deleted.
+# shellcheck disable=SC2088  # literal ~/ in user-facing messages
+rescue_ssh_from_legacy_checkout() {
+  local ssh_link="$HOME/.ssh" link_target staging entry rel backup_root
+  [[ -L "$ssh_link" ]] || return 0
+  link_target="$(readlink "$ssh_link")"
+  [[ "$link_target" == /* ]] || link_target="$HOME/$link_target"
+  case "$link_target" in
+    "$DOTFILES_DIR"/*) ;;
+    *) return 0 ;; # ~/.ssh is managed some other way; not ours to touch
+  esac
+
+  if [[ ! -d "$link_target" ]]; then
+    warn "~/.ssh is a dangling symlink into the repo: $link_target"
+    if [[ $DRY_RUN -eq 1 ]]; then
+      warn "dry-run: would move the dead symlink aside and create a real ~/.ssh"
+      return 0
+    fi
+    backup_root="${DOTFILES_BACKUP_DIR:-$HOME/.dotfiles-backup/$(date +%Y-%m-%d-%H%M%S)}"
+    mkdir -p "$backup_root"
+    mv "$ssh_link" "$backup_root/.ssh.dead-symlink"
+    mkdir -m 700 "$ssh_link"
+    warn "created an empty ~/.ssh; restore authorized_keys and keys from backups BEFORE closing this session"
+    return 0
+  fi
+
+  say "Migrating ~/.ssh out of the legacy checkout ($link_target)"
+  if [[ $DRY_RUN -eq 1 ]]; then
+    warn "dry-run: would convert ~/.ssh to a real directory and move key material out of the repo"
+    return 0
+  fi
+
+  staging="$(mktemp -d "$HOME/.ssh.rescue.XXXXXX")"
+  chmod 700 "$staging"
+  while IFS= read -r -d '' entry; do
+    rel="${entry#"$DOTFILES_DIR"/}"
+    if git -C "$DOTFILES_DIR" ls-files --error-unmatch -- "$rel" >/dev/null 2>&1; then
+      # Tracked (e.g. the old stowed config): copy, so the checkout stays
+      # clean and the ff-only pull can delete the old path itself.
+      cp -pR "$entry" "$staging/"
+    else
+      # Untracked (private keys, authorized_keys, known_hosts): move out of
+      # the repo so they can never be committed or lost with the checkout.
+      mv "$entry" "$staging/"
+    fi
+  done < <(find "$link_target" -mindepth 1 -maxdepth 1 -print0)
+
+  rm "$ssh_link"
+  mv "$staging" "$ssh_link"
+  chmod 700 "$ssh_link"
+  say "~/.ssh is now a real directory; key material moved out of the repo"
+  say "Verify a NEW ssh login works before closing this session"
 }
 
 usage() {
@@ -665,9 +739,22 @@ main() {
   require_minimal_target
   install_bootstrap_prereqs
   reexec_with_modern_bash "$@"
+  # Server-migration logic only: run the legacy rescue for --minimal runs or
+  # when the checkout is still on the old flat layout. Desktop machines on
+  # the layer layout never enter this path and keep the pre-existing flow.
+  if [[ -d "$DOTFILES_DIR/.git" ]] && { [[ "$MINIMAL" -eq 1 ]] || legacy_flat_layout; }; then
+    rescue_ssh_from_legacy_checkout
+  fi
   install_zshrc_guard
   run_bootstrap_repo_flow
   bootstrap_summary
 }
+
+# Test fixtures source this file to exercise individual functions without
+# running the full flow (tests/legacy-ssh-migration.sh).
+if [[ "${DOTFILES_BOOTSTRAP_SOURCE_ONLY:-0}" == "1" ]]; then
+  # shellcheck disable=SC2317  # exit runs only when executed, not sourced
+  return 0 2>/dev/null || exit 0
+fi
 
 main "$@"

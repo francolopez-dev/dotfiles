@@ -40,6 +40,52 @@ dotfiles update
 dotfiles apply
 ```
 
+## Migrating A Host From The Old Flat Layout
+
+Machines bootstrapped before the layer system (e.g. domum-core) have a
+`~/dotfiles` checkout with flat packages (`stow/shell`, `stow/git`,
+`stow/ssh`, `stow/tmux`) and home symlinks pointing at those paths. Old stow
+folded directories, so `~/.ssh` is a **symlink into the repo** and private
+keys / `authorized_keys` sit untracked inside the checkout. Two hard rules:
+
+- Never `rm -rf ~/dotfiles` on such a host before checking `ls -la ~/.ssh` —
+  if it is a symlink into the repo, deleting the checkout deletes your keys
+  and locks you out.
+- Never `git stash -u` / `git clean` there — untracked files include the keys.
+
+Migration, from a working terminal (Alacritty, or Ghostty after the
+troubleshooting section below):
+
+```bash
+# 1. See what you have. Expect symlinks into ~/dotfiles/stow/... and a dirty repo.
+readlink -f ~/.zshrc ~/.gitconfig ~/.ssh ~/.tmux.conf
+git -C ~/dotfiles status --short --branch
+
+# 2. Run the new bootstrap. It rescues ~/.ssh FIRST (converts it to a real
+#    700 directory, moves key material out of the repo, deletes nothing),
+#    then stops if the checkout has local changes.
+curl -fsSL https://raw.githubusercontent.com/jfrancolopez/dotfiles/main/scripts/bootstrap.sh | bash -s -- --minimal
+
+# 3. If it stopped on local changes: review, stash (tracked only), rerun.
+git -C ~/dotfiles diff
+git -C ~/dotfiles stash push -m "pre-layer-migration"
+curl -fsSL https://raw.githubusercontent.com/jfrancolopez/dotfiles/main/scripts/bootstrap.sh | bash -s -- --minimal
+
+# 4. Verify BEFORE closing this session: real ~/.ssh, a fresh login, sane links.
+ls -la ~/.ssh            # real directory, mode 700, keys present
+ssh <this-host> true     # from your laptop, in a NEW terminal
+dotfiles status && dotfiles doctor
+```
+
+What the pull does to the old home symlinks: the old repo paths disappear, so
+`~/.zshrc`, `~/.gitconfig`, `~/.tmux.conf` dangle for a moment; the stow step
+detects them as conflicts, moves them into `~/.dotfiles-backup/<timestamp>/`,
+and links the new layer files. Nothing is overwritten in place. Your stashed
+edits stay recoverable with `git -C ~/dotfiles stash show -p`.
+
+`dotfiles doctor` afterwards flags any legacy leftovers (old `stow/<pkg>`
+directories still holding files) so you can review and remove them manually.
+
 ## What Gets Installed
 
 Required core (`packages/global/apt.txt`): git, stow, tmux, fzf, ripgrep, jq,
@@ -199,6 +245,68 @@ manual checklist, in order of safety:
    it, allow SSH first: `sudo ufw allow OpenSSH && sudo ufw enable`.
 6. Day-to-day: log in as a sudo user, not root.
 
+## Troubleshooting: Ghostty SSH, nano Ctrl-X, terminfo, zsh
+
+Symptoms over SSH from Ghostty (while Alacritty/Terminal.app look fine):
+garbled or repeated-looking input while typing, prompt redraw glitches, nano
+not exiting on Ctrl-X. Cause, almost always: the server has no terminfo entry
+for `xterm-ghostty`, so zle and ncurses apps drive the terminal blind.
+
+Diagnose on the server, in order:
+
+```bash
+echo "$TERM $COLORTERM"
+infocmp "$TERM" >/dev/null && echo "terminfo ok" || echo "terminfo missing"
+od -An -tx1      # press Ctrl-X, Enter, then Ctrl-D; healthy output is: 18 0a
+ssh -t <host> 'zsh -f'          # plugin-free zsh; if this is clean, suspect plugins
+TERM=xterm-256color ssh <host>  # fallback TERM; if this is clean, it's terminfo
+```
+
+Fixes, most permanent first:
+
+1. **Client side (preferred):** Ghostty >= 1.2 with
+   `shell-integration-features = ...,ssh-env,ssh-terminfo` (already in the
+   stowed Ghostty config). `ssh-terminfo` installs `xterm-ghostty` on the
+   remote host via `infocmp | tic` on first connect and caches it; if the
+   install fails, `ssh-env` falls back to `TERM=xterm-256color`. Manage the
+   cache with `ghostty +ssh-cache`. Any machine that does not want this can
+   opt out in its profile override
+   (`~/.config/ghostty/profile-overrides`, profile stow layer):
+   `shell-integration-features = no-ssh-terminfo,no-ssh-env`.
+2. **One-time manual install, run from your local machine:**
+
+   ```bash
+   infocmp -x xterm-ghostty | ssh <host> -- tic -x -
+   ```
+
+3. **Server-side fallback (already stowed):** in SSH sessions only,
+   `.zshrc`/`.bashrc` check `infocmp "$TERM"` at startup and export
+   `TERM=xterm-256color` when the entry is missing, so full-screen apps keep
+   working even with none of the above. Local (non-SSH) shells never run the
+   check, so desktop machines are unaffected.
+4. **This session only:** `export TERM=xterm-256color`.
+
+If keys still arrive mangled after terminfo is fixed, a program probably left
+an enhanced keyboard protocol (Kitty CSI-u / modifyOtherKeys) enabled — the
+stowed zsh setup (Oh My Zsh + autosuggestions + syntax-highlighting + p10k)
+never enables these, but a crashed nvim or a foreign rc can. Reset it, then
+retest nano:
+
+```bash
+printf '\e[<u\e[>4;0m'   # pop Kitty keyboard flags, reset modifyOtherKeys
+reset                     # full terminal reset if that was not enough
+```
+
+Stale completion cache (errors like `_arguments:comparguments:327` or
+completions from another zsh version):
+
+```bash
+rm -f ~/.zcompdump*; exec zsh
+```
+
+`dotfiles doctor` runs the terminfo check automatically and prints the exact
+remediation commands.
+
 ## Work vs Personal Servers
 
 | Concern | Work server | Personal server |
@@ -215,6 +323,10 @@ where that is inappropriate, skip stow for that package by removing the
 symlink and keeping a local file (stow backs up, never overwrites).
 
 ## Rollback / Removal
+
+On hosts migrated from the old flat layout, confirm `~/.ssh` is a real
+directory first (`ls -la ~/.ssh`) — if it is still a symlink into the repo,
+removing `~/dotfiles` deletes your keys and `authorized_keys`.
 
 ```bash
 cd ~/dotfiles

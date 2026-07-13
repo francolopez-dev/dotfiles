@@ -19,6 +19,12 @@
       "skillPath": "skills/bash-scripting/SKILL.md",
       "computedHash": "1c2080bc5de9996ee17a8f550aa8744ed9207873d4243073e99961b2c1f1685e"
     },
+    "macos-development": {
+      "source": "rshankras/claude-code-apple-skills",
+      "sourceType": "github",
+      "skillPath": "skills/macos/SKILL.md",
+      "computedHash": "18a4b114854295d9315676406b5c0517b5fb6781b50452a92f16ab88ad1af4e0"
+    },
     "omarchy": {
       "source": "basecamp/omarchy",
       "sourceType": "github",

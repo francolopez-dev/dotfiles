@@ -22,6 +22,7 @@ agent-codex	global	tmux	AI agent alias: Codex	codex	codex	Agent name codex resol
 alias-parent	global	alias	Shell alias: parent directory	..	cd ..	Go up one directory	alias shell directory cd parent	stow/global/shell/.config/shell/aliases.sh
 alias-git-status	global	alias	Shell alias: git status	gs	git status	Show current repository status	alias git status repo	stow/global/shell/.config/shell/aliases.sh
 alias-git-pull	global	alias	Shell alias: git pull	gp	git pull	Pull the current branch	alias git pull update repo	stow/global/shell/.config/shell/aliases.sh
+alias-git-log	global	alias	Shell alias: git log graph	gl	git log --oneline --decorate --graph --all -10	Show recent decorated commit graph across all refs	alias git log graph history commits repo	stow/global/shell/.config/shell/aliases.sh
 alias-docker-ps	global	alias	Shell alias: docker ps	dps	docker ps	List running Docker containers	alias docker containers	stow/global/shell/.config/shell/aliases.sh
 alias-docker-up	global	alias	Shell alias: compose up	dcu	docker compose up -d	Start Docker Compose stack in the background	alias docker compose up	stow/global/shell/.config/shell/aliases.sh
 alias-docker-down	global	alias	Shell alias: compose down	dcd	docker compose down	Stop Docker Compose stack	alias docker compose down	stow/global/shell/.config/shell/aliases.sh

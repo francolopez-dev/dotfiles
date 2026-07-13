@@ -3,6 +3,7 @@
 alias ..='cd ..'
 alias gs='git status'
 alias gp='git pull'
+alias gl='git log --oneline --decorate --graph --all -10'
 alias dps='docker ps'
 alias dcu='docker compose up -d'
 alias dcd='docker compose down'

@@ -95,6 +95,7 @@ unexpected, use the full path once and it will learn the better match.
 |---|---|
 | `gs` | `git status` |
 | `gp` | `git pull` |
+| `gl` | `git log --oneline --decorate --graph --all -10` |
 | `git diff` | Delta-powered diff when `delta` is installed |
 | `git show` | Delta-powered commit view |
 | `git log -p` | Commit log with patches through delta |

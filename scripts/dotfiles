@@ -456,6 +456,9 @@ refresh_after_apply() {
   if [[ "$(detect_os)" == "macos" ]] && pgrep -x lan-mouse >/dev/null 2>&1 && _macos_dotfiles_launchagent_loaded lanmouse; then
     run_refresh_cmd "$dry" "lan-mouse restarted" launchctl kickstart -k "gui/$(id -u)/com.dotfiles.lanmouse" || true
   fi
+  if [[ "$(detect_os)" == "macos" ]] && _macos_dotfiles_launchagent_loaded clipboard-notify; then
+    run_refresh_cmd "$dry" "clipboard notification watcher restarted" launchctl kickstart -k "gui/$(id -u)/com.dotfiles.clipboard-notify" || true
+  fi
 
   detect_manual_refreshes needs_manual
   if [[ ${#needs_manual[@]} -gt 0 ]]; then
@@ -571,7 +574,7 @@ refresh_omarchy_session() {
     eval "$needs_manual_ref+=(hyprpaper)"
   fi
 
-  for unit in xdg-desktop-portal.service xdg-desktop-portal-hyprland.service mako.service swaync.service lan-mouse.service; do
+  for unit in xdg-desktop-portal.service xdg-desktop-portal-hyprland.service mako.service swaync.service lan-mouse.service dotfiles-clipboard-notify.service; do
     if systemd_user_unit_active "$unit"; then
       run_refresh_cmd "$dry" "$unit restarted" systemctl --user try-restart "$unit" || true
     fi
@@ -599,6 +602,7 @@ configure_declared_services() {
   [[ "$(detect_os)" == "omarchy" ]] || return 0
   configure_omarchy_lanmouse "$dry" || true
   configure_omarchy_kdeconnect "$dry" || true
+  configure_omarchy_clipboard_notify "$dry" || true
   package_declared tailscale || return 0
   command -v systemctl >/dev/null 2>&1 || return 0
   command -v tailscaled >/dev/null 2>&1 || command -v tailscale >/dev/null 2>&1 || return 0
@@ -699,6 +703,48 @@ configure_omarchy_kdeconnect_firewall() {
     "sudo ufw allow 1714:1764/tcp comment 'kdeconnect' && sudo ufw allow 1714:1764/udp comment 'kdeconnect'" \
     "allow 1714:1764/tcp comment kdeconnect" \
     "allow 1714:1764/udp comment kdeconnect"
+}
+
+configure_omarchy_clipboard_notify() {
+  local dry="$1"
+  package_declared wl-clipboard || return 0
+  package_declared libnotify || return 0
+  if [[ ! -x "$HOME/.local/bin/dotfiles-clipboard-notify" ]]; then
+    warn "clipboard notification script is not stowed yet; run dotfiles apply"
+    return 0
+  fi
+  if ! command -v wl-paste >/dev/null 2>&1; then
+    warn "wl-clipboard is declared but wl-paste is missing; run dotfiles update after packages install"
+    return 0
+  fi
+  if ! command -v notify-send >/dev/null 2>&1; then
+    warn "libnotify is declared but notify-send is missing; run dotfiles update after packages install"
+    return 0
+  fi
+  if ! systemd_user_ready; then
+    warn "user systemd manager is not reachable; dotfiles-clipboard-notify.service will be enabled on next update/login"
+    return 0
+  fi
+  if systemd_user_unit_active dotfiles-clipboard-notify.service; then
+    ok "clipboard notification service running"
+    return 0
+  fi
+  if [[ "$dry" -eq 1 ]]; then
+    dim "  would run: systemctl --user enable --now dotfiles-clipboard-notify.service (and restart it)"
+    return 0
+  fi
+  systemctl --user daemon-reload >/dev/null 2>&1 || true
+  systemctl --user enable dotfiles-clipboard-notify.service >/dev/null 2>&1 || true
+  if systemctl --user restart dotfiles-clipboard-notify.service >/dev/null 2>&1; then
+    sleep 1
+    if systemd_user_unit_active dotfiles-clipboard-notify.service; then
+      ok "clipboard notification service running"
+    else
+      warn "dotfiles-clipboard-notify.service started but is not staying up; inspect: journalctl --user -u dotfiles-clipboard-notify.service -n 20"
+    fi
+  else
+    warn "failed to start dotfiles-clipboard-notify.service; inspect: journalctl --user -u dotfiles-clipboard-notify.service -n 20"
+  fi
 }
 
 _omarchy_lanmouse_bin() { printf '%s/.local/share/dotfiles/bin/lan-mouse\n' "$HOME"; }
@@ -807,6 +853,7 @@ configure_macos_declared_services() {
   local dry="$1"
   configure_macos_trusted_taps "$dry"
   configure_macos_sketchybar_font "$dry"
+  package_declared_short dbus && configure_macos_dbus "$dry" || true
   package_declared_short borders && configure_macos_dotfiles_launchagent "$dry" borders || true
   package_declared_short sketchybar && configure_macos_dotfiles_launchagent "$dry" sketchybar || true
   package_declared_short linearmouse && configure_macos_dotfiles_launchagent "$dry" linearmouse LinearMouse /Applications/LinearMouse.app || true
@@ -814,6 +861,7 @@ configure_macos_declared_services() {
   # The KDE Connect app does not reliably (re)spawn its discovery daemon, so
   # kdeconnectd is managed like the other dotfiles daemons.
   package_declared_short kde-connect && configure_macos_dotfiles_launchagent "$dry" kdeconnectd kdeconnectd "/Applications/KDE Connect.app" || true
+  configure_macos_clipboard_notify "$dry" || true
   configure_macos_primary_bar_defaults "$dry"
   configure_macos_menubar_background "$dry"
   configure_macos_dock_defaults "$dry"
@@ -849,6 +897,35 @@ configure_macos_trusted_taps() {
     fi
   done
   [[ ${#trusted[@]} -eq 0 ]] || ok "trusted declared brew tap(s): ${trusted[*]}"
+}
+
+configure_macos_dbus() {
+  local dry="$1"
+  configure_macos_brew_service "$dry" dbus || true
+  [[ "$dry" -eq 1 ]] && return 0
+  if _macos_dbus_session_loaded; then
+    ok "D-Bus session LaunchAgent loaded"
+  else
+    warn "D-Bus session LaunchAgent not loaded; KDE Connect clipboard sync will fail"
+    warn "run: brew services start dbus"
+  fi
+}
+
+configure_macos_clipboard_notify() {
+  local dry="$1" script source_script target_plist uid
+  script="$HOME/.local/bin/dotfiles-clipboard-notify"
+  source_script="$DOTFILES_DIR/stow/global/scripts/.local/bin/dotfiles-clipboard-notify"
+  target_plist="$HOME/Library/LaunchAgents/com.dotfiles.clipboard-notify.plist"
+  uid="$(id -u)"
+
+  if [[ "$dry" -eq 1 && ! -e "$script" && -x "$source_script" ]]; then
+    dim "  would stop Homebrew service: clipboard-notify"
+    dim "  would install LaunchAgent: $target_plist"
+    dim "  would run: launchctl bootstrap gui/$uid $target_plist"
+    return 0
+  fi
+
+  configure_macos_dotfiles_launchagent "$dry" clipboard-notify "dotfiles-clipboard-notify watch" "$script"
 }
 
 # sketchybar icons need the Nerd Font files on disk; a cask can stay
@@ -893,12 +970,13 @@ configure_macos_sketchybar_font() {
 }
 
 configure_macos_brew_service() {
-  local dry="$1" service="$2"
+  local dry="$1" service="$2" service_cmd
+  service_cmd="$(_macos_brew_service_command "$service")"
   if ! command -v brew >/dev/null 2>&1; then
     warn "brew missing; cannot start $service service"
     return 0
   fi
-  if ! command -v "$service" >/dev/null 2>&1; then
+  if ! command -v "$service_cmd" >/dev/null 2>&1; then
     warn "$service is declared but not installed; run dotfiles update again after package install completes"
     return 0
   fi
@@ -924,6 +1002,13 @@ configure_macos_brew_service() {
   fi
 }
 
+_macos_brew_service_command() {
+  case "$1" in
+    dbus) printf 'dbus-daemon\n' ;;
+    *) printf '%s\n' "$1" ;;
+  esac
+}
+
 _macos_brew_service_formula() {
   case "$1" in
     borders|sketchybar) printf 'felixkratz/formulae/%s\n' "$1" ;;
@@ -944,7 +1029,10 @@ configure_macos_dotfiles_launchagent() {
   uid="$(id -u)"
 
   if [[ -n "$app_path" ]]; then
-    if [[ ! -d "$app_path" ]]; then
+    if [[ "$app_path" == *.app && ! -d "$app_path" ]]; then
+      warn "$service is declared but not installed; run dotfiles update again after package install completes"
+      return 0
+    elif [[ "$app_path" != *.app && ! -e "$app_path" ]]; then
       warn "$service is declared but not installed; run dotfiles update again after package install completes"
       return 0
     fi
@@ -1888,7 +1976,9 @@ cmd_doctor() {
         warn "kdeconnectd.service not active; run dotfiles update (or: systemctl --user restart kdeconnectd.service)"
         failed=1
       fi
+      _kdeconnect_cli_doctor || failed=1
     fi
+    _clipboard_notify_doctor || failed=1
     info "Wallpaper rotation"
     wallpaper_status_lines
   elif [[ "$(detect_os)" == "macos" ]]; then
@@ -1921,8 +2011,11 @@ cmd_doctor() {
     _macos_dotfiles_launchagent_doctor sketchybar sketchybar || failed=1
     _macos_dotfiles_launchagent_doctor linearmouse LinearMouse || failed=1
     if package_declared_short kde-connect; then
+      _macos_dbus_session_doctor || failed=1
       _macos_dotfiles_launchagent_doctor kdeconnectd kdeconnectd || failed=1
+      _kdeconnect_cli_doctor || failed=1
     fi
+    _clipboard_notify_doctor || failed=1
     _macos_nerd_font_doctor || failed=1
     _macos_mas_doctor || failed=1
     _macos_menubar_background_doctor || failed=1
@@ -2027,6 +2120,8 @@ cmd_status() {
       _tailscaled_daemon_status
       _lanmouse_status
       _kdeconnect_status
+      _kdeconnect_devices_status
+      _clipboard_notify_status
       _waybar_status
       ;;
     macos)
@@ -2037,8 +2132,11 @@ cmd_status() {
       _macos_dotfiles_launchagent_status borders borders
       _macos_dotfiles_launchagent_status sketchybar sketchybar
       _macos_dotfiles_launchagent_status linearmouse LinearMouse
+      _macos_dbus_session_status
       _macos_dotfiles_launchagent_status kdeconnectd kdeconnectd
       _lanmouse_status
+      _kdeconnect_devices_status
+      _clipboard_notify_status
       _macos_dock_status
       _macos_finder_status
       _macos_input_status
@@ -2298,6 +2396,111 @@ _kdeconnect_status() {
   fi
 }
 
+_kdeconnect_declared() {
+  case "$(detect_os)" in
+    macos) package_declared_short kde-connect ;;
+    omarchy) package_declared kdeconnect ;;
+    *) return 1 ;;
+  esac
+}
+
+_kdeconnect_cli_bin() {
+  if [[ "$(detect_os)" == "macos" && -x "/Applications/KDE Connect.app/Contents/MacOS/kdeconnect-cli" ]]; then
+    printf '%s\n' "/Applications/KDE Connect.app/Contents/MacOS/kdeconnect-cli"
+  elif command -v kdeconnect-cli >/dev/null 2>&1; then
+    command -v kdeconnect-cli
+  else
+    return 1
+  fi
+}
+
+_kdeconnect_cli_doctor() {
+  _kdeconnect_declared || return 0
+  local cli output first
+  if ! cli="$(_kdeconnect_cli_bin)"; then
+    warn "kdeconnect-cli missing; reinstall KDE Connect"
+    return 1
+  fi
+  if output="$("$cli" --list-available --id-name-only 2>&1)"; then
+    if [[ -n "$output" ]]; then
+      first="$(printf '%s\n' "$output" | sed -n '1p')"
+      ok "KDE Connect reachable device: $first"
+      return 0
+    fi
+    warn "KDE Connect has no paired reachable devices"
+    warn "open KDE Connect, pair the peer, and enable the Clipboard plugin on both sides"
+    return 1
+  fi
+  first="$(printf '%s\n' "$output" | sed -n '1p')"
+  warn "KDE Connect CLI failed: ${first:-unknown error}"
+  if [[ "$(detect_os)" == "macos" ]] && ! _macos_dbus_session_loaded; then
+    warn "D-Bus session bus is not loaded; run: brew services start dbus"
+  fi
+  return 1
+}
+
+_kdeconnect_devices_status() {
+  _kdeconnect_declared || return 0
+  local cli output first
+  if ! cli="$(_kdeconnect_cli_bin)"; then
+    printf '  kdeconnect devices: kdeconnect-cli missing\n'
+    return 0
+  fi
+  if output="$("$cli" --list-available --id-name-only 2>/dev/null)"; then
+    if [[ -n "$output" ]]; then
+      first="$(printf '%s\n' "$output" | sed -n '1p')"
+      printf '  kdeconnect devices: reachable (%s)\n' "$first"
+    else
+      printf '  kdeconnect devices: none reachable\n'
+      printf '  next step: pair devices and enable the Clipboard plugin\n'
+    fi
+  else
+    printf '  kdeconnect devices: CLI unavailable\n'
+    if [[ "$(detect_os)" == "macos" ]] && ! _macos_dbus_session_loaded; then
+      printf '  next step: brew services start dbus && dotfiles update\n'
+    fi
+  fi
+}
+
+_clipboard_notify_doctor() {
+  case "$(detect_os)" in
+    omarchy)
+      local failed=0
+      command -v wl-paste >/dev/null 2>&1 || { warn "wl-paste missing; install wl-clipboard"; failed=1; }
+      command -v notify-send >/dev/null 2>&1 || { warn "notify-send missing; install libnotify"; failed=1; }
+      if systemd_user_unit_active dotfiles-clipboard-notify.service; then
+        ok "clipboard notification service active"
+      else
+        warn "dotfiles-clipboard-notify.service not active; run dotfiles update"
+        failed=1
+      fi
+      return "$failed"
+      ;;
+    macos)
+      command -v terminal-notifier >/dev/null 2>&1 || warn "terminal-notifier missing; clipboard notifications will use osascript fallback"
+      _macos_dotfiles_launchagent_doctor clipboard-notify "dotfiles-clipboard-notify watch"
+      ;;
+  esac
+}
+
+_clipboard_notify_status() {
+  case "$(detect_os)" in
+    omarchy)
+      if systemd_user_unit_active dotfiles-clipboard-notify.service; then
+        printf '  clipboard notifications: active\n'
+      elif systemd_user_unit_exists dotfiles-clipboard-notify.service; then
+        printf '  clipboard notifications: installed, inactive\n'
+        printf '  next step: dotfiles update\n'
+      else
+        printf '  clipboard notifications: service not installed\n'
+      fi
+      ;;
+    macos)
+      _macos_dotfiles_launchagent_status clipboard-notify "dotfiles-clipboard-notify watch"
+      ;;
+  esac
+}
+
 _tailscaled_daemon_status() {
   if ! command -v systemctl >/dev/null 2>&1; then
     return 0
@@ -2357,7 +2560,7 @@ _macos_app_doctor() {
 
 _macos_process_doctor() {
   local name="$1" process="$2"
-  if pgrep -x "$process" >/dev/null 2>&1; then
+  if _macos_process_running "$process"; then
     ok "$name running"
   else
     warn "$name not running; run dotfiles update or open /Applications/$name.app"
@@ -2367,13 +2570,21 @@ _macos_process_doctor() {
 
 _macos_process_status() {
   local name="$1" process="$2"
-  if pgrep -x "$process" >/dev/null 2>&1; then
+  if _macos_process_running "$process"; then
     printf '  %s: running\n' "$name"
   elif [[ -d "/Applications/$name.app" ]]; then
     printf '  %s: installed, not running\n' "$name"
   else
     printf '  %s: missing\n' "$name"
   fi
+}
+
+_macos_process_running() {
+  local process="$1"
+  case "$process" in
+    *' '*|*/*) pgrep -f "$process" >/dev/null 2>&1 ;;
+    *) pgrep -x "$process" >/dev/null 2>&1 ;;
+  esac
 }
 
 _macos_dotfiles_launchagent_label() {
@@ -2388,6 +2599,31 @@ _macos_dotfiles_launchagent_log() {
   printf '%s/Library/Logs/dotfiles/%s.err.log\n' "$HOME" "$1"
 }
 
+_macos_dbus_session_loaded() {
+  local uid
+  uid="$(id -u)"
+  launchctl print "gui/$uid/org.freedesktop.dbus-session" >/dev/null 2>&1
+}
+
+_macos_dbus_session_doctor() {
+  if _macos_dbus_session_loaded; then
+    ok "D-Bus session LaunchAgent loaded"
+  else
+    warn "D-Bus session LaunchAgent not loaded; KDE Connect clipboard sync will fail"
+    warn "run: brew services start dbus"
+    return 1
+  fi
+}
+
+_macos_dbus_session_status() {
+  if _macos_dbus_session_loaded; then
+    printf '  dbus session: loaded\n'
+  else
+    printf '  dbus session: not loaded\n'
+    printf '  next step: brew services start dbus && dotfiles update\n'
+  fi
+}
+
 _macos_dotfiles_launchagent_loaded() {
   local service="$1" uid label
   uid="$(id -u)"
@@ -2397,7 +2633,7 @@ _macos_dotfiles_launchagent_loaded() {
 
 _macos_dotfiles_launchagent_running() {
   local service="$1" process="$2"
-  _macos_dotfiles_launchagent_loaded "$service" && pgrep -x "$process" >/dev/null 2>&1
+  _macos_dotfiles_launchagent_loaded "$service" && _macos_process_running "$process"
 }
 
 _macos_dotfiles_launchagent_background_blocked() {

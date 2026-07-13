@@ -14,6 +14,7 @@ rsync
 telnet
 
 # mac utilities
+dbus
 terminal-notifier
 caarlos0/tap/timer
 mas

@@ -115,7 +115,9 @@ the stowed `kdeconnectd.service` (kdeconnectd does not start reliably under
 Hyprland) and offers the ufw rules (1714:1764 tcp+udp, needed for incoming
 discovery regardless of the peer's firewall state); on macOS it runs
 kdeconnectd via the `com.dotfiles.kdeconnectd` LaunchAgent (the app does not
-reliably respawn it).
+reliably respawn it). macOS KDE Connect also needs the Homebrew D-Bus session
+bus; `dotfiles update` starts `brew services start dbus` before loading
+`kdeconnectd`.
 
 One-time pairing per machine pair:
 
@@ -131,11 +133,34 @@ One-time pairing per machine pair:
 Copy on one machine, paste on the other — independent of which side lan-mouse
 is currently sending input.
 
+## Clipboard Ready Notifications
+
+Each desktop also runs a local clipboard watcher so successful sync is visible:
+
+- macOS: `com.dotfiles.clipboard-notify` LaunchAgent watches
+  `NSPasteboard.changeCount` and sends a `Clipboard ready` notification through
+  `terminal-notifier` (with an `osascript` fallback).
+- Omarchy: `dotfiles-clipboard-notify.service` watches Wayland clipboard
+  changes through `wl-paste --watch` and sends a `Clipboard ready` notification
+  through `notify-send`.
+
+The watcher intentionally never logs, stores, or displays clipboard contents.
+It notifies on any local clipboard update, including normal local copies and
+remote clipboard writes received from KDE Connect.
+
 ## Troubleshooting
 
 - Cursor will not cross: check both daemons run, the target's
   `authorized_fingerprints` contains the sender, and the target's 4242/udp is
   reachable (`nc -uvz <host> 4242`).
+- Clipboard sync broken on macOS: run `dotfiles doctor` and confirm the D-Bus
+  session is loaded. If not, run `brew services start dbus` and then
+  `dotfiles update`. The symptom is `DBus session bus not found` in
+  `~/Library/Logs/dotfiles/kdeconnectd.err.log`.
+- No `Clipboard ready` banner: check `dotfiles status`. On Omarchy inspect
+  `systemctl --user status dotfiles-clipboard-notify.service`; on macOS inspect
+  `launchctl print gui/$(id -u)/com.dotfiles.clipboard-notify` and the logs in
+  `~/Library/Logs/dotfiles/clipboard-notify.err.log`.
 - Input stuck on the wrong machine: press the release bind
   (Left Ctrl+Shift+Meta+Alt by default, set in each config.toml).
 - Wrong `position`: edit the profile config (`left`/`right`/`top`/`bottom`

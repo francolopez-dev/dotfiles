@@ -27,6 +27,8 @@ age
 # Clipboard sync companion for KVM sharing (lan-mouse has no clipboard
 # support upstream). Pairing + ufw steps: docs/kvm-sharing.md.
 kdeconnect
+wl-clipboard
+libnotify
 
 # Shared libvirt/QEMU Windows VM and RDP workflow for Omarchy desktops.
 qemu-desktop

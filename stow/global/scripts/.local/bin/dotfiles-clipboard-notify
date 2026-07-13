@@ -1,0 +1,101 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+TITLE="${DOTFILES_CLIPBOARD_NOTIFY_TITLE:-Clipboard ready}"
+MESSAGE="${DOTFILES_CLIPBOARD_NOTIFY_MESSAGE:-Ready to paste}"
+GROUP="dotfiles-clipboard"
+
+usage() {
+  cat <<'EOF'
+Usage:
+  dotfiles-clipboard-notify watch
+  dotfiles-clipboard-notify notify
+
+Watches the local clipboard and shows a generic notification when it changes.
+Clipboard contents are never printed, logged, or included in notifications.
+EOF
+}
+
+die() {
+  printf 'dotfiles-clipboard-notify: %s\n' "$*" >&2
+  exit 1
+}
+
+notify_macos() {
+  if command -v terminal-notifier >/dev/null 2>&1; then
+    terminal-notifier \
+      -title "$TITLE" \
+      -message "$MESSAGE" \
+      -group "$GROUP" \
+      -sender com.apple.finder >/dev/null 2>&1 || true
+    return 0
+  fi
+
+  osascript >/dev/null 2>&1 <<OSA || true
+display notification "$MESSAGE" with title "$TITLE"
+OSA
+}
+
+notify_linux() {
+  command -v notify-send >/dev/null 2>&1 || return 0
+  notify-send \
+    -a dotfiles \
+    -u low \
+    -t "${DOTFILES_CLIPBOARD_NOTIFY_TIMEOUT_MS:-2500}" \
+    "$TITLE" \
+    "$MESSAGE" >/dev/null 2>&1 || true
+}
+
+notify_once() {
+  case "$(uname -s)" in
+    Darwin) notify_macos ;;
+    Linux) notify_linux ;;
+    *) return 0 ;;
+  esac
+}
+
+macos_change_count() {
+  osascript -l JavaScript -e 'ObjC.import("AppKit"); $.NSPasteboard.generalPasteboard.changeCount' 2>/dev/null |
+    awk 'NR == 1 { print $1 }'
+}
+
+watch_macos() {
+  command -v osascript >/dev/null 2>&1 || die "osascript not found"
+
+  local last current interval
+  interval="${DOTFILES_CLIPBOARD_NOTIFY_INTERVAL:-1}"
+  last="$(macos_change_count || true)"
+  [[ "$last" =~ ^[0-9]+$ ]] || last=""
+
+  while :; do
+    sleep "$interval"
+    current="$(macos_change_count || true)"
+    [[ "$current" =~ ^[0-9]+$ ]] || continue
+    if [[ -n "$last" && "$current" != "$last" ]]; then
+      notify_macos
+    fi
+    last="$current"
+  done
+}
+
+watch_wayland() {
+  command -v wl-paste >/dev/null 2>&1 || die "wl-paste not found"
+  command -v notify-send >/dev/null 2>&1 || die "notify-send not found"
+
+  exec wl-paste --watch "$0" notify
+}
+
+watch() {
+  case "$(uname -s)" in
+    Darwin) watch_macos ;;
+    Linux) watch_wayland ;;
+    *) die "unsupported OS: $(uname -s)" ;;
+  esac
+}
+
+case "${1:-watch}" in
+  watch) watch ;;
+  notify) notify_once ;;
+  -h|--help|help) usage ;;
+  *) usage >&2; exit 2 ;;
+esac

@@ -33,20 +33,20 @@ outer.bottom = 5
 
 
 [workspace-to-monitor-force-assignment]
-'C_Work' = 'Built-in Retina Display'       # Communication
-'Email' = 'Built-in Retina Display'        # Personal & Work (Outlook-Thunderbird)
-'I_Ai-Tools' = 'Built-in Retina Display'   # AI tools (ChatGPT)
- 'w' = 'Built-in Retina Display'            # extra left 1
+'one' = 'Built-in Retina Display'       # Communication
+'two' = 'Built-in Retina Display'        # Personal & Work (Outlook-Thunderbird)
+'three' = 'Built-in Retina Display'   # AI tools (ChatGPT)
+ 'four' = 'Built-in Retina Display'            # extra left 1
 # 'x' = 'Built-in Retina Display'            # extra left 2 
 # 'y' = 'Built-in Retina Display'            # extra left 3
 # 'z' = 'Built-in Retina Display'            # extra left 4
-'P_Safari' = 'LU28R55'                     # Browser Personal
-'B_Work' = 'LU28R55'                        # Firefox / Chrome / Dev
-'Dev' = 'LU28R55'                           # Firefox / Chrome / Dev
-'T_Tools' = 'LU28R55'                       # Docker, GitHub, Transmit
-'X_Terminal' = 'LU28R55'                    # Terminal fullscreen
-'Y_Main-extra' = 'LU28R55'                  # extra 1
-'U_Sec-Extra' = 'LU28R55'                   # extra 2
+'six' = 'LU28R55'                     # Browser Personal
+'five' = 'LU28R55'                        # Firefox / Chrome / Dev
+'seven' = 'LU28R55'                           # Firefox / Chrome / Dev
+#'T_Tools' = 'LU28R55'                       # Docker, GitHub, Transmit
+#'X_Terminal' = 'LU28R55'                    # Terminal fullscreen
+#'Y_Main-extra' = 'LU28R55'                  # extra 1
+#'U_Sec-Extra' = 'LU28R55'                   # extra 2
 
 [mode.main.binding]
 cmd-h = [] # Disable "hide application"
@@ -69,38 +69,38 @@ ctrl-equal = 'resize smart +50'
 
 
 # Workspace Switching (Alt + Key)
-ctrl-cmd-1 = 'workspace C_Work'
-ctrl-cmd-2 = 'workspace Email'
-ctrl-cmd-3 = 'workspace I_Ai-Tools'
-ctrl-cmd-4 = 'workspace w'
+#ctrl-cmd-1 = 'workspace one'
+#ctrl-cmd-2 = 'workspace two'
+#ctrl-cmd-3 = 'workspace I_Ai-Tools'
+#ctrl-cmd-4 = 'workspace w'
 # ctrl-cmd-5 = 'workspace x'
 # ctrl-cmd-6 = 'workspace y'
 # ctrl-cmd-7 = 'workspace z'
 
-ctrl-1 = 'workspace B_Work'
-ctrl-2 = 'workspace P_Safari'
-ctrl-3 = 'workspace Dev'
-ctrl-4 = 'workspace T_Tools'
-ctrl-5 = 'workspace X_Terminal'
-ctrl-6 = 'workspace Y_Main-extra'
-ctrl-7 = 'workspace U_Sec-Extra'
+ctrl-1 = 'workspace one'
+ctrl-2 = 'workspace two'
+ctrl-3 = 'workspace three'
+ctrl-4 = 'workspace four'
+ctrl-5 = 'workspace five'
+ctrl-6 = 'workspace six'
+ctrl-7 = 'workspace seven'
 
 # Move Window to Workspace (Alt + Shift + Key)
-ctrl-shift-cmd-1 = 'move-node-to-workspace C_Work --focus-follows-window'
-ctrl-shift-cmd-2 = 'move-node-to-workspace Email --focus-follows-window'
-ctrl-shift-cmd-3 = 'move-node-to-workspace I_Ai-Tools --focus-follows-window'
-ctrl-shift-cmd-4 = 'move-node-to-workspace w --focus-follows-window'
+#ctrl-shift-cmd-1 = 'move-node-to-workspace C_Work --focus-follows-window'
+#ctrl-shift-cmd-2 = 'move-node-to-workspace Email --focus-follows-window'
+#ctrl-shift-cmd-3 = 'move-node-to-workspace I_Ai-Tools --focus-follows-window'
+#ctrl-shift-cmd-4 = 'move-node-to-workspace w --focus-follows-window'
 # ctrl-shift-cmd-5 = 'move-node-to-workspace x --focus-follows-window'
 # ctrl-shift-cmd-6 = 'move-node-to-workspace y --focus-follows-window'
 # ctrl-shift-cmd-7 = 'move-node-to-workspace z --focus-follows-window'
 
-ctrl-shift-1 = 'move-node-to-workspace B_Work --focus-follows-window'
-ctrl-shift-2 = 'move-node-to-workspace P_Safari --focus-follows-window'
-ctrl-shift-3 = 'move-node-to-workspace Dev --focus-follows-window'
-ctrl-shift-4 = 'move-node-to-workspace T_Tools --focus-follows-window'
-ctrl-shift-5 = 'move-node-to-workspace X_Terminal --focus-follows-window'
-ctrl-shift-6 = 'move-node-to-workspace Y_Main-extra --focus-follows-window'
-ctrl-shift-7 = 'move-node-to-workspace U_Sec-Extra --focus-follows-window'
+ctrl-shift-1 = 'move-node-to-workspace one --focus-follows-window'
+ctrl-shift-2 = 'move-node-to-workspace two --focus-follows-window'
+ctrl-shift-3 = 'move-node-to-workspace three --focus-follows-window'
+ctrl-shift-4 = 'move-node-to-workspace four --focus-follows-window'
+ctrl-shift-5 = 'move-node-to-workspace five --focus-follows-window'
+ctrl-shift-6 = 'move-node-to-workspace six --focus-follows-window'
+ctrl-shift-7 = 'move-node-to-workspace seven --focus-follows-window'
 
 alt-tab = 'workspace-back-and-forth'
 
@@ -140,7 +140,7 @@ alt-shift-b = 'exec-and-forget open -a Safari'
 
 
 # Layout & Monitor
-ctrl-shift-z = 'layout floating tiling'
+cmd-shift-z = 'layout floating tiling'
 alt-shift-z = 'flatten-workspace-tree'
 # Move window to next monitor 
 ctrl-shift-h = 'move-node-to-monitor --wrap-around next --focus-follows-window'
@@ -195,7 +195,7 @@ ctrl-alt-r = "reload-config"
 
 # # Utilities / Tools
 # ctrl-semicolon = 'exec-and-forget open -a "System Settings"'
-# ctrl-t = 'exec-and-forget open -a Transmit'
+# ctrl-t <D-Z>= 'exec-and-forget open -a Transmit'
 # ctrl-g = 'exec-and-forget open -a "GitHub Desktop"'
 # ctrl-d = 'exec-and-forget open -a "Docker Desktop"'
 
@@ -215,7 +215,7 @@ run = 'layout floating'
 
 [[on-window-detected]]
 if.app-id = 'com.microsoft.teams2'
-run = 'move-node-to-workspace C_Work'
+run = 'layout floating'
 
 [[on-window-detected]]
 if.app-id = 'com.apple.reminders'
@@ -228,7 +228,7 @@ run = 'layout floating'
 
 [[on-window-detected]]
 if.app-id = 'com.microsoft.Outlook'
-run = 'move-node-to-workspace Email'
+run = 'move-node-to-workspace two'
 
 [[on-window-detected]]
 if.app-id = 'com.openai.chatgpt'
@@ -241,11 +241,11 @@ run = 'layout floating'
 
 [[on-window-detected]]
 if.app-id = 'com.apple.Safari'
-run = 'move-node-to-workspace P_Safari'
+run = 'move-node-to-workspace five'
 
 [[on-window-detected]]
 if.app-id = 'org.mozilla.firefox'
-run = 'move-node-to-workspace B_Work'
+run = 'move-node-to-workspace four'
 
 [[on-window-detected]]
 if.app-id = 'com.google.Chrome'
@@ -253,7 +253,7 @@ run = 'layout floating'
 
 [[on-window-detected]]
 if.app-id = 'com.neovide.neovide'
-run = 'move-node-to-workspace Dev'
+run = 'move-node-to-workspace six'
 
  [[on-window-detected]]
  if.app-id = 'com.mitchellh.ghostty'
@@ -270,11 +270,11 @@ run = 'layout floating'
 
 [[on-window-detected]]
 if.app-id = 'com.github.GitHubClient'
-run = 'move-node-to-workspace T_Tools'
+run = 'layout floating'
 
 [[on-window-detected]]
 if.app-id = 'com.docker.docker'
-run = 'move-node-to-workspace T_Tools'
+run = 'layout floating'
 
 [[on-window-detected]]
 if.app-id = 'de.feschber.LanMouse'

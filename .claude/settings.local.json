@@ -265,7 +265,27 @@
       "Bash(\"/Applications/KDE Connect.app/Contents/MacOS/kdeconnectd\")",
       "Bash(kill 94080)",
       "Bash(killall kdeconnect-app *)",
-      "Bash(nc -vz -w 3 192.168.145.36 1716)"
+      "Bash(nc -vz -w 3 192.168.145.36 1716)",
+      "Bash(GIT_EDITOR=true git rebase --continue)",
+      "Bash(echo \"rebase exit: $?\")",
+      "Bash(echo \"check exit: $?\")",
+      "Bash(GIT_TRACE=1 git rebase --continue)",
+      "Bash(GIT_AUTHOR_NAME='Franco' GIT_AUTHOR_EMAIL='jfranco8@outlook.com' GIT_AUTHOR_DATE='@1783708188 -0400' git commit --no-verify -F .git/rebase-merge/message)",
+      "Bash(S=/private/tmp/claude-501/-Users-franco-lopez-dotfiles/0b68ea1d-07da-430a-97b9-4a0824c10d08/scratchpad *)",
+      "Bash(command -v docker podman)",
+      "Bash(docker info *)",
+      "Bash(command -v stow shellcheck)",
+      "WebFetch(domain:ghostty.org)",
+      "Bash(curl -fsSL https://raw.githubusercontent.com/ghostty-org/ghostty/main/src/config/Config.zig -o Config.zig)",
+      "Bash(/Users/franco.lopez/dotfiles/tests/legacy-ssh-migration.sh)",
+      "Bash(rm -rf /tmp/domum-rehearsal.Tbdt5h; bash /private/tmp/claude-501/-Users-franco-lopez-dotfiles/350f7a6e-0419-4ebc-b1d4-598083631890/scratchpad/domum-rehearsal.sh 2>&1 | tail -60)",
+      "Bash(sh -n stow/global/bash/.bashrc)",
+      "Bash(echo \"STATUS-EXIT=$?\")",
+      "Bash(echo \"APPLY-DRY-EXIT=$?\")",
+      "Bash(TERM=xterm-bogus zsh -ic 'echo \"TERM after zshrc: $TERM\"')",
+      "Bash(env -u SSH_CONNECTION -u SSH_TTY -u SSH_CLIENT TERM=xterm-bogus zsh -ic 'echo \" TERM=$TERM\"')",
+      "Bash(SSH_CONNECTION='10.0.0.1 1 10.0.0.2 22' TERM=xterm-bogus zsh -ic 'echo \" TERM=$TERM\"')",
+      "Bash(SSH_CONNECTION='10.0.0.1 1 10.0.0.2 22' TERM=xterm-256color zsh -ic 'echo \" TERM=$TERM\"')"
     ]
   }
 }

@@ -11,6 +11,7 @@ alias ff='fastfetch 2>/dev/null || true'
 # system apps
 alias v='nvim'
 alias y='yazi'
+command -v bat >/dev/null 2>&1 && alias cat='bat --paging=never'
 
 # Pretty directory listings. eza is the preferred path; ls fallbacks keep
 # server shells usable before optional packages are installed.

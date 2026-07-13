@@ -10,6 +10,10 @@ zoxide
 yazi
 age
 restic
+fd
+rsync
+tldr
+telnet
 
 # mac utilities
 terminal-notifier
@@ -21,8 +25,19 @@ duti
 felixkratz/formulae/borders
 felixkratz/formulae/sketchybar
 
+# containers + Kubernetes
+docker
+helm
+kubernetes-cli
+kubectx
+
+# Python tooling
+pip-tools
+pipx
+virtualenv
+
 # media/download CLI
 yt-dlp
 
 # AI coding CLI (Claude Code and desktop AI apps are casks)
-opencode
+anomalyco/tap/opencode

@@ -1,3 +1,10 @@
 # Mac App Store apps: one numeric app id per line, app name in a comment.
 # Installed with `mas install <id>`; requires a signed-in App Store account.
+1438243180  # Dark Reader for Safari
+1033342465  # Just Press Record
 1611378436  # Pure Paste
+1591303229  # Vinegar
+
+# WiFiman is installed from the iOS App Store on this Mac, but `mas` cannot
+# find/install it as a macOS App Store app. Keep it manual for now.
+# 1385561119  # Ubiquiti WiFiman (iOS App Store)

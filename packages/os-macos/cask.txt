@@ -8,6 +8,7 @@ alacritty
 nikitabobko/tap/aerospace
 rectangle
 raycast
+appcleaner
 
 # wallpaper setter used by dotfiles-wallpaper (task 17)
 desktoppr
@@ -22,19 +23,26 @@ font-fira-code-nerd-font
 
 # browsers
 brave-browser
+firefox
+tor-browser
 zen
 
 # AI apps (CLI tools like opencode live in brew.txt)
 chatgpt
+chatgpt-classic
 claude
 claude-code
+codex
 ollama-app
+opencode-desktop
 superwhisper
 
 # dev tools
 visual-studio-code
+db-browser-for-sqlite
 tableplus
 transmit
+docker-desktop
 
 # media
 vlc
@@ -49,9 +57,16 @@ kde-connect
 localsend
 rocket-typist
 jiggler
-appcleaner
 grandperspective
 imazing
 updf
 raspberry-pi-imager
 parallels
+balenaetcher
+eddie
+logi-options+
+macfuse
+notion
+onyx
+prusaslicer
+qbittorrent

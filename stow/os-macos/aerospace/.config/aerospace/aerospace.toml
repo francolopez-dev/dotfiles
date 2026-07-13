@@ -23,8 +23,8 @@ on-focused-monitor-changed = ['move-mouse monitor-lazy-center']
 [key-mapping]
 preset = 'qwerty'
 
-# Gaps apply to tiled layouts. Keep the top gap equal to SketchyBar's height
-# so windows start below the bar before they are converted to floating.
+# Gaps apply to tiled layouts. The notched built-in display keeps a macOS
+# reserved strip above windows; external monitors need the SketchyBar reserve.
 [gaps]
 inner.horizontal = 5
 inner.vertical = 5
@@ -32,7 +32,7 @@ outer.left = 5
 outer.right = 5
 # The native menu bar is auto-hidden (scripts/macos-defaults.sh) and
 # SketchyBar (height 28) is the primary bar on every display.
-outer.top = 28
+outer.top = [{ monitor.'built-in' = 5 }, 28]
 outer.bottom = 5
 
 # Workspace placement. SketchyBar renders these in the explicit order

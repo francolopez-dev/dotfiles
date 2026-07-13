@@ -115,9 +115,9 @@ osascript -e 'tell application "System Events" to set autohide menu bar of dock 
 ```
 
 AeroSpace pairs with this via a per-monitor top gap
-(`outer.top = [{ monitor.'built-in' = 5 }, 38]`): external monitors reserve
-38px for SketchyBar; the notched built-in display needs only 5 because macOS
-keeps the camera-notch strip reserved even with the menu bar hidden.
+(`outer.top = [{ monitor.'built-in' = 5 }, 28]`): external monitors reserve
+SketchyBar's 28px height; the notched built-in display needs only 5 because
+macOS keeps the camera-notch strip reserved even with the menu bar hidden.
 
 ## 7. Permissions
 

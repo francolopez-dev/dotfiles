@@ -1380,25 +1380,47 @@ configure_macos_desktop_apps() {
 # Presetting alternateDefaultShortcuts selects the recommended shortcut set.
 configure_macos_rectangle_defaults() {
   local dry="$1"
+  local top_gap=28
+  local shortcuts_set=0
+  local top_gap_set=0
+  local changed=0
   [[ -d /Applications/Rectangle.app ]] || return 0
   if defaults read com.knollsoft.Rectangle alternateDefaultShortcuts >/dev/null 2>&1; then
-    ok "Rectangle shortcuts initialized"
+    shortcuts_set=1
+  fi
+  if [[ "$(defaults read com.knollsoft.Rectangle screenEdgeGapTop 2>/dev/null || true)" == "$top_gap" ]]; then
+    top_gap_set=1
+  fi
+  if [[ "$shortcuts_set" -eq 1 && "$top_gap_set" -eq 1 ]]; then
+    ok "Rectangle shortcuts initialized; top gap matches SketchyBar"
     return 0
   fi
   if [[ "$dry" -eq 1 ]]; then
-    dim "  would run: defaults write com.knollsoft.Rectangle alternateDefaultShortcuts -bool true"
-    dim "  would run: defaults write com.knollsoft.Rectangle launchOnLogin -bool true"
-    dim "  would restart Rectangle to activate the recommended shortcuts"
+    if [[ "$shortcuts_set" -eq 0 ]]; then
+      dim "  would run: defaults write com.knollsoft.Rectangle alternateDefaultShortcuts -bool true"
+      dim "  would run: defaults write com.knollsoft.Rectangle launchOnLogin -bool true"
+    fi
+    if [[ "$top_gap_set" -eq 0 ]]; then
+      dim "  would run: defaults write com.knollsoft.Rectangle screenEdgeGapTop -int $top_gap"
+    fi
+    dim "  would restart Rectangle to activate updated defaults"
     return 0
   fi
-  defaults write com.knollsoft.Rectangle alternateDefaultShortcuts -bool true
-  defaults write com.knollsoft.Rectangle launchOnLogin -bool true
-  if pgrep -x Rectangle >/dev/null 2>&1; then
+  if [[ "$shortcuts_set" -eq 0 ]]; then
+    defaults write com.knollsoft.Rectangle alternateDefaultShortcuts -bool true
+    defaults write com.knollsoft.Rectangle launchOnLogin -bool true
+    changed=1
+  fi
+  if [[ "$top_gap_set" -eq 0 ]]; then
+    defaults write com.knollsoft.Rectangle screenEdgeGapTop -int "$top_gap"
+    changed=1
+  fi
+  if [[ "$changed" -eq 1 ]] && pgrep -x Rectangle >/dev/null 2>&1; then
     killall Rectangle >/dev/null 2>&1 || true
     sleep 1
     open -ga Rectangle >/dev/null 2>&1 || true
   fi
-  ok "Rectangle recommended shortcuts enabled (needs Accessibility to act)"
+  ok "Rectangle defaults applied (needs Accessibility to act)"
 }
 
 # Cmd-Space for Raycast is two prefs: Spotlight's symbolic hotkey 64 must be

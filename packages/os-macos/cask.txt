@@ -61,7 +61,6 @@ grandperspective
 imazing
 updf
 raspberry-pi-imager
-parallels
 balenaetcher
 eddie
 logi-options+

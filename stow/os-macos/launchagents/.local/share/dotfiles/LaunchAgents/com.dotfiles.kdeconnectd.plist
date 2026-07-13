@@ -10,6 +10,15 @@
     <string>-lc</string>
     <string>mkdir -p "$HOME/Library/Logs/dotfiles"; exec "/Applications/KDE Connect.app/Contents/MacOS/kdeconnectd" >>"$HOME/Library/Logs/dotfiles/kdeconnectd.out.log" 2>>"$HOME/Library/Logs/dotfiles/kdeconnectd.err.log"</string>
   </array>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>DBUS_SESSION_BUS_ADDRESS</key>
+    <string>launchd:env=DBUS_LAUNCHD_SESSION_BUS_SOCKET</string>
+    <key>LANG</key>
+    <string>en_US.UTF-8</string>
+    <key>PATH</key>
+    <string>/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+  </dict>
   <key>RunAtLoad</key>
   <true/>
   <key>KeepAlive</key>

@@ -900,14 +900,44 @@ configure_macos_trusted_taps() {
 }
 
 configure_macos_dbus() {
-  local dry="$1"
-  configure_macos_brew_service "$dry" dbus || true
-  [[ "$dry" -eq 1 ]] && return 0
+  local dry="$1" uid source_plist target_plist
+  uid="$(id -u)"
+  source_plist="$HOME/.local/share/dotfiles/LaunchAgents/org.freedesktop.dbus-session.plist"
+  if [[ ! -r "$source_plist" ]]; then
+    source_plist="$DOTFILES_DIR/stow/os-macos/launchagents/.local/share/dotfiles/LaunchAgents/org.freedesktop.dbus-session.plist"
+  fi
+  target_plist="$HOME/Library/LaunchAgents/org.freedesktop.dbus-session.plist"
+
+  if [[ ! -x /opt/homebrew/opt/dbus/bin/dbus-daemon ]]; then
+    warn "dbus is declared but dbus-daemon is missing; run dotfiles update after package install completes"
+    return 0
+  fi
+  if [[ ! -r "$source_plist" ]]; then
+    warn "D-Bus LaunchAgent source missing: $source_plist"
+    return 0
+  fi
   if _macos_dbus_session_loaded; then
     ok "D-Bus session LaunchAgent loaded"
+    return 0
+  fi
+  if [[ "$dry" -eq 1 ]]; then
+    dim "  would install LaunchAgent: $target_plist"
+    dim "  would run: launchctl bootstrap gui/$uid $target_plist"
+    return 0
+  fi
+
+  mkdir -p "$HOME/Library/LaunchAgents"
+  cp "$source_plist" "$target_plist"
+  launchctl bootout "gui/$uid/org.freedesktop.dbus-session" >/dev/null 2>&1 || true
+  launchctl bootout "gui/$uid" "$target_plist" >/dev/null 2>&1 || true
+  if launchctl bootstrap "gui/$uid" "$target_plist" >/dev/null 2>&1; then
+    if _macos_dbus_session_loaded; then
+      ok "D-Bus session LaunchAgent loaded"
+    else
+      warn "D-Bus session LaunchAgent was installed but did not load"
+    fi
   else
-    warn "D-Bus session LaunchAgent not loaded; KDE Connect clipboard sync will fail"
-    warn "run: brew services start dbus"
+    warn "failed to load D-Bus session LaunchAgent: $target_plist"
   fi
 }
 
@@ -2416,25 +2446,29 @@ _kdeconnect_cli_bin() {
 
 _kdeconnect_cli_doctor() {
   _kdeconnect_declared || return 0
-  local cli output first
+  local cli output err_file first
   if ! cli="$(_kdeconnect_cli_bin)"; then
     warn "kdeconnect-cli missing; reinstall KDE Connect"
     return 1
   fi
-  if output="$("$cli" --list-available --id-name-only 2>&1)"; then
+  err_file="$(mktemp)"
+  if output="$("$cli" --list-available --id-name-only 2>"$err_file")"; then
     if [[ -n "$output" ]]; then
       first="$(printf '%s\n' "$output" | sed -n '1p')"
       ok "KDE Connect reachable device: $first"
+      rm -f "$err_file"
       return 0
     fi
     warn "KDE Connect has no paired reachable devices"
     warn "open KDE Connect, pair the peer, and enable the Clipboard plugin on both sides"
+    rm -f "$err_file"
     return 1
   fi
-  first="$(printf '%s\n' "$output" | sed -n '1p')"
+  first="$(sed -n '1p' "$err_file" 2>/dev/null || true)"
+  rm -f "$err_file"
   warn "KDE Connect CLI failed: ${first:-unknown error}"
   if [[ "$(detect_os)" == "macos" ]] && ! _macos_dbus_session_loaded; then
-    warn "D-Bus session bus is not loaded; run: brew services start dbus"
+    warn "D-Bus session bus is not loaded; run: dotfiles update"
   fi
   return 1
 }
@@ -2457,7 +2491,7 @@ _kdeconnect_devices_status() {
   else
     printf '  kdeconnect devices: CLI unavailable\n'
     if [[ "$(detect_os)" == "macos" ]] && ! _macos_dbus_session_loaded; then
-      printf '  next step: brew services start dbus && dotfiles update\n'
+      printf '  next step: dotfiles update\n'
     fi
   fi
 }
@@ -2610,7 +2644,7 @@ _macos_dbus_session_doctor() {
     ok "D-Bus session LaunchAgent loaded"
   else
     warn "D-Bus session LaunchAgent not loaded; KDE Connect clipboard sync will fail"
-    warn "run: brew services start dbus"
+    warn "run: dotfiles update"
     return 1
   fi
 }
@@ -2620,7 +2654,7 @@ _macos_dbus_session_status() {
     printf '  dbus session: loaded\n'
   else
     printf '  dbus session: not loaded\n'
-    printf '  next step: brew services start dbus && dotfiles update\n'
+    printf '  next step: dotfiles update\n'
   fi
 }
 

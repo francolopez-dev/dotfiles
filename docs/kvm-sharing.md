@@ -116,8 +116,8 @@ Hyprland) and offers the ufw rules (1714:1764 tcp+udp, needed for incoming
 discovery regardless of the peer's firewall state); on macOS it runs
 kdeconnectd via the `com.dotfiles.kdeconnectd` LaunchAgent (the app does not
 reliably respawn it). macOS KDE Connect also needs the Homebrew D-Bus session
-bus; `dotfiles update` starts `brew services start dbus` before loading
-`kdeconnectd`.
+bus; `dotfiles update` loads the `org.freedesktop.dbus-session` LaunchAgent
+before loading `kdeconnectd`.
 
 One-time pairing per machine pair:
 
@@ -154,8 +154,8 @@ remote clipboard writes received from KDE Connect.
   `authorized_fingerprints` contains the sender, and the target's 4242/udp is
   reachable (`nc -uvz <host> 4242`).
 - Clipboard sync broken on macOS: run `dotfiles doctor` and confirm the D-Bus
-  session is loaded. If not, run `brew services start dbus` and then
-  `dotfiles update`. The symptom is `DBus session bus not found` in
+  session is loaded. If not, run `dotfiles update`. The symptom is
+  `DBus session bus not found` in
   `~/Library/Logs/dotfiles/kdeconnectd.err.log`.
 - No `Clipboard ready` banner: check `dotfiles status`. On Omarchy inspect
   `systemctl --user status dotfiles-clipboard-notify.service`; on macOS inspect

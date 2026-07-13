@@ -1,2 +1,4 @@
 # lamac (personal MacBook Pro M2) formulae, on top of global + os-macos.
-# (none yet)
+
+# Manual-only Tailscale via the open-source daemon; see docs/macos-personal.md.
+tailscale

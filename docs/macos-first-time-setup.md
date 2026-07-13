@@ -52,7 +52,12 @@ dotfiles status
 
 ## 4. Login Round
 
-Open Tailscale.app and log in.
+If this Mac profile declares Tailscale, enable the Homebrew daemon and log in:
+
+```bash
+sudo "$(brew --prefix)/bin/tailscaled" install-system-daemon
+tailscale up
+```
 
 Sync shell history:
 

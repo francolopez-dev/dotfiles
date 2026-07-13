@@ -852,6 +852,7 @@ configure_omarchy_lanmouse_firewall() {
 configure_macos_declared_services() {
   local dry="$1"
   configure_macos_trusted_taps "$dry"
+  package_declared_short tailscale && configure_macos_tailscale "$dry" || true
   configure_macos_sketchybar_font "$dry"
   package_declared_short dbus && configure_macos_dbus "$dry" || true
   package_declared_short borders && configure_macos_dotfiles_launchagent "$dry" borders || true
@@ -897,6 +898,54 @@ configure_macos_trusted_taps() {
     fi
   done
   [[ ${#trusted[@]} -eq 0 ]] || ok "trusted declared brew tap(s): ${trusted[*]}"
+}
+
+configure_macos_tailscale() {
+  local dry="$1" tailscaled_cmd
+  if [[ -d /Applications/Tailscale.app ]]; then
+    warn "Tailscale.app is installed; remove it before enabling the Homebrew tailscaled daemon"
+    warn "  delete /Applications/Tailscale.app, approve VPN profile removal, then rerun dotfiles update"
+    return 0
+  fi
+
+  tailscaled_cmd="$(_macos_tailscaled_cmd)"
+  if [[ -z "$tailscaled_cmd" ]]; then
+    if [[ "$dry" -eq 1 ]]; then
+      tailscaled_cmd="$(_macos_brew_prefix)/bin/tailscaled"
+    else
+      warn "tailscale formula is declared but tailscaled is not installed yet; rerun dotfiles update after brew finishes"
+      return 0
+    fi
+  fi
+  if [[ ! -x "$tailscaled_cmd" && "$dry" -ne 1 ]]; then
+    warn "tailscale formula is declared but tailscaled is not installed yet; rerun dotfiles update after brew finishes"
+    return 0
+  fi
+  if _macos_tailscale_daemon_installed; then
+    if _macos_tailscale_daemon_running; then
+      ok "Tailscale system daemon running"
+    else
+      warn "Tailscale system daemon installed but not running"
+      warn "  run: sudo \"$tailscaled_cmd\" install-system-daemon"
+    fi
+    return 0
+  fi
+
+  if [[ "$dry" -eq 1 ]]; then
+    dim "  would run: sudo \"$tailscaled_cmd\" install-system-daemon"
+  elif ! have_tty; then
+    warn "Tailscale system daemon install needs sudo from a TTY"
+    warn "  run: sudo \"$tailscaled_cmd\" install-system-daemon"
+  elif confirm "Install Tailscale system daemon?"; then
+    if sudo "$tailscaled_cmd" install-system-daemon; then
+      ok "Tailscale system daemon installed"
+    else
+      warn "failed to install Tailscale system daemon"
+      warn "  run: sudo \"$tailscaled_cmd\" install-system-daemon"
+    fi
+  else
+    warn "Tailscale system daemon not installed; run: sudo \"$tailscaled_cmd\" install-system-daemon"
+  fi
 }
 
 configure_macos_dbus() {
@@ -1737,7 +1786,7 @@ print_next_steps() {
   os="$(detect_os)"
   printf '\nNext steps:\n'
   if [[ "$os" == "macos" ]]; then
-    printf '  Tailscale: open Tailscale.app and log in\n'
+    print_macos_tailscale_next_step
     printf '  App Store: sign in so declared App Store apps (mas.txt) can install\n'
     printf '  macOS Accessibility: System Settings -> Privacy & Security -> Accessibility; enable AeroSpace, borders, Rectangle, Raycast, and LinearMouse\n'
     printf '    (AeroSpace/Rectangle shortcuts and LinearMouse scrolling do nothing until this is granted)\n'
@@ -1752,6 +1801,32 @@ print_next_steps() {
   printf '  Recovery pack: build the encrypted recovery pack when ready\n'
   printf '  Atuin: atuin login && atuin sync\n'
   printf '  Shell: open a new terminal or run exec zsh -l\n'
+}
+
+print_macos_tailscale_next_step() {
+  local tailscale_cmd tailscaled_cmd
+  package_declared_short tailscale || return 0
+  tailscale_cmd="$(_tailscale_macos_cli)"
+  tailscaled_cmd="$(_macos_tailscaled_cmd)"
+  if [[ -d /Applications/Tailscale.app ]]; then
+    printf '  Tailscale: delete /Applications/Tailscale.app, approve VPN profile removal, then rerun dotfiles update\n'
+  elif [[ -z "$tailscale_cmd" ]]; then
+    printf '  Tailscale: rerun dotfiles update to install the Homebrew tailscale formula\n'
+  elif ! _macos_tailscale_daemon_installed; then
+    if [[ -n "$tailscaled_cmd" ]]; then
+      printf '  Tailscale: sudo "%s" install-system-daemon && tailscale up\n' "$tailscaled_cmd"
+    else
+      printf '  Tailscale: rerun dotfiles update to install tailscaled, then tailscale up\n'
+    fi
+  elif ! _macos_tailscale_daemon_running; then
+    if [[ -n "$tailscaled_cmd" ]]; then
+      printf '  Tailscale: sudo "%s" install-system-daemon && tailscale up\n' "$tailscaled_cmd"
+    else
+      printf '  Tailscale: rerun dotfiles update to repair tailscaled, then tailscale up\n'
+    fi
+  else
+    printf '  Tailscale: tailscale up\n'
+  fi
 }
 
 # SSH-session and legacy-layout checks that matter most on headless servers
@@ -2047,6 +2122,7 @@ cmd_doctor() {
     fi
     _clipboard_notify_doctor || failed=1
     _macos_nerd_font_doctor || failed=1
+    _macos_tailscale_doctor || failed=1
     _macos_mas_doctor || failed=1
     _macos_menubar_background_doctor || failed=1
     _macos_dock_doctor || failed=1
@@ -2555,12 +2631,35 @@ _tailscale_status() {
   if [[ "$(detect_os)" == "macos" ]]; then
     tailscale_cmd="$(_tailscale_macos_cli)"
     if [[ -z "$tailscale_cmd" ]]; then
-      dim "  tailscale login: install/open Tailscale.app"
-    elif "$tailscale_cmd" status >/dev/null 2>&1; then
+      if package_declared_short tailscale; then
+        dim "  tailscale: not installed"
+        printf '  next step: dotfiles update\n'
+      else
+        dim "  tailscale: not declared"
+      fi
+      return 0
+    fi
+    if package_declared_short tailscale; then
+      if [[ -d /Applications/Tailscale.app ]]; then
+        warn "  tailscale: Tailscale.app installed; remove it before Homebrew daemon migration"
+        printf '  next step: delete /Applications/Tailscale.app, approve VPN profile removal, then rerun dotfiles update\n'
+        return 0
+      elif _macos_tailscale_daemon_running; then
+        printf '  tailscaled daemon: running\n'
+      elif _macos_tailscale_daemon_installed; then
+        printf '  tailscaled daemon: installed, not running\n'
+        printf '  next step: sudo "%s" install-system-daemon\n' "$(_macos_tailscaled_cmd)"
+      else
+        printf '  tailscaled daemon: not installed\n'
+        printf '  next step: sudo "%s" install-system-daemon\n' "$(_macos_tailscaled_cmd)"
+        return 0
+      fi
+    fi
+    if "$tailscale_cmd" status >/dev/null 2>&1; then
       printf '  tailscale login: connected\n'
     else
       printf '  tailscale login: not connected\n'
-      printf '  next step: open Tailscale.app and log in\n'
+      printf '  next step: tailscale up\n'
     fi
     return 0
   fi
@@ -2577,8 +2676,53 @@ _tailscale_status() {
 _tailscale_macos_cli() {
   if command -v tailscale >/dev/null 2>&1; then
     command -v tailscale
+  elif [[ -x "$(_macos_brew_prefix)/bin/tailscale" ]]; then
+    printf '%s\n' "$(_macos_brew_prefix)/bin/tailscale"
   elif [[ -x /Applications/Tailscale.app/Contents/MacOS/Tailscale ]]; then
     printf '%s\n' /Applications/Tailscale.app/Contents/MacOS/Tailscale
+  fi
+}
+
+_macos_tailscaled_cmd() {
+  if command -v tailscaled >/dev/null 2>&1; then
+    command -v tailscaled
+  elif [[ -x "$(_macos_brew_prefix)/bin/tailscaled" ]]; then
+    printf '%s\n' "$(_macos_brew_prefix)/bin/tailscaled"
+  fi
+}
+
+_macos_tailscale_daemon_installed() {
+  launchctl print system/com.tailscale.tailscaled >/dev/null 2>&1 ||
+    [[ -f /Library/LaunchDaemons/com.tailscale.tailscaled.plist ]]
+}
+
+_macos_tailscale_daemon_running() {
+  launchctl print system/com.tailscale.tailscaled 2>/dev/null | grep -q 'state = running'
+}
+
+_macos_tailscale_doctor() {
+  local tailscale_cmd tailscaled_cmd
+  package_declared_short tailscale || return 0
+  tailscale_cmd="$(_tailscale_macos_cli)"
+  tailscaled_cmd="$(_macos_tailscaled_cmd)"
+  if [[ -z "$tailscale_cmd" || -z "$tailscaled_cmd" ]]; then
+    warn "Tailscale formula missing; run dotfiles update"
+    return 1
+  fi
+  ok "Tailscale formula installed"
+  if [[ -d /Applications/Tailscale.app ]]; then
+    warn "Tailscale.app is installed; remove it before enabling the Homebrew tailscaled daemon"
+    return 1
+  fi
+  if ! _macos_tailscale_daemon_installed; then
+    warn "Tailscale system daemon missing; run: sudo \"$tailscaled_cmd\" install-system-daemon"
+    return 1
+  fi
+  if _macos_tailscale_daemon_running; then
+    ok "Tailscale system daemon running"
+  else
+    warn "Tailscale system daemon installed but not running; run: sudo \"$tailscaled_cmd\" install-system-daemon"
+    return 1
   fi
 }
 

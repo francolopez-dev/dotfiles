@@ -26,7 +26,7 @@ alias-docker-ps	global	alias	Shell alias: docker ps	dps	docker ps	List running D
 alias-docker-up	global	alias	Shell alias: compose up	dcu	docker compose up -d	Start Docker Compose stack in the background	alias docker compose up	stow/global/shell/.config/shell/aliases.sh
 alias-docker-down	global	alias	Shell alias: compose down	dcd	docker compose down	Stop Docker Compose stack	alias docker compose down	stow/global/shell/.config/shell/aliases.sh
 alias-fastfetch	global	alias	Shell alias: fastfetch	ff	fastfetch 2>/dev/null || true	Show system summary without shell noise	alias fastfetch system summary	stow/global/shell/.config/shell/aliases.sh
-alias-cat-bat	global	alias	Shell alias: cat via bat	cat	bat --paging=never	Use bat as the interactive cat replacement	alias cat bat pager syntax highlight	stow/global/shell/.config/shell/aliases.sh
+alias-cat-bat	global	alias	Shell alias: cat via bat/batcat	cat	bat --paging=never	Use bat as the interactive cat replacement, falling back to Debian/Ubuntu batcat	alias cat bat batcat pager syntax highlight	stow/global/shell/.config/shell/aliases.sh
 alias-editor	global	alias	Shell alias: Neovim	v	nvim	Open Neovim	alias editor nvim neovim	stow/global/shell/.config/shell/aliases.sh
 alias-yazi	global	alias	Shell alias: Yazi	y	yazi	Open Yazi file manager	alias file manager yazi	stow/global/shell/.config/shell/aliases.sh
 alias-list	global	alias	Shell function: compact list	l	l	Compact styled file listing with eza or ls fallback	alias list files eza ls compact la	stow/global/shell/.config/shell/aliases.sh

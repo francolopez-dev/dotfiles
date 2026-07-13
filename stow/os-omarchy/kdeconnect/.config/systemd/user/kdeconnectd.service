@@ -6,7 +6,7 @@ After=graphical-session.target
 BindsTo=graphical-session.target
 
 [Service]
-ExecStart=/usr/lib/kdeconnectd
+ExecStart=/usr/bin/kdeconnectd --replace
 Restart=on-failure
 RestartSec=3
 

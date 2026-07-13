@@ -663,7 +663,7 @@ configure_omarchy_lanmouse() {
 configure_omarchy_kdeconnect() {
   local dry="$1"
   package_declared kdeconnect || return 0
-  if [[ ! -x /usr/lib/kdeconnectd ]]; then
+  if [[ ! -x /usr/bin/kdeconnectd ]]; then
     warn "kdeconnect is declared but not installed; run dotfiles update again after package install completes"
     return 0
   fi

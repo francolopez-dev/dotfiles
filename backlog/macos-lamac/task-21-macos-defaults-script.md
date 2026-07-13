@@ -22,7 +22,7 @@ over-automate system settings.
 ## Proposed implementation
 Documented + applied by the script (current lamac values, idempotent):
 - Dock: `defaults write com.apple.dock autohide -bool true`,
-  `orientation left`, `tilesize -int 47`; `killall Dock`
+  `orientation bottom`, `tilesize -int 47`; `killall Dock`
 - Finder: `AppleShowAllFiles -bool true`,
   `defaults write -g AppleShowAllExtensions -bool true`; `killall Finder`
 - Trackpad: `com.apple.AppleMultitouchTrackpad Clicking -bool true`

@@ -151,7 +151,7 @@ The script is never called by bootstrap, update, or apply.
 | Setting | Apply command | Revert |
 | --- | --- | --- |
 | Dock autohide | `defaults write com.apple.dock autohide -bool true; killall Dock` | `defaults delete com.apple.dock autohide; killall Dock` |
-| Dock left orientation | `defaults write com.apple.dock orientation left; killall Dock` | `defaults delete com.apple.dock orientation; killall Dock` |
+| Dock bottom orientation | `defaults write com.apple.dock orientation bottom; killall Dock` | `defaults delete com.apple.dock orientation; killall Dock` |
 | Dock tile size 47 | `defaults write com.apple.dock tilesize -int 47; killall Dock` | `defaults delete com.apple.dock tilesize; killall Dock` |
 | Finder show hidden files | `defaults write com.apple.finder AppleShowAllFiles -bool true; killall Finder` | `defaults delete com.apple.finder AppleShowAllFiles; killall Finder` |
 | Show all file extensions | `defaults write -g AppleShowAllExtensions -bool true; killall Finder` | `defaults delete -g AppleShowAllExtensions; killall Finder` |

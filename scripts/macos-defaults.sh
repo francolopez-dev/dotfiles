@@ -47,11 +47,11 @@ apply_or_print() {
 apply_dock() {
   printf '\nDock\n'
   show_pair 'com.apple.dock autohide' "$(read_default com.apple.dock autohide)" true
-  show_pair 'com.apple.dock orientation' "$(read_default com.apple.dock orientation)" left
+  show_pair 'com.apple.dock orientation' "$(read_default com.apple.dock orientation)" bottom
   show_pair 'com.apple.dock tilesize' "$(read_default com.apple.dock tilesize)" 47
   if [ "$dry" -eq 1 ] || confirm 'Apply Dock defaults?'; then
     apply_or_print defaults write com.apple.dock autohide -bool true
-    apply_or_print defaults write com.apple.dock orientation left
+    apply_or_print defaults write com.apple.dock orientation bottom
     apply_or_print defaults write com.apple.dock tilesize -int 47
     apply_or_print killall Dock
   fi

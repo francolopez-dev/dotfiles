@@ -1219,7 +1219,7 @@ configure_macos_dock_defaults() {
   fi
   if [[ "$dry" -eq 1 ]]; then
     dim "  would run: defaults write com.apple.dock autohide -bool true"
-    dim "  would run: defaults write com.apple.dock orientation left"
+    dim "  would run: defaults write com.apple.dock orientation bottom"
     dim "  would run: defaults write com.apple.dock tilesize -int 47"
     dim "  would run: defaults write com.apple.dock show-recents -bool false"
     dim "  would run: defaults write com.apple.WindowManager EnableStandardClickToShowDesktop -bool false"
@@ -1227,7 +1227,7 @@ configure_macos_dock_defaults() {
     return 0
   fi
   defaults write com.apple.dock autohide -bool true
-  defaults write com.apple.dock orientation left
+  defaults write com.apple.dock orientation bottom
   defaults write com.apple.dock tilesize -int 47
   defaults write com.apple.dock show-recents -bool false
   defaults write com.apple.WindowManager EnableStandardClickToShowDesktop -bool false
@@ -2663,7 +2663,7 @@ _macos_rectangle_status() {
 
 _macos_dock_defaults_match() {
   [[ "$(defaults read com.apple.dock autohide 2>/dev/null || true)" == "1" ]] || return 1
-  [[ "$(defaults read com.apple.dock orientation 2>/dev/null || true)" == "left" ]] || return 1
+  [[ "$(defaults read com.apple.dock orientation 2>/dev/null || true)" == "bottom" ]] || return 1
   [[ "$(defaults read com.apple.dock tilesize 2>/dev/null || true)" == "47" ]] || return 1
   [[ "$(defaults read com.apple.dock show-recents 2>/dev/null || true)" == "0" ]] || return 1
   [[ "$(defaults read com.apple.WindowManager EnableStandardClickToShowDesktop 2>/dev/null || true)" == "0" ]]

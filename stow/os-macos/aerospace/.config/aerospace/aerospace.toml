@@ -1,12 +1,14 @@
+# Startup and SketchyBar integration.
 start-at-login = true
 
 after-login-command = []
 after-startup-command = []
-# Notify Sketchybar about workspace change
+# Notify SketchyBar when the focused AeroSpace workspace changes.
 exec-on-workspace-change = ['/bin/bash', '-c',
     'sketchybar --trigger aerospace_workspace_change FOCUSED_WORKSPACE=$AEROSPACE_FOCUSED_WORKSPACE'
 ]
 
+# Layout defaults.
 enable-normalization-flatten-containers = true
 enable-normalization-opposite-orientation-for-nested-containers = true
 
@@ -14,69 +16,66 @@ accordion-padding = 30
 default-root-container-layout = 'tiles'
 default-root-container-orientation = 'auto'
 automatically-unhide-macos-hidden-apps = false
+
+# Keep the pointer on the active display when focus changes across monitors.
 on-focused-monitor-changed = ['move-mouse monitor-lazy-center']
 
 [key-mapping]
 preset = 'qwerty'
 
+# Gaps apply to tiled layouts. Keep the top gap equal to SketchyBar's height
+# so windows start below the bar before they are converted to floating.
 [gaps]
 inner.horizontal = 5
 inner.vertical = 5
 outer.left = 5
 outer.right = 5
 # The native menu bar is auto-hidden (scripts/macos-defaults.sh) and
-# SketchyBar (height 28) is the primary bar. On the notched built-in display
-# macOS keeps the menu-bar strip reserved, so 5 is enough; on external
-# monitors windows would tile under SketchyBar without the larger gap.
-outer.top = [{ monitor.'built-in' = 5 }, 38]
+# SketchyBar (height 28) is the primary bar on every display.
+outer.top = 28
 outer.bottom = 5
 
-
+# Workspace placement. SketchyBar renders these in the explicit order
+# one, two, three, four, five, six, seven.
 [workspace-to-monitor-force-assignment]
-'one' = 'Built-in Retina Display'       # Communication
-'two' = 'Built-in Retina Display'        # Personal & Work (Outlook-Thunderbird)
-'three' = 'Built-in Retina Display'   # AI tools (ChatGPT)
- 'four' = 'Built-in Retina Display'            # extra left 1
-# 'x' = 'Built-in Retina Display'            # extra left 2 
-# 'y' = 'Built-in Retina Display'            # extra left 3
-# 'z' = 'Built-in Retina Display'            # extra left 4
-'six' = 'LU28R55'                     # Browser Personal
-'five' = 'LU28R55'                        # Firefox / Chrome / Dev
-'seven' = 'LU28R55'                           # Firefox / Chrome / Dev
-#'T_Tools' = 'LU28R55'                       # Docker, GitHub, Transmit
-#'X_Terminal' = 'LU28R55'                    # Terminal fullscreen
-#'Y_Main-extra' = 'LU28R55'                  # extra 1
-#'U_Sec-Extra' = 'LU28R55'                   # extra 2
+'one' = 'Built-in Retina Display'    # Communication
+'two' = 'Built-in Retina Display'    # Personal and work mail
+'three' = 'Built-in Retina Display'  # AI tools
+'four' = 'Built-in Retina Display'   # Extra built-in workspace
+'five' = 'LU28R55'                   # Browser / web
+'six' = 'LU28R55'                    # Development / terminal
+'seven' = 'LU28R55'                  # Extra external workspace
 
+# Ideas to review later:
+# 'x' = 'Built-in Retina Display'    # Extra built-in workspace
+# 'y' = 'Built-in Retina Display'    # Extra built-in workspace
+# 'z' = 'Built-in Retina Display'    # Extra built-in workspace
+# 'tools' = 'LU28R55'                # Docker, GitHub, Transmit
+# 'terminal' = 'LU28R55'             # Dedicated fullscreen terminal
+
+# Main keybindings.
 [mode.main.binding]
 cmd-h = [] # Disable "hide application"
 cmd-alt-h = [] # Disable "hide others"
-# Window navigation
+
+# Window navigation.
 ctrl-h = 'focus left'
 ctrl-j = 'focus down'
 ctrl-k = 'focus up'
 ctrl-l = 'focus right'
 
-# Move windows
+# Move windows within the current layout tree.
 alt-ctrl-h = 'move left'
 alt-ctrl-j = 'move down'
 alt-ctrl-k = 'move up'
 alt-ctrl-l = 'move right'
 
-# Resize
+# Resize the focused node.
 ctrl-minus = 'resize smart -50'
 ctrl-equal = 'resize smart +50'
 
 
-# Workspace Switching (Alt + Key)
-#ctrl-cmd-1 = 'workspace one'
-#ctrl-cmd-2 = 'workspace two'
-#ctrl-cmd-3 = 'workspace I_Ai-Tools'
-#ctrl-cmd-4 = 'workspace w'
-# ctrl-cmd-5 = 'workspace x'
-# ctrl-cmd-6 = 'workspace y'
-# ctrl-cmd-7 = 'workspace z'
-
+# Workspace switching (Ctrl + number).
 ctrl-1 = 'workspace one'
 ctrl-2 = 'workspace two'
 ctrl-3 = 'workspace three'
@@ -85,15 +84,7 @@ ctrl-5 = 'workspace five'
 ctrl-6 = 'workspace six'
 ctrl-7 = 'workspace seven'
 
-# Move Window to Workspace (Alt + Shift + Key)
-#ctrl-shift-cmd-1 = 'move-node-to-workspace C_Work --focus-follows-window'
-#ctrl-shift-cmd-2 = 'move-node-to-workspace Email --focus-follows-window'
-#ctrl-shift-cmd-3 = 'move-node-to-workspace I_Ai-Tools --focus-follows-window'
-#ctrl-shift-cmd-4 = 'move-node-to-workspace w --focus-follows-window'
-# ctrl-shift-cmd-5 = 'move-node-to-workspace x --focus-follows-window'
-# ctrl-shift-cmd-6 = 'move-node-to-workspace y --focus-follows-window'
-# ctrl-shift-cmd-7 = 'move-node-to-workspace z --focus-follows-window'
-
+# Move the focused window to a workspace (Ctrl + Shift + number).
 ctrl-shift-1 = 'move-node-to-workspace one --focus-follows-window'
 ctrl-shift-2 = 'move-node-to-workspace two --focus-follows-window'
 ctrl-shift-3 = 'move-node-to-workspace three --focus-follows-window'
@@ -104,8 +95,7 @@ ctrl-shift-7 = 'move-node-to-workspace seven --focus-follows-window'
 
 alt-tab = 'workspace-back-and-forth'
 
-# App Launchers
-# alt-enter = 'exec-and-forget open -a "kitty"'
+# App launchers.
 alt-shift-enter = 'exec-and-forget open -n /Applications/Alacritty.app'
 alt-enter = 'exec-and-forget open -n /Applications/Ghostty.app'
 alt-semicolon = """exec-and-forget open -a "System Settings" """
@@ -115,48 +105,40 @@ alt-f = 'exec-and-forget open -a Finder'
 alt-e = 'exec-and-forget open -n /Applications/Microsoft\ Outlook.app'
 alt-g = 'exec-and-forget open -n /Applications/ChatGPT.app'
 
-# # Browsers
+# Browser launchers.
 alt-b = 'exec-and-forget open -a Firefox'
 alt-shift-b = 'exec-and-forget open -a Safari'
-# alt-g = 'exec-and-forget open -a "Google Chrome"'
 
-# # Development
+# Ideas to review later:
+# alt-g = 'exec-and-forget open -a "Google Chrome"'
 # alt-d = 'exec-and-forget open -a "Visual Studio Code"'
 # ctrl-shift-m = 'exec-and-forget open -a "Neovide"'
 # ctrl-j = 'exec-and-forget open -a Obsidian'
 # ctrl-h = 'exec-and-forget open -a Notion'
-
-# # Utilities / Tools
 # ctrl-semicolon = 'exec-and-forget open -a "System Settings"'
 # ctrl-t = 'exec-and-forget open -a Transmit'
 # ctrl-g = 'exec-and-forget open -a "GitHub Desktop"'
 # ctrl-d = 'exec-and-forget open -a "Docker Desktop"'
-
-# # Terminal
 # ctrl-enter = 'exec-and-forget open -a kitty'
 # ctrl-shift-enter = 'exec-and-forget open -a alacritty'
 
-
-
-
-# Layout & Monitor
+# Layout and monitor controls.
+# AeroSpace 0.21 cannot move floating windows directly; the top gap above keeps
+# the title bar visible when a tiled window is converted to floating.
 cmd-shift-z = 'layout floating tiling'
 alt-shift-z = 'flatten-workspace-tree'
-# Move window to next monitor 
+
+# Move the focused window to the next or previous monitor.
 ctrl-shift-h = 'move-node-to-monitor --wrap-around next --focus-follows-window'
 ctrl-shift-l = 'move-node-to-monitor --wrap-around prev --focus-follows-window'
 
-# alt-shift-w = "move-node-to-monitor --wrap-around prev --focus-follows-window"
+# Ideas to review later:
+# alt-shift-w = 'move-node-to-monitor --wrap-around prev --focus-follows-window'
 
-# Mode Switching
-# alt-backspace = 'mode service'
-# alt-esc = 'mode apps'
-# alt-0 = "mode apps"
+# Config reload.
+ctrl-alt-r = 'reload-config'
 
-# Config reload
-ctrl-alt-r = "reload-config"
-
-
+# Disabled binding modes kept as notes for later experiments.
 # [mode.service.binding]
 # esc = ['reload-config', 'mode main']
 # r = ['flatten-workspace-tree', 'mode main']
@@ -171,44 +153,45 @@ ctrl-alt-r = "reload-config"
 # shift-down = ['volume set 0', 'mode main']
 
 
-
-
+# Disabled app-launcher mode kept as notes for later experiments.
 # [mode.apps.binding]
 
-# # Communication & organization
+# Communication and organization.
 # ctrl-y = 'exec-and-forget open -n /Applications/Microsoft\ Teams.app'
 # ctrl-u = 'exec-and-forget open -a "Reminders"'
 # ctrl-i = 'exec-and-forget open -a Finder'
 # ctrl-o = 'exec-and-forget open -n /Applications/Microsoft\ Outlook.app'
 # ctrl-p = 'exec-and-forget open -n /Applications/ChatGPT.app'
 
-# # Browsers
+# Browsers.
 # ctrl-b = 'exec-and-forget open -a Firefox'
 # ctrl-v = 'exec-and-forget open -a Safari'
-# ctrl-n = 'exec-and-forget open -a "Google Chrome"'
+# alt-g = 'exec-and-forget open -a "Google Chrome"'
 
-# # Development
+# Development.
 # ctrl-l = 'exec-and-forget open -a "Visual Studio Code"'
 # ctrl-k = 'exec-and-forget open -a "Neovide"'
 # ctrl-j = 'exec-and-forget open -a Obsidian'
 # ctrl-h = 'exec-and-forget open -a Notion'
 
-# # Utilities / Tools
+# Utilities and tools.
 # ctrl-semicolon = 'exec-and-forget open -a "System Settings"'
-# ctrl-t <D-Z>= 'exec-and-forget open -a Transmit'
+# ctrl-t = 'exec-and-forget open -a Transmit'
 # ctrl-g = 'exec-and-forget open -a "GitHub Desktop"'
 # ctrl-d = 'exec-and-forget open -a "Docker Desktop"'
 
-# # Terminal
+# Terminal.
 # ctrl-enter = 'exec-and-forget open -a kitty'
 # ctrl-shift-enter = 'exec-and-forget open -a alacritty'
-# # Escape mode
+
+# Escape mode.
 # esc = 'mode main'
 
-# osascript -e 'tell application "System Events" to get the bundle identifier of every process whose background only is false'
-# com.apple.finder, com.microsoft.teams2, net.kovidgoyal.kitty, org.mozilla.firefox, com.apple.Safari, com.microsoft.VSCode, com.apple.reminders, com.openai.chat, com.microsoft.Outlook
+# App rules.
+# To discover bundle IDs later:
+# aerospace list-apps --format '%{app-bundle-id} | %{app-name} | %{app-bundle-path}'
 
-
+# Communication and AI apps that should float.
 [[on-window-detected]]
 if.app-id = 'com.microsoft.teams'
 run = 'layout floating'
@@ -222,22 +205,38 @@ if.app-id = 'com.apple.reminders'
 run = 'layout floating'
 
 [[on-window-detected]]
-if.app-id = 'com.apple.finder'
+if.app-id = 'com.openai.codex' # ChatGPT.app
 run = 'layout floating'
 
+[[on-window-detected]]
+if.app-id = 'com.openai.chat' # ChatGPT Classic.app
+run = 'layout floating'
 
 [[on-window-detected]]
-if.app-id = 'com.microsoft.Outlook'
-run = 'move-node-to-workspace two'
+if.app-id = 'com.openai.chatgpt' # Legacy ChatGPT bundle ID, kept harmless.
+run = 'layout floating'
 
 [[on-window-detected]]
-if.app-id = 'com.openai.chatgpt'
+if.app-id = 'com.anthropic.claudefordesktop'
+run = 'layout floating'
+
+# System utility windows that should float.
+[[on-window-detected]]
+if.app-id = 'com.apple.finder'
 run = 'layout floating'
 
 [[on-window-detected]]
 if.app-id = 'com.apple.MobileSMS'
 run = 'layout floating'
-# run = 'move-node-to-workspace I_Ai-Tools'
+
+[[on-window-detected]]
+if.app-id = 'com.google.Chrome'
+run = 'layout floating'
+
+# Workspace assignment rules.
+[[on-window-detected]]
+if.app-id = 'com.microsoft.Outlook'
+run = 'move-node-to-workspace two'
 
 [[on-window-detected]]
 if.app-id = 'com.apple.Safari'
@@ -248,21 +247,17 @@ if.app-id = 'org.mozilla.firefox'
 run = 'move-node-to-workspace four'
 
 [[on-window-detected]]
-if.app-id = 'com.google.Chrome'
-run = 'layout floating'
-
-[[on-window-detected]]
 if.app-id = 'com.neovide.neovide'
 run = 'move-node-to-workspace six'
 
- [[on-window-detected]]
- if.app-id = 'com.mitchellh.ghostty'
- run = 'layout floating'
+# Utility and development apps that should float.
+[[on-window-detected]]
+if.app-id = 'com.mitchellh.ghostty'
+run = 'layout floating'
 
 [[on-window-detected]]
 if.app-id = 'notion.id'
 run = 'layout floating'
-# run = 'move-node-to-workspace Dev'
 
 [[on-window-detected]]
 if.app-id = 'com.panic.Transmit'
@@ -279,3 +274,12 @@ run = 'layout floating'
 [[on-window-detected]]
 if.app-id = 'de.feschber.LanMouse'
 run = 'layout floating'
+
+[[on-window-detected]]
+if.app-id = 'com.lujjjh.LinearMouse'
+run = 'layout floating'
+
+# Ideas to review later:
+# - Add config-version = 2 and persistent-workspaces = ['one', 'two', 'three', 'four', 'five', 'six', 'seven'] after testing.
+# - If AI apps become primary workspaces, test moving ChatGPT/Claude to workspace three instead of floating.
+# - If any floating app still opens too high, test a dedicated macOS window-positioning helper rather than increasing the global gap.

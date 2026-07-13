@@ -230,7 +230,8 @@ _brew_install_or_hint() {
 }
 
 install_missing_native_packages() {
-  local dry="$1" mgr missing=() p
+  local dry="$1" mgr missing=() p failed=0 os
+  os="$(detect_os)"
   mgr="$(pkg_manager)"
   if [[ -z "$mgr" ]]; then
     warn "no known package manager for this OS, skipping"
@@ -242,20 +243,26 @@ install_missing_native_packages() {
   done < <(desired_packages)
   if [[ ${#missing[@]} -eq 0 ]]; then
     ok "all declared packages installed"
-    return 0
-  fi
-  printf '  missing: %s\n' "${missing[*]}"
-  if [[ "$dry" -eq 1 ]]; then
-    dim "  would run: $mgr ${missing[*]}"
-  elif confirm "Install ${#missing[@]} missing package(s)?"; then
-    # shellcheck disable=SC2086
-    if ! $mgr "${missing[@]}"; then
-      case "$(detect_os)" in
-        debian|ubuntu) install_apt_packages_individually "$mgr" "${missing[@]}" ;;
-        *) return 1 ;;
-      esac
+  else
+    printf '  missing: %s\n' "${missing[*]}"
+    if [[ "$dry" -eq 1 ]]; then
+      dim "  would run: $mgr ${missing[*]}"
+    elif confirm "Install ${#missing[@]} missing package(s)?"; then
+      # shellcheck disable=SC2086
+      if ! $mgr "${missing[@]}"; then
+        case "$os" in
+          debian|ubuntu) install_apt_packages_individually "$mgr" "${missing[@]}" || failed=1 ;;
+          *) return 1 ;;
+        esac
+      fi
     fi
   fi
+
+  case "$os" in
+    debian|ubuntu) install_or_update_debian_yazi "$dry" || failed=1 ;;
+  esac
+
+  return "$failed"
 }
 
 # apt aborts the whole transaction when any requested name is unavailable
@@ -274,6 +281,105 @@ install_apt_packages_individually() {
     return 1
   fi
   ok "all packages installed after per-package retry"
+}
+
+install_or_update_debian_yazi() {
+  local dry="$1" arch asset_arch asset_name installed_version tag latest_version
+  local tmpdir release_json deb_file download_url digest expected_sha actual_sha
+
+  arch="$(dpkg --print-architecture 2>/dev/null || uname -m)"
+  case "$arch" in
+    arm64|aarch64) asset_arch="aarch64" ;;
+    amd64|x86_64) asset_arch="x86_64" ;;
+    *) warn "Yazi official .deb is not managed for this Debian architecture: $arch"; return 0 ;;
+  esac
+  asset_name="yazi-${asset_arch}-unknown-linux-gnu.deb"
+  installed_version="$(dpkg-query -W -f='${Version}' yazi 2>/dev/null || true)"
+
+  if [[ "$dry" -eq 1 ]]; then
+    if [[ -n "$installed_version" ]]; then
+      dim "  would check latest stable Yazi release and update official .deb if newer than $installed_version"
+    else
+      dim "  would install Yazi from latest stable official GitHub .deb: $asset_name"
+    fi
+    return 0
+  fi
+
+  if ! command -v curl >/dev/null 2>&1; then
+    warn "curl is required to install/update Yazi from the official GitHub .deb; rerun dotfiles update after apt packages install"
+    return 1
+  fi
+  if ! command -v jq >/dev/null 2>&1; then
+    warn "jq is required to verify the latest Yazi release metadata; rerun dotfiles update after apt packages install"
+    return 1
+  fi
+  if ! command -v sha256sum >/dev/null 2>&1; then
+    warn "sha256sum is required to verify the Yazi .deb download"
+    return 1
+  fi
+
+  tmpdir="$(mktemp -d)"
+  release_json="$tmpdir/yazi-release.json"
+  deb_file="$tmpdir/$asset_name"
+
+  if ! curl -fsSL --retry 3 --connect-timeout 10 \
+    https://api.github.com/repos/sxyazi/yazi/releases/latest \
+    -o "$release_json"; then
+    rm -rf "$tmpdir"
+    warn "could not check latest Yazi release; leaving installed Yazi unchanged"
+    return 1
+  fi
+
+  tag="$(jq -r '.tag_name // empty' "$release_json")"
+  if [[ ! "$tag" =~ ^v[0-9]+([.][0-9]+)*$ ]]; then
+    rm -rf "$tmpdir"
+    warn "unexpected Yazi release tag from GitHub: ${tag:-missing}"
+    return 1
+  fi
+  latest_version="${tag#v}"
+
+  if [[ -n "$installed_version" ]] && dpkg --compare-versions "$installed_version" ge "$latest_version"; then
+    rm -rf "$tmpdir"
+    ok "Yazi official .deb current: $installed_version"
+    return 0
+  fi
+
+  download_url="$(jq -r --arg asset "$asset_name" '.assets[] | select(.name == $asset) | .browser_download_url' "$release_json")"
+  digest="$(jq -r --arg asset "$asset_name" '.assets[] | select(.name == $asset) | .digest // empty' "$release_json")"
+  if [[ -z "$download_url" ]]; then
+    rm -rf "$tmpdir"
+    warn "latest Yazi release does not include expected asset: $asset_name"
+    return 1
+  fi
+  if [[ ! "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]; then
+    rm -rf "$tmpdir"
+    warn "latest Yazi release metadata did not include a usable sha256 digest for $asset_name"
+    return 1
+  fi
+
+  info "Installing Yazi $tag from official GitHub .deb"
+  if ! curl -fsSL --retry 3 --connect-timeout 10 "$download_url" -o "$deb_file"; then
+    rm -rf "$tmpdir"
+    warn "failed to download Yazi .deb: $download_url"
+    return 1
+  fi
+
+  expected_sha="${digest#sha256:}"
+  actual_sha="$(sha256sum "$deb_file" | awk '{print $1}')"
+  if [[ "$actual_sha" != "$expected_sha" ]]; then
+    rm -rf "$tmpdir"
+    warn "Yazi .deb sha256 mismatch; refusing to install"
+    return 1
+  fi
+
+  if ! sudo apt-get install -y "$deb_file"; then
+    rm -rf "$tmpdir"
+    warn "failed to install Yazi official .deb"
+    return 1
+  fi
+
+  rm -rf "$tmpdir"
+  ok "Yazi installed/updated to $latest_version"
 }
 
 install_missing_omarchy_packages() {
@@ -422,7 +528,7 @@ cmd_update() {
   refresh_after_apply "$dry"
 
   if [[ $pkg_failed -eq 1 ]]; then
-    warn "update finished, but some packages did not install; fix the brew error above and rerun dotfiles update"
+    warn "update finished, but some packages did not install; fix the package error above and rerun dotfiles update"
   elif [[ $dry -eq 0 ]]; then
     ok "update complete"
   fi

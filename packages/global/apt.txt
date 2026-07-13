@@ -13,7 +13,7 @@ htop
 ncdu
 git-delta
 direnv
-tldr
+tealdeer
 neovim
 zsh
 curl
@@ -27,4 +27,6 @@ tree
 rsync
 unzip
 fd-find
-yazi
+file
+# Yazi is not a stock Debian/Ubuntu apt package here. dotfiles update manages
+# it separately from the official upstream GitHub .deb on Debian/Ubuntu only.

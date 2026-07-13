@@ -89,8 +89,15 @@ directories still holding files) so you can review and remove them manually.
 ## What Gets Installed
 
 Required core (`packages/global/apt.txt`): git, stow, tmux, fzf, ripgrep, jq,
-bat, eza, fastfetch, btop, htop, ncdu, git-delta, direnv, tldr, neovim, zsh,
-curl, bash, wget, nano, bash-completion, tree, rsync, unzip, fd-find, yazi.
+bat, eza, fastfetch, btop, htop, ncdu, git-delta, direnv, tealdeer, neovim,
+zsh, curl, bash, wget, nano, bash-completion, tree, rsync, unzip, fd-find,
+file.
+
+External Debian package managed by `dotfiles update`: Yazi. Debian/Ubuntu stock
+apt does not provide the required `yazi` package here, so the updater installs
+or updates the latest stable official upstream GitHub `.deb` for supported
+Debian architectures (`arm64`/`amd64`) and verifies the published SHA256 digest
+before installing it with apt.
 
 Server layer (`packages/os-debian/apt.txt`): ca-certificates,
 unattended-upgrades.
@@ -98,12 +105,12 @@ unattended-upgrades.
 Debian/Ubuntu naming quirks:
 
 - `bat` installs the binary as `batcat`; `fd-find` installs `fdfind`.
-- `eza` and `fastfetch` need Debian 13+/Ubuntu 24.04+. `yazi` is declared as
-  part of the shared terminal baseline, but stock Ubuntu currently may not ship
-  a `yazi` binary package. When a declared package is unavailable, the batch apt
-  install fails, `dotfiles update` retries per package, skips the unavailable
-  ones with a warning, and everything else still installs. The shared aliases
-  fall back to plain `ls` automatically.
+- `tealdeer` provides the `tldr` command; Debian removed the old Haskell `tldr`
+  package from current releases.
+- `eza` and `fastfetch` need Debian 13+/Ubuntu 24.04+. When a declared package
+  is unavailable, the batch apt install fails, `dotfiles update` retries per
+  package, skips the unavailable ones with a warning, and everything else still
+  installs. The shared aliases fall back to plain `ls` automatically.
 
 Nothing that needs a third-party apt repo is declared by default (no
 Tailscale, no Docker). Opt in per machine through the profile layer after

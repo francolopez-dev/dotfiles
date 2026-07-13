@@ -8,10 +8,18 @@
 	required = true
 [core]
   excludesfile = ~/.gitignore_global
+[diff]
+  colorMoved = default
+[merge]
+  conflictstyle = zdiff3
+[delta]
+  line-numbers = true
+  navigate = true
+  side-by-side = false
+  hyperlinks = true
 # Machine-local overrides, loaded last so they win. Untracked; git skips the
 # include silently when the file does not exist. On work servers set the work
 # identity there so the personal identity above never lands in work commits:
 #   git config --file ~/.gitconfig.local user.email "you@company.com"
 [include]
 	path = ~/.gitconfig.local
-

@@ -42,7 +42,7 @@ hostname `lamac` and profile `profile-lamac-macos`.
 ### Debian/Ubuntu server (minimal)
 
 Headless servers get the terminal-only experience (zsh + shared aliases +
-tmux/TDL + Neovim), never desktop packages:
+tmux/TDL + Neovim + Yazi when available from apt), never desktop packages:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/jfrancolopez/dotfiles/refs/heads/main/scripts/bootstrap.sh | bash -s -- --minimal
@@ -182,8 +182,7 @@ Setup and rebuild:
 
 Terminal workflow:
 
-- [`terminal-cheatsheet.md`](terminal-cheatsheet.md) — aliases, tmux/TDL, git, history, diagnostics.
-- [`terminal-ux.md`](terminal-ux.md) — terminal tooling decisions and audit.
+- [`terminal-cheatsheet.md`](terminal-cheatsheet.md) — daily terminal commands, aliases, fzf, zoxide, delta, tmux/TDL, history, diagnostics.
 - [`git-github-cheatsheet.md`](git-github-cheatsheet.md) — git commands and GitHub SSH.
 
 Desktop and machines:

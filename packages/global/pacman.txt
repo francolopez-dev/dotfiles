@@ -3,6 +3,7 @@ git
 stow
 tmux
 fzf
+fd
 ripgrep
 jq
 bat
@@ -10,6 +11,10 @@ eza
 fastfetch
 btop
 htop
+ncdu
+git-delta
+direnv
+tldr
 neovim
 zsh
 curl

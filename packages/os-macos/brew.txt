@@ -10,9 +10,7 @@ zoxide
 yazi
 age
 restic
-fd
 rsync
-tldr
 telnet
 
 # mac utilities

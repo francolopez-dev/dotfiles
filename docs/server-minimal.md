@@ -89,8 +89,8 @@ directories still holding files) so you can review and remove them manually.
 ## What Gets Installed
 
 Required core (`packages/global/apt.txt`): git, stow, tmux, fzf, ripgrep, jq,
-bat, eza, fastfetch, btop, htop, neovim, zsh, curl, bash, wget, nano,
-bash-completion, tree, rsync, unzip, fd-find.
+bat, eza, fastfetch, btop, htop, ncdu, git-delta, direnv, tldr, neovim, zsh,
+curl, bash, wget, nano, bash-completion, tree, rsync, unzip, fd-find, yazi.
 
 Server layer (`packages/os-debian/apt.txt`): ca-certificates,
 unattended-upgrades.
@@ -98,10 +98,12 @@ unattended-upgrades.
 Debian/Ubuntu naming quirks:
 
 - `bat` installs the binary as `batcat`; `fd-find` installs `fdfind`.
-- `eza` and `fastfetch` need Debian 13+/Ubuntu 24.04+. On older releases the
-  batch apt install fails, `dotfiles update` retries per package, skips the
-  unavailable ones with a warning, and everything else still installs. The
-  shared aliases fall back to plain `ls` automatically.
+- `eza` and `fastfetch` need Debian 13+/Ubuntu 24.04+. `yazi` is declared as
+  part of the shared terminal baseline, but stock Ubuntu currently may not ship
+  a `yazi` binary package. When a declared package is unavailable, the batch apt
+  install fails, `dotfiles update` retries per package, skips the unavailable
+  ones with a warning, and everything else still installs. The shared aliases
+  fall back to plain `ls` automatically.
 
 Nothing that needs a third-party apt repo is declared by default (no
 Tailscale, no Docker). Opt in per machine through the profile layer after

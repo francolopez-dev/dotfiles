@@ -25,7 +25,7 @@ allowed_source_aur_package() {
 
 known_pacman_package() {
   case "$1" in
-    git|stow|tmux|fzf|ripgrep|jq|bat|eza|fastfetch|btop|htop|neovim|zsh|curl|bash|wget|nano|ca-certificates|shellcheck|atuin|networkmanager|tailscale|playerctl|pamixer|power-profiles-daemon|iw|ghostty|alacritty|vivaldi|firefox|gsimplecal|zoxide|yazi|satty|socat|restic|age|kdeconnect|pacman|base-devel) return 0 ;;
+    git|stow|tmux|fzf|fd|ripgrep|jq|bat|eza|fastfetch|btop|htop|ncdu|git-delta|direnv|tldr|neovim|zsh|curl|bash|wget|nano|ca-certificates|shellcheck|atuin|networkmanager|tailscale|playerctl|pamixer|power-profiles-daemon|iw|ghostty|alacritty|vivaldi|firefox|gsimplecal|zoxide|yazi|satty|socat|restic|age|kdeconnect|pacman|base-devel) return 0 ;;
     *) return 1 ;;
   esac
 }

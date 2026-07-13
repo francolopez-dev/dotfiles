@@ -1,143 +1,234 @@
 # Terminal Cheatsheet
 
-Everything below is collected from real files in this repo — aliases from
-`stow/global/shell/.config/shell/aliases.sh`, layouts from
-`stow/global/shell/.config/shell/tmux-layouts.sh`, keys from
-`stow/global/tmux/.tmux.conf`, and the discovery registry
-(`stow/global/discovery/.config/dotfiles/commands.tsv`, searchable with
-`dotfiles commands search <query>`). Works on Omarchy, macOS, and minimal
-Debian/Ubuntu servers unless marked otherwise.
+One reference for the managed terminal experience on macOS, Omarchy, and
+minimal Debian/Ubuntu servers. Commands are ordered by how often they are used.
 
-## Dotfiles CLI
+## Daily Commands
 
-| Command | Does |
-|---|---|
-| `dotfiles status` | Machine, layers, package drift, sync tools, recovery pack |
-| `dotfiles update` | Pull, install missing packages, re-stow layers |
-| `dotfiles update --dry-run` | Show what update would do |
-| `dotfiles apply` | Re-stow layers after editing configs |
-| `dotfiles doctor` | Bootstrap/desktop health checks |
-| `dotfiles commands list` / `search <q>` | Browse/search this registry |
-| `dotfiles git setup-ssh` | Guided GitHub SSH setup |
-| `dotfiles autostart status` | Audit login/startup items |
-| `dotfiles wallpaper rotate` | Omarchy only |
-
-## Shell Aliases And Functions
-
-Sourced by both zsh and bash from the shared `aliases.sh`.
-
-| Alias | Expands to | Notes |
+| Command | Use it for | Notes |
 |---|---|---|
-| `..` | `cd ..` | |
-| `gs` | `git status` | |
-| `gp` | `git pull` | |
-| `dps` | `docker ps` | needs docker |
-| `dcu` / `dcd` | `docker compose up -d` / `down` | needs docker |
-| `ff` | `fastfetch` | silent if not installed |
-| `v` | `nvim` | |
-| `y` | `yazi` | Omarchy/macOS; not installed on servers |
-| `l` | styled compact listing | eza-backed, falls back to `ls -lh` |
-| `ll` | styled full listing (+git, owner, perms) | falls back to `ls -lha` |
-| `la` | same as `l` | |
-| `lt` | two-level tree | falls back to `ls -lah` |
-| `l --raw` / `ll --raw` | raw eza/ls output, no box table | |
-| `cls` | clear screen + scrollback | |
-| `z <dir>` | zoxide jump | zsh only, needs zoxide (Omarchy/macOS) |
-| `work` / `rest` | pomodoro timers | needs `timer`, otherwise prints a notice |
+| `dotfiles status` | Check machine, layers, packages, stow state | First command when something feels off |
+| `dotfiles update` | Pull repo, install packages, re-stow | Daily maintenance |
+| `dotfiles update --dry-run` | Preview update | No changes |
+| `dotfiles apply` | Re-stow after editing config | Does not install packages |
+| `dotfiles commands search <q>` | Find aliases, layouts, keybinds | Example: `dotfiles commands search fzf` |
+| `v` | Open Neovim | Alias for `nvim` |
+| `y` | Open Yazi | Terminal file manager |
+| `l` | Pretty compact file listing | eza-backed, falls back to `ls` |
+| `ll` | Full file listing | Adds git/user/permission columns |
+| `lt` | Small tree view | Two levels when eza exists |
+| `cat <file>` | Pretty file view | Uses `bat`; Debian/Ubuntu fallback is `batcat` |
+| `cd <dir>` | Smart directory jump | zoxide on macOS/Omarchy; normal `cd` fallback |
+| `tldr <cmd>` | Quick examples | Faster than reading a full man page |
+| `man <cmd>` | Manual pages | Colorized through bat/batcat when available |
 
-Oh My Zsh plugins loaded in `.zshrc`: `git` (adds `gst`, `gco`, `glog`, ...),
-`docker-compose`, `python`, `nmap`, plus autosuggestions and syntax
-highlighting installed by bootstrap.
+## Smart Replacements
 
-## Git Shortcuts
+| Old habit | Managed habit | What changes |
+|---|---|---|
+| `cat file` | `cat file` | Same command, prettier output through bat |
+| `cd long/path` | `cd partial-name` | zoxide jumps to frequent directories after learning them |
+| `ls` | `l` / `ll` | Icons, git status, compact table |
+| `find . -name foo` | `fd foo` | Faster, simpler search. Debian binary is `fdfind` |
+| `grep -R text` | `rg text` | Fast recursive text search |
+| `du -sh *` | `ncdu` | Interactive disk usage browser |
+| `git diff` | `git diff` | Same command, delta pager when installed |
+| `command --help` | `tldr command` | Practical examples first |
+
+## Files And Search
 
 | Command | Does |
 |---|---|
-| `gs` / `gp` | status / pull (shared aliases) |
-| OMZ `git` plugin | `gst`, `ga`, `gc`, `gco`, `gd`, `glog`, ... (zsh only) |
-| `dotfiles git setup-ssh` | guided GitHub SSH key setup |
-| `~/.gitconfig.local` | untracked per-machine identity override (work servers) |
+| `l` | Compact listing with hidden files, colors, icons, git, relative time |
+| `ll` | Full listing with git, user, and permissions |
+| `l --raw` / `ll --raw` | Original eza/ls output without boxed table |
+| `lt` | Directory tree |
+| `fd ssh` | Find paths matching `ssh` |
+| `fd -e md terminal` | Find markdown files matching `terminal` |
+| `rg TODO` | Search file contents for `TODO` |
+| `rg -n "foo.*bar"` | Regex search with line numbers |
+| `ncdu` | Inspect disk usage from current directory |
+| `sudo ncdu /var` | Inspect a system directory |
 
-More detail: [git-github-cheatsheet.md](git-github-cheatsheet.md).
+Debian/Ubuntu package names differ: use `fdfind` if you call fd directly and
+`batcat` if you bypass the `cat` alias.
 
-## Tmux (prefix is Ctrl+B)
+## Fzf
+
+Fzf is the fuzzy picker. Type a few letters, use arrow keys or `Ctrl+J/K`, then
+press Enter.
+
+| Shortcut | Does |
+|---|---|
+| `Ctrl+R` | Fuzzy search shell history |
+| `Ctrl+T` | Insert selected file(s) into the current command |
+| `Alt+C` | Jump to a selected directory |
+| `**<Tab>` | Fuzzy complete paths in many shell commands |
+
+Examples:
+
+```bash
+nvim **<Tab>      # fuzzy-pick a file to edit
+git add **<Tab>   # fuzzy-pick files to stage
+# Press Alt+C at an empty prompt to fuzzy-pick a directory.
+```
+
+Fzf uses `fd`/`fdfind` as its file source when available, including hidden files
+but excluding `.git`.
+
+## Navigation
+
+| Command | Does |
+|---|---|
+| `cd ~/projects/foo` | Normal cd still works |
+| `cd foo` | Jump to a frequent matching directory with zoxide |
+| `z foo` | Alias to smart `cd`, kept for muscle memory |
+| `cd -` | Previous directory |
+| `..` | Parent directory |
+
+Zoxide learns only after you visit directories. If a jump goes somewhere
+unexpected, use the full path once and it will learn the better match.
+
+## Git
+
+| Command | Does |
+|---|---|
+| `gs` | `git status` |
+| `gp` | `git pull` |
+| `git diff` | Delta-powered diff when `delta` is installed |
+| `git show` | Delta-powered commit view |
+| `git log -p` | Commit log with patches through delta |
+| `git add -p` | Interactive staging |
+| `git -C ~/dotfiles status --short --branch` | Check dotfiles repo quickly |
+| `dotfiles git setup-ssh` | Guided GitHub SSH setup |
+
+Delta config is intentionally simple: line numbers on, side-by-side off, moved
+lines highlighted, and conflict style set to `zdiff3` for clearer merge files.
+
+## Project Environments With Direnv
+
+Direnv loads environment variables when you enter a trusted project directory.
+
+| Command | Does |
+|---|---|
+| `direnv allow` | Trust this directory's `.envrc` |
+| `direnv deny` | Stop trusting it |
+| `direnv status` | Show current direnv state |
+| `direnv reload` | Reload after editing `.envrc` |
+
+Typical `.envrc`:
+
+```bash
+export PROJECT_ENV=dev
+PATH_add bin
+```
+
+Never commit secrets in `.envrc`. Put secret values in untracked local files or
+Vaultwarden-owned workflows.
+
+## Tmux
+
+Prefix is `Ctrl+B`.
 
 | Keys | Does |
 |---|---|
-| `Ctrl+B \|` / `Ctrl+B -` | split left/right / top/bottom |
-| `Ctrl+B h/j/k/l` | move between panes (vim-style) |
-| `Ctrl+B n` / `p` / `w` | next / previous / choose window |
-| `Ctrl+B d` | detach (session keeps running) |
-| `Ctrl+B r` | reload `~/.tmux.conf` |
-| mouse | on (click panes, scroll, resize) |
-| `tmux attach` | reattach after SSH reconnect |
+| `Ctrl+B \|` | Split left/right |
+| `Ctrl+B -` | Split top/bottom |
+| `Ctrl+B h/j/k/l` | Move between panes |
+| `Ctrl+B n` / `p` | Next / previous window |
+| `Ctrl+B w` | Choose window |
+| `Ctrl+B d` | Detach session |
+| `Ctrl+B r` | Reload tmux config |
+| `tmux attach` | Reattach after disconnect |
 
-## TDL / Agent Sessions
+Mouse support is on for pane selection, resizing, and scrollback.
 
-Layout functions work anywhere tmux + the requested command exist; missing
-agents fail with a clear error and install nothing.
+## TDL Agent Layouts
+
+These create tmux layouts for coding sessions. Missing agents fail with a clear
+message and install nothing.
 
 | Command | Layout |
 |---|---|
-| `tdl c` | editor + opencode + shell (one session per directory) |
+| `tdl c` | editor + opencode + shell |
 | `tdl cx` | editor + claude + shell |
 | `tdl c cx` | editor + opencode + claude + shell |
 | `tdlm c` | one tmux window per immediate subdirectory |
-| `tsl 4 c` | four tiled agent panes (2–8 allowed) |
+| `tsl 4 c` | four tiled opencode panes |
 | `ic` / `icx` / `icl` | aliases for `tdl c` / `tdl c cx` / `tdl cx` |
 
-Agent name mapping: `c`/`oc` → `opencode`, `cx` → `claude`, `codex` → `codex`.
-Rerunning `tdl` in the same directory reattaches to the existing session.
+Agent names: `c`/`oc` = `opencode`, `cx` = `claude`, `codex` = `codex`.
 
-## AI CLI Tools
-
-Not installed on servers by default; see
-[server-minimal.md](server-minimal.md#ai-cli-tools-optional-never-bootstrapped)
-for install/auth. Check availability: `command -v claude opencode codex`.
-
-## Editing
+## Dotfiles Helpers
 
 | Command | Does |
 |---|---|
-| `v` / `nvim` | Neovim (LazyVim config, stowed everywhere) |
-| `nano` | installed everywhere as the fallback editor |
-| `$EDITOR` | defaults to `nvim` via `env.sh` |
+| `repo status` | Branch, clean/sync state, open tasks |
+| `repo todo` | Open `.repo/TODO.md` |
+| `repo todo add <task>` | Append a repo task |
+| `repo notes` | Open `.repo/NOTES.md` |
+| `repo decisions` | Open `.repo/DECISIONS.md` |
+| `repo omarchy-todo` | Open shared Omarchy todo file |
 
 ## History
 
-| Where | Behaviour |
+| Tool | Where | Notes |
+|---|---|---|
+| zsh history | all machines | Shared, deduped, leading-space commands skipped |
+| bash fallback | minimal/fallback shells | Append mode, timestamps, `ignoreboth` |
+| `Ctrl+R` | fzf history search | Best daily history picker |
+| Atuin | macOS/Omarchy | Run `atuin login && atuin sync` to sync |
+| Servers | Debian/Ubuntu | Plain history by default; Atuin is opt-in only |
+
+## Server Diagnostics
+
+| Command | Use it for |
 |---|---|
-| zsh (all machines) | OMZ defaults: shared, deduped; leading space is not saved |
-| bash fallback (servers without zsh) | append mode, timestamps, `ignoreboth` |
-| Atuin (Omarchy/macOS) | `Ctrl+R` search; `atuin login && atuin sync` to sync |
-| Servers | plain history by default; Atuin is opt-in, never on work servers |
+| `systemctl status <svc>` | Service state |
+| `journalctl -u <svc> -n 50` | Recent service logs |
+| `ss -tulpn` | Listening ports |
+| `df -h` | Mounted disk usage |
+| `ncdu /path` | Interactive disk usage |
+| `ip a` | Network addresses |
+| `sudo lastb | head` | Failed logins |
+| `free -h` | Memory |
+| `btop` | Interactive CPU/memory/process view |
 
-## Repo Helper (`repo`, stowed everywhere)
+Hardening and Ghostty SSH troubleshooting live in
+[`server-minimal.md`](server-minimal.md).
 
-| Command | Does |
+## Config Locations
+
+| Thing | File |
 |---|---|
-| `repo status` | branch, clean/sync state, open tasks |
-| `repo todo` / `repo todo add <task>` | open/append `.repo/TODO.md` |
-| `repo notes` / `repo decisions` | open `.repo/NOTES.md` / `DECISIONS.md` |
-| `repo omarchy-todo [add <task>]` | shared todo at `~/Documents/Notes/todo.txt` |
+| Shared aliases/functions | `stow/global/shell/.config/shell/aliases.sh` |
+| Shared env, fzf defaults, pager defaults | `stow/global/shell/.config/shell/env.sh` |
+| Zsh startup, fzf hooks, zoxide, direnv | `stow/global/zsh/.zshrc` |
+| Bash fallback startup | `stow/global/bash/.bashrc` |
+| Tmux | `stow/global/tmux/.tmux.conf` |
+| Git/delta | `stow/global/git/.gitconfig` |
+| Ghostty | `stow/global/ghostty/.config/ghostty/config` |
+| Discovery registry | `stow/global/discovery/.config/dotfiles/commands.tsv` |
 
-## Server Diagnostics (standard tools, no aliases)
+## Troubleshooting
 
-Installed by the minimal server package set: `htop`, `btop`, `tree`, `rsync`,
-`jq`, `ripgrep` (`rg`), `fd-find` (`fdfind`), `bat` (`batcat`), `fzf`.
-Standard commands worth remembering: `journalctl -u <svc> -n 50`,
-`systemctl status <svc>`, `ss -tulpn`, `df -h`, `du -sh *`, `ip a`,
-`sudo lastb | head` (failed logins). Hardening commands live in
-[server-minimal.md](server-minimal.md).
+| Problem | Try |
+|---|---|
+| Shell command not found after update | `exec zsh` or open a new terminal |
+| `cd foo` jumps wrong | `cd /full/correct/path` once so zoxide relearns |
+| fzf shortcuts do nothing | Confirm shell integration files exist: `command -v fzf` then `exec zsh` |
+| `git diff` complains about delta | Confirm `command -v delta`; unset with `unset GIT_PAGER` for this shell |
+| Man pages look plain | Confirm `command -v bat batcat` |
+| zsh completion errors | `rm -f ~/.zcompdump*; exec zsh` |
+| Stow conflict | `dotfiles apply --dry-run`, then choose backup in the conflict wizard |
 
-## Omarchy-Only (not on servers)
+## Package Names
 
-Desktop keybindings (`Super+C/V/A`, `Ctrl+1..9`, quake terminal `` Ctrl+` ``,
-notes/todo drawers, screenshots) and `dotfiles wallpaper` — full list via
-`dotfiles commands list` or `Super+K`. See [terminal-ux.md](terminal-ux.md).
-
-## Recommended Additions (do not exist yet)
-
-Nothing here is implemented; add to `aliases.sh` + the discovery registry if
-adopted: a `gd`/`gl` git-diff/log alias pair for bash sessions, and a `sysinfo`
-wrapper for the diagnostics block above.
+| Tool | macOS/Homebrew | Omarchy/Arch | Debian/Ubuntu |
+|---|---|---|---|
+| bat | `bat` | `bat` | package `bat`, binary `batcat` |
+| fd | `fd` | `fd` | package `fd-find`, binary `fdfind` |
+| delta | `git-delta` | `git-delta` | `git-delta` where available |
+| fzf | `fzf` | `fzf` | `fzf` |
+| zoxide | `zoxide` | `zoxide` | not global by default |
+| direnv | `direnv` | `direnv` | `direnv` |

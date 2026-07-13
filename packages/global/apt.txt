@@ -10,16 +10,21 @@ eza
 fastfetch
 btop
 htop
+ncdu
+git-delta
+direnv
+tldr
 neovim
 zsh
 curl
 bash
 wget
 nano
-# Terminal basics available in stock Debian 11+/Ubuntu 20.04+ repos.
+# Terminal basics available in stock Debian/Ubuntu repos.
 # fd-find installs the binary as `fdfind` (bat as `batcat`).
 bash-completion
 tree
 rsync
 unzip
 fd-find
+yazi

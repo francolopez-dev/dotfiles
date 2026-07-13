@@ -47,7 +47,43 @@ fi
 [[ -f "$HOME/.config/shell/env.sh" ]] && source "$HOME/.config/shell/env.sh"
 [[ -f "$HOME/.config/shell/aliases.sh" ]] && source "$HOME/.config/shell/aliases.sh"
 [[ -f "$HOME/.config/shell/tmux-layouts.sh" ]] && source "$HOME/.config/shell/tmux-layouts.sh"
-command -v zoxide >/dev/null 2>&1 && eval "$(zoxide init zsh)"
+
+_dotfiles_source_first() {
+  while [ "$#" -gt 0 ]; do
+    if [ -r "$1" ]; then
+      source "$1"
+      return 0
+    fi
+    shift
+  done
+  return 1
+}
+
+if command -v fzf >/dev/null 2>&1; then
+  _dotfiles_source_first \
+    "${HOMEBREW_PREFIX:-}/opt/fzf/shell/completion.zsh" \
+    /usr/share/fzf/completion.zsh \
+    /usr/share/fzf/shell/completion.zsh \
+    /usr/share/doc/fzf/examples/completion.zsh >/dev/null 2>&1 || true
+  _dotfiles_source_first \
+    "${HOMEBREW_PREFIX:-}/opt/fzf/shell/key-bindings.zsh" \
+    /usr/share/fzf/key-bindings.zsh \
+    /usr/share/fzf/shell/key-bindings.zsh \
+    /usr/share/doc/fzf/examples/key-bindings.zsh >/dev/null 2>&1 || true
+fi
+
+if command -v zoxide >/dev/null 2>&1; then
+  if _dotfiles_zoxide_init="$(zoxide init zsh --cmd cd 2>/dev/null)"; then
+    eval "$_dotfiles_zoxide_init"
+    alias z='cd'
+  else
+    eval "$(zoxide init zsh)"
+  fi
+fi
+
+command -v direnv >/dev/null 2>&1 && eval "$(direnv hook zsh)"
+unset _dotfiles_zoxide_init
+unfunction _dotfiles_source_first 2>/dev/null || true
 # User configuration
 # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh

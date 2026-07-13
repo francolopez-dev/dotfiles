@@ -144,6 +144,20 @@ Prefix is `Ctrl+B`.
 
 Mouse support is on for pane selection, resizing, and scrollback.
 
+## Omarchy Window Manager
+
+Shared Omarchy desktop keybindings live in
+[`omarchy-keybindings.md`](omarchy-keybindings.md).
+
+| Keys | Does |
+|---|---|
+| `Ctrl+H/J/K/L` | Focus tiled windows left/down/up/right |
+| `Ctrl+equal` / `Ctrl+plus` | Horizontal resize with Hyprland `resizeactive 100 0` |
+| `Ctrl+minus` | Horizontal resize with Hyprland `resizeactive -100 0` |
+
+Known tradeoff: these are Hyprland global bindings, so they can intercept app
+shortcuts such as browser zoom and terminal/editor control keys.
+
 ## TDL Agent Layouts
 
 These create tmux layouts for coding sessions. Missing agents fail with a clear

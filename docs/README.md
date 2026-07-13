@@ -74,6 +74,9 @@ Forgot a shortcut or alias? The registry is searchable:
 dotfiles commands search tmux
 ```
 
+Omarchy desktop window-manager shortcuts are documented in
+[`omarchy-keybindings.md`](omarchy-keybindings.md).
+
 Fallback if PATH is broken:
 
 ```bash

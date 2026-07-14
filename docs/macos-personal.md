@@ -119,6 +119,18 @@ VPN profile and on-demand rules; `Tailscale down` stops tailnet traffic
 vpn plugin already prefers a PATH `tailscale` binary, so it keeps working
 unchanged after the migration.
 
+### ladomum.com DNS
+
+`dotfiles update` installs a macOS resolver at `/etc/resolver/ladomum.com`
+from the stowed source in `stow/os-macos/resolver/`. This sends
+`*.ladomum.com` lookups directly to AdGuard on `domum-core` over Tailscale
+(`100.121.26.52`) so browsers do not depend on Tailscale repeatedly repairing
+split DNS in macOS.
+
+This works both at home and away as long as Tailscale is connected. If
+Tailscale is down, `*.ladomum.com` names will not resolve on macOS until
+Tailscale is brought back up or the resolver is removed.
+
 ## AI Tooling
 
 Ollama.app owns the CLI and models on macOS. `~/.ollama` is local state and is

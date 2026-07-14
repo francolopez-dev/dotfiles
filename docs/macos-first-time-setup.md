@@ -59,6 +59,10 @@ sudo "$(brew --prefix)/bin/tailscaled" install-system-daemon
 tailscale up
 ```
 
+`dotfiles update` also installs `/etc/resolver/ladomum.com` from the managed
+macOS resolver source. It requires sudo once and makes `*.ladomum.com` resolve
+through AdGuard on `domum-core` over Tailscale.
+
 Sync shell history:
 
 ```bash

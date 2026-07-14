@@ -1,5 +1,9 @@
 # fornax (work Lenovo) pacman packages, on top of global + os-omarchy.
 
+# Audio firmware/tooling for Lenovo Legion Pro 7 ALC287 speaker diagnostics.
+sof-firmware
+alsa-tools
+
 # Local LLM tooling for FORNAX only.
 ollama-cuda
 lmstudio-bin

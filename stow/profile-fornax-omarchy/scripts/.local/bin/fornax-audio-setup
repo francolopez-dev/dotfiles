@@ -1,0 +1,145 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Enable the bass/woofer speakers on fornax (Lenovo Legion Pro 7 16IAX10H).
+#
+# The woofers are driven by an Awinic AW88399 smart amp (ACPI AWDZ8399) that
+# the stock Arch kernel cannot drive yet. Until the driver lands in mainline,
+# this installs the prebuilt CachyOS kernel (which ships the community patch)
+# plus the required firmware blob, and makes that kernel the boot default.
+# Stock `linux` stays installed as the fallback boot entry.
+#
+# Manual opt-in only. Never runs from bootstrap or `dotfiles update`.
+# Workflow docs and the exit path back to stock: docs/omarchy-extra-kernel.md.
+
+cachyos_key="F3B607488DB35A47"
+cachyos_mirror="https://mirror.cachyos.org/repo/x86_64/cachyos"
+fw_url="https://github.com/nadimkobeissi/16iax10h-linux-sound-saga/raw/main/fix/firmware/aw88399_acf.bin"
+fw_dst="/usr/lib/firmware/aw88399_acf.bin"
+fw_sha="1e927c9bca76d868181c0f81df2bccef3cf19c7d0910219f229360c87babd42c"
+limine_defaults="/etc/default/limine"
+
+info() { printf '==> %s\n' "$*"; }
+warn() { printf 'warn %s\n' "$*" >&2; }
+die() { printf 'err %s\n' "$*" >&2; exit 1; }
+
+usage() {
+  cat <<'EOF'
+Usage: fornax-audio-setup [--revert] [--help]
+
+Install the CachyOS kernel + AW88399 firmware so the woofers work, and make
+that kernel the default boot entry. Idempotent; safe to re-run.
+
+  (no flag)   Install/repair the fix.
+  --revert    Remove the fix: kernel, repo, firmware, boot order. Use this
+              once the stock Arch kernel gains the AW88399 driver.
+  --help      Show this help.
+
+Requires root. Reboot after either operation.
+EOF
+}
+
+mode="install"
+case "${1-}" in
+  "") ;;
+  --revert) mode="revert" ;;
+  -h|--help) usage; exit 0 ;;
+  *) usage >&2; die "unknown option: $1" ;;
+esac
+
+[[ "$(hostname -s)" == "fornax" ]] || die "fornax-audio-setup is intended for host fornax only."
+[[ $EUID -eq 0 ]] || die "run as root: sudo fornax-audio-setup ${1-}"
+
+# Resolve the current keyring/mirrorlist package filenames from the mirror
+# listing so this script does not go stale when CachyOS bumps them.
+latest_pkg() {
+  curl -fsS "${cachyos_mirror}/" |
+    grep -oP "$1-[0-9][^\"]*?-any\.pkg\.tar\.zst" | sort -uV | tail -1
+}
+
+install_fix() {
+  info "AW88399 firmware"
+  if [[ ! -f "$fw_dst" ]]; then
+    tmp="$(mktemp)"
+    curl -fsSL -o "$tmp" "$fw_url"
+    echo "${fw_sha}  ${tmp}" | sha256sum -c - >/dev/null || die "firmware checksum mismatch; refusing to install"
+    install -Dm644 "$tmp" "$fw_dst"
+    rm -f "$tmp"
+  fi
+  printf '    %s\n' "$fw_dst"
+
+  info "CachyOS repo key"
+  if ! pacman-key --list-keys "$cachyos_key" >/dev/null 2>&1; then
+    pacman-key --recv-keys "$cachyos_key" --keyserver keyserver.ubuntu.com
+    pacman-key --lsign-key "$cachyos_key"
+  fi
+
+  info "CachyOS keyring + mirrorlist"
+  if ! pacman -Q cachyos-keyring >/dev/null 2>&1; then
+    keyring_pkg="$(latest_pkg cachyos-keyring)"
+    mirrorlist_pkg="$(latest_pkg cachyos-mirrorlist)"
+    [[ -n "$keyring_pkg" && -n "$mirrorlist_pkg" ]] || die "could not resolve keyring/mirrorlist packages from ${cachyos_mirror}"
+    pacman -U --noconfirm --needed "${cachyos_mirror}/${keyring_pkg}" "${cachyos_mirror}/${mirrorlist_pkg}"
+  fi
+
+  info "[cachyos] repo in /etc/pacman.conf"
+  if ! grep -q '^\[cachyos\]' /etc/pacman.conf; then
+    cat >> /etc/pacman.conf <<'EOF'
+
+# CachyOS kernel repo (fornax bass fix: AW88399 side-codec driver).
+# Placed after core/extra on purpose: official repos keep priority.
+# Managed by fornax-audio-setup; see docs/omarchy-extra-kernel.md.
+[cachyos]
+Include = /etc/pacman.d/cachyos-mirrorlist
+EOF
+  fi
+
+  info "linux-cachyos kernel (stock linux stays as fallback)"
+  pacman -Sy
+  pacman -S --noconfirm --needed linux-cachyos linux-cachyos-headers
+
+  info "Default boot entry -> linux-cachyos"
+  if ! grep -q '^BOOT_ORDER="linux-cachyos' "$limine_defaults"; then
+    sed -i 's/^BOOT_ORDER="\*/BOOT_ORDER="linux-cachyos, */' "$limine_defaults"
+  fi
+  grep -q '^BOOT_ORDER="linux-cachyos' "$limine_defaults" || die "could not update BOOT_ORDER in $limine_defaults; edit it manually"
+  limine-update
+
+  info "Done. Reboot; the linux-cachyos entry is now the default."
+}
+
+revert_fix() {
+  info "Default boot entry -> stock linux"
+  sed -i 's/^BOOT_ORDER="linux-cachyos, \*/BOOT_ORDER="*/' "$limine_defaults"
+
+  info "Removing linux-cachyos kernel"
+  if pacman -Q linux-cachyos >/dev/null 2>&1; then
+    pacman -Rns --noconfirm linux-cachyos linux-cachyos-headers
+  fi
+
+  info "Removing [cachyos] repo from /etc/pacman.conf"
+  if grep -q '^\[cachyos\]' /etc/pacman.conf; then
+    sed -i '/^# CachyOS kernel repo (fornax bass fix/,/^Include = \/etc\/pacman.d\/cachyos-mirrorlist$/d' /etc/pacman.conf
+  fi
+  grep -q '^\[cachyos\]' /etc/pacman.conf && warn "leftover [cachyos] block in /etc/pacman.conf; remove it manually"
+
+  info "Removing CachyOS keyring + mirrorlist"
+  for pkg in cachyos-keyring cachyos-mirrorlist; do
+    pacman -Q "$pkg" >/dev/null 2>&1 && pacman -Rns --noconfirm "$pkg"
+  done
+  pacman-key --delete "$cachyos_key" >/dev/null 2>&1 || true
+
+  info "Removing AW88399 firmware"
+  rm -f "$fw_dst"
+  pacman -Sy
+  limine-update
+
+  info "Reverted. Reboot into the stock linux entry."
+  warn "Bass will not work until the stock kernel includes the AW88399 driver."
+}
+
+if [[ "$mode" == "install" ]]; then
+  install_fix
+else
+  revert_fix
+fi

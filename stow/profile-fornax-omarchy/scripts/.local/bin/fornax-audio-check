@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Read-only health check for the fornax bass/woofer fix (AW88399 smart amp).
+# Run after kernel updates or when the speakers sound thin again.
+# Fix/repair lives in fornax-audio-setup; docs in docs/omarchy-extra-kernel.md.
+
+if [[ "$(hostname -s)" != "fornax" ]]; then
+  printf 'fornax-audio-check is intended for host fornax only.\n' >&2
+  exit 1
+fi
+
+ok=0
+pass() { printf 'ok   %s\n' "$*"; }
+fail() { printf 'FAIL %s\n' "$*"; ok=1; }
+
+printf '== Kernel ==\n'
+kver="$(uname -r)"
+if [[ "$kver" == *cachyos* ]]; then
+  pass "running $kver (has the AW88399 driver)"
+else
+  fail "running $kver — boot the linux-cachyos entry, or the woofers stay off"
+fi
+
+printf '\n== Firmware ==\n'
+if [[ -f /usr/lib/firmware/aw88399_acf.bin ]]; then
+  pass "/usr/lib/firmware/aw88399_acf.bin present"
+else
+  fail "aw88399_acf.bin missing — rerun: sudo fornax-audio-setup"
+fi
+
+printf '\n== Woofer amp driver ==\n'
+if lsmod | grep -q '^snd_hda_scodec_aw88399'; then
+  pass "snd_hda_scodec_aw88399 module loaded"
+else
+  fail "snd_hda_scodec_aw88399 module not loaded"
+fi
+bound="$(journalctl -k -b --no-pager 2>/dev/null | grep -c 'AW88399 HDA side codec registered successfully' || true)"
+if [[ "$bound" -ge 2 ]]; then
+  pass "both AW88399 amp channels registered with the codec"
+else
+  fail "expected 2 registered amp channels, saw $bound (check: journalctl -k -b | grep -i aw88399)"
+fi
+
+printf '\n== Audio graph ==\n'
+if pactl get-default-sink 2>/dev/null | grep -q 'pci-0000_80_1f.3'; then
+  pass "default sink is the internal analog output ($(pactl get-default-sink))"
+else
+  fail "default sink is $(pactl get-default-sink 2>/dev/null || echo 'unknown') — expected the pci-0000_80_1f.3 analog sink"
+fi
+
+printf '\n'
+if [[ "$ok" -eq 0 ]]; then
+  printf 'All checks passed. Play music and enjoy the bass.\n'
+else
+  printf 'Some checks failed. See docs/omarchy-extra-kernel.md for recovery steps.\n'
+fi
+exit "$ok"

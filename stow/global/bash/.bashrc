@@ -1,9 +1,9 @@
 # shellcheck shell=bash
-# SSH sessions only: unknown $TERM (e.g. xterm-ghostty before its terminfo is
-# installed) breaks full-screen apps; fall back before handing off to zsh,
-# which inherits TERM. Inert in local desktop shells.
-if [ -n "${SSH_CONNECTION:-}${SSH_TTY:-}" ] && [ -n "${TERM:-}" ] \
-    && [ "$TERM" != dumb ] && [ "$TERM" != xterm-256color ]; then
+# A client terminal whose terminfo this host lacks (e.g. xterm-ghostty)
+# breaks full-screen apps; fall back before handing off to zsh, which
+# inherits TERM. Covers SSH, Tailscale SSH, and any remote session. Inert
+# in local desktop shells because their terminfo is installed locally.
+if [ -n "${TERM:-}" ] && [ "$TERM" != dumb ] && [ "$TERM" != xterm-256color ]; then
   if ! command -v infocmp >/dev/null 2>&1 \
       || ! infocmp "$TERM" >/dev/null 2>&1; then
     export TERM=xterm-256color

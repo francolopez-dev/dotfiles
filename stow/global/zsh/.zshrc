@@ -1,10 +1,11 @@
-# SSH sessions only: a client terminal whose terminfo this host lacks (e.g.
-# Ghostty's xterm-ghostty) breaks zle redraw and full-screen apps (nano
-# ignores Ctrl-X). Fall back to a universally shipped entry. Local shells
-# always have their own terminfo, so this is inert on desktops. The real fix
-# is client-side (Ghostty ssh-terminfo); see docs/server-minimal.md.
-if [[ -n "${SSH_CONNECTION:-}${SSH_TTY:-}" && -n "$TERM" \
-    && "$TERM" != dumb && "$TERM" != xterm-256color ]]; then
+# A client terminal whose terminfo this host lacks (e.g. Ghostty's
+# xterm-ghostty) breaks zle redraw and full-screen apps (nano ignores
+# Ctrl-X). Fall back to a universally shipped entry when the terminfo is
+# missing. Covers SSH, Tailscale SSH, and any other remote session. Local
+# desktop shells are inert because their terminfo is installed locally; the
+# != xterm-256color guard avoids a redundant export. See
+# docs/server-minimal.md.
+if [[ -n "$TERM" && "$TERM" != dumb && "$TERM" != xterm-256color ]]; then
   if ! command -v infocmp >/dev/null 2>&1 \
       || ! infocmp "$TERM" >/dev/null 2>&1; then
     export TERM=xterm-256color

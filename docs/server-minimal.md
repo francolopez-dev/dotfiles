@@ -288,11 +288,11 @@ Fixes, most permanent first:
    infocmp -x xterm-ghostty | ssh <host> -- tic -x -
    ```
 
-3. **Server-side fallback (already stowed):** in SSH sessions only,
-   `.zshrc`/`.bashrc` check `infocmp "$TERM"` at startup and export
-   `TERM=xterm-256color` when the entry is missing, so full-screen apps keep
-   working even with none of the above. Local (non-SSH) shells never run the
-   check, so desktop machines are unaffected.
+3. **Server-side fallback (already stowed):** `.zshrc`/`.bashrc` check
+   `infocmp "$TERM"` at startup and export `TERM=xterm-256color` when the
+   entry is missing, so full-screen apps keep working even with none of the
+   above. Covers SSH, Tailscale SSH, and any remote session. Local desktop
+   shells are inert because their terminfo is installed locally.
 4. **This session only:** `export TERM=xterm-256color`.
 
 If keys still arrive mangled after terminfo is fixed, a program probably left

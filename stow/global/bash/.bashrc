@@ -2,10 +2,12 @@
 # SSH sessions only: unknown $TERM (e.g. xterm-ghostty before its terminfo is
 # installed) breaks full-screen apps; fall back before handing off to zsh,
 # which inherits TERM. Inert in local desktop shells.
-if [ -n "${SSH_CONNECTION:-}${SSH_TTY:-}" ] && [ -n "${TERM:-}" ] && [ "$TERM" != dumb ] \
-    && command -v infocmp >/dev/null 2>&1 \
-    && ! infocmp "$TERM" >/dev/null 2>&1; then
-  export TERM=xterm-256color
+if [ -n "${SSH_CONNECTION:-}${SSH_TTY:-}" ] && [ -n "${TERM:-}" ] \
+    && [ "$TERM" != dumb ] && [ "$TERM" != xterm-256color ]; then
+  if ! command -v infocmp >/dev/null 2>&1 \
+      || ! infocmp "$TERM" >/dev/null 2>&1; then
+    export TERM=xterm-256color
+  fi
 fi
 # Auto-start zsh for interactive shells (but avoid nested shells)
 if [[ $- == *i* ]] && command -v zsh >/dev/null 2>&1 && [[ -z "${ZSH_VERSION:-}" ]]; then

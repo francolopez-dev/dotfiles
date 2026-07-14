@@ -15,6 +15,9 @@
       }
     },
     {
+      "buttons" : {
+        "universalBackForward" : true
+      },
       "if" : {
         "device" : {
           "category" : "mouse",
@@ -25,8 +28,32 @@
         }
       },
       "scrolling" : {
+        "acceleration" : {
+          "vertical" : 1
+        },
+        "distance" : {
+          "vertical" : 3
+        },
+        "modifiers" : {
+          "vertical" : {
+            "control" : {
+              "type" : "auto"
+            },
+            "shift" : {
+              "type" : "auto"
+            }
+          }
+        },
         "reverse" : {
           "vertical" : false
+        },
+        "smoothed" : {
+          "vertical" : {
+            "enabled" : false
+          }
+        },
+        "speed" : {
+          "vertical" : 0
         }
       }
     }

@@ -52,7 +52,7 @@ if command -v aerospace >/dev/null 2>&1; then
   done
 fi
 
-workspaces=(one two three four five six seven)
+workspaces=(one two three four five six seven eight)
 workspace_index=0
 for workspace in "${workspaces[@]}"; do
   workspace_index=$((workspace_index + 1))

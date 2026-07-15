@@ -129,20 +129,72 @@ Vaultwarden-owned workflows.
 
 ## Tmux
 
-Prefix is `Ctrl+B`.
+Use tmux for terminal tabs, panes, and long-running work. Prefix is `Ctrl+B`.
+
+Start and reattach:
+
+| Command | Does |
+|---|---|
+| `tmux new -s work` | Start a named session |
+| `tmux attach` | Attach to the most recent session |
+| `tmux attach -t work` | Attach to a named session |
+| `tmux ls` | List sessions |
+| `tmux kill-session -t work` | Kill one session |
+| `tmux rename-session -t old new` | Rename a session |
+| `tmux switch -t work` | Switch sessions from inside tmux |
+
+Daily keys:
 
 | Keys | Does |
 |---|---|
 | `Ctrl+B \|` | Split left/right |
 | `Ctrl+B -` | Split top/bottom |
 | `Ctrl+B h/j/k/l` | Move between panes |
+| `Ctrl+B z` | Zoom/unzoom current pane |
+| `Ctrl+B x` | Kill current pane |
+| `Ctrl+B c` | New window |
 | `Ctrl+B n` / `p` | Next / previous window |
+| `Ctrl+B 0-9` | Jump to window number |
 | `Ctrl+B w` | Choose window |
+| `Ctrl+B ,` | Rename current window |
 | `Ctrl+B d` | Detach session |
 | `Ctrl+B r` | Reload tmux config |
-| `tmux attach` | Reattach after disconnect |
 
-Mouse support is on for pane selection, resizing, and scrollback.
+Pane and window layout:
+
+| Keys | Does |
+|---|---|
+| `Ctrl+B Space` | Cycle pane layouts |
+| `Ctrl+B {` / `}` | Move pane left / right in the layout |
+| `Ctrl+B !` | Break pane out into its own window |
+| `Ctrl+B :join-pane -t :1` | Move current pane into window 1 |
+| `Ctrl+B :swap-window -s 2 -t 1` | Swap window 2 with window 1 |
+
+Scrollback and copy mode:
+
+| Keys | Does |
+|---|---|
+| `Ctrl+B [` | Enter copy/scrollback mode |
+| `q` | Exit copy mode |
+| `Space` | Start selection in copy mode |
+| `Enter` | Copy selection in copy mode |
+| `Ctrl+B ]` | Paste tmux buffer |
+| `Ctrl+B =` | Choose a paste buffer |
+
+Mouse support is on for pane selection, resizing, and scrollback. In Ghostty on
+macOS, use tmux windows instead of Ghostty tabs when running under AeroSpace;
+this avoids native tab/window-manager edge cases while keeping terminal tabs.
+
+Recommended project pattern:
+
+```bash
+tmux new -s dotfiles -c ~/dotfiles
+# Create tmux windows with Ctrl+B c, rename with Ctrl+B ,.
+# Detach with Ctrl+B d; later run: tmux attach -t dotfiles
+```
+
+If a terminal closes, the tmux session keeps running unless the machine rebooted
+or the session was killed. Reattach before starting duplicate long-running jobs.
 
 ## Omarchy Window Manager
 

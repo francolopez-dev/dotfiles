@@ -1,4 +1,5 @@
 # Startup and SketchyBar integration.
+config-version = 2
 start-at-login = true
 
 after-login-command = []
@@ -16,6 +17,7 @@ accordion-padding = 30
 default-root-container-layout = 'tiles'
 default-root-container-orientation = 'auto'
 automatically-unhide-macos-hidden-apps = false
+persistent-workspaces = ['one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight']
 
 # Keep the pointer on the active display when focus changes across monitors.
 on-focused-monitor-changed = ['move-mouse monitor-lazy-center']
@@ -35,23 +37,22 @@ outer.right = 5
 outer.top = [{ monitor.'built-in' = 5 }, 28]
 outer.bottom = 5
 
-# Workspace placement. SketchyBar renders these in the explicit order
-# one, two, three, four, five, six, seven.
+# Workspace placement. SketchyBar renders these in the explicit order.
 [workspace-to-monitor-force-assignment]
-'one' = 'Built-in Retina Display'    # Communication
-'two' = 'Built-in Retina Display'    # Personal and work mail
-'three' = 'Built-in Retina Display'  # AI tools
-'four' = 'Built-in Retina Display'   # Extra built-in workspace
-'five' = 'LU28R55'                   # Browser / web
-'six' = 'LU28R55'                    # Development / terminal
-'seven' = 'LU28R55'                  # Extra external workspace
-'eight' = 'LU28R55'
+'one' = 'main'    # Communication
+'two' = 'main'    # Personal and work mail
+'three' = 'main'  # AI tools
+'four' = 'main'   # Extra workspace
+'five' = 'main'   # Browser / web
+'six' = 'main'    # Development / terminal
+'seven' = 'main'  # Extra workspace
+'eight' = 'main'
 # Ideas to review later:
 # 'x' = 'Built-in Retina Display'    # Extra built-in workspace
 # 'y' = 'Built-in Retina Display'    # Extra built-in workspace
 # 'z' = 'Built-in Retina Display'    # Extra built-in workspace
-# 'tools' = 'LU28R55'                # Docker, GitHub, Transmit
-# 'terminal' = 'LU28R55'             # Dedicated fullscreen terminal
+# 'tools' = 'main'                   # Docker, GitHub, Transmit
+# 'terminal' = 'main'                # Dedicated fullscreen terminal
 
 # Main keybindings.
 [mode.main.binding]

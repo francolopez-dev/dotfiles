@@ -8,6 +8,7 @@ and macOS profiles do not load this layer.
 
 ```text
 stow/os-omarchy/hyprland/.config/hypr/conf.d/40-macos-like-keybindings.conf
+stow/os-omarchy/hyprland/.config/hypr/conf.d/99-omarchy-keymap.conf
 ```
 
 Rollback is a one-file change: remove that file, or remove its `source` line
@@ -34,6 +35,35 @@ The direct Omarchy focus bindings are intentionally disabled:
 
 Workspace switching, monitor movement, grouped-window movement, and mouse window
 movement are not disabled by this override.
+
+## Workspace Switching
+
+These match the macOS AeroSpace split used by this repo: workspaces 1-4 use
+`Ctrl+Super`, and workspaces 5-8 use plain `Ctrl`.
+
+| Keys | Action |
+|---|---|
+| `Ctrl+Super+1` | Workspace 1 |
+| `Ctrl+Super+2` | Workspace 2 |
+| `Ctrl+Super+3` | Workspace 3 |
+| `Ctrl+Super+4` | Workspace 4 |
+| `Ctrl+1` | Workspace 5 |
+| `Ctrl+2` | Workspace 6 |
+| `Ctrl+3` | Workspace 7 |
+| `Ctrl+4` | Workspace 8 |
+
+The Shift variants move the focused window and follow it:
+
+| Keys | Action |
+|---|---|
+| `Ctrl+Super+Shift+1` | Move window to workspace 1 |
+| `Ctrl+Super+Shift+2` | Move window to workspace 2 |
+| `Ctrl+Super+Shift+3` | Move window to workspace 3 |
+| `Ctrl+Super+Shift+4` | Move window to workspace 4 |
+| `Ctrl+Shift+1` | Move window to workspace 5 |
+| `Ctrl+Shift+2` | Move window to workspace 6 |
+| `Ctrl+Shift+3` | Move window to workspace 7 |
+| `Ctrl+Shift+4` | Move window to workspace 8 |
 
 ## Window resize
 

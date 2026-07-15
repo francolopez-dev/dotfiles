@@ -66,9 +66,12 @@ through AdGuard on `domum-core` over Tailscale.
 Sync shell history:
 
 ```bash
-atuin login
+atuin login -u <username>
 atuin sync
 ```
+
+Atuin owns `Ctrl+R` after opening a new shell. Daily commands and recovery notes
+are in [`atuin.md`](atuin.md).
 
 Set up GitHub SSH:
 

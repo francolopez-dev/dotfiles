@@ -51,7 +51,8 @@ the active profile should be `profile-nox-omarchy`.
 ## 4. Manual post-bootstrap steps
 
 - Authenticate Tailscale manually: `sudo tailscale up`.
-- Log in to Atuin manually: `atuin login`.
+- Log in to Atuin manually: `atuin login -u <username> && atuin sync`; see
+  [`atuin.md`](atuin.md).
 - Restore private keys only from the encrypted recovery pack.
 - Configure recovery email after keys are restored: `dotfiles recovery setup`.
 - Keep passwords in Vaultwarden, never in Git.

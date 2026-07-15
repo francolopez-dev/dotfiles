@@ -25,6 +25,7 @@ installed: `age`, `tar`, `base64`, and `msmtp` for email sending.
 | `~/.ssh/config.local` | no | yes, if useful |
 | Lan Mouse TLS private key | no | yes |
 | Tailscale trusted-network local config | no | yes |
+| Atuin key, session, and local history database | no | yes |
 | Vaultwarden export | no | yes, added manually |
 | Tailscale/admin exports | no | yes, if available |
 | Gmail app password | no | local config and encrypted pack |
@@ -149,6 +150,8 @@ Automatically, when present:
 - `~/.kube/config`.
 - Syncthing cert/key/config files.
 - KDE Connect config.
+- Atuin encryption key, server session token, and local history database from
+  `~/.local/share/atuin/`.
 - Local keyrings, Restic config, and rclone config when present.
 - The local recovery SMTP config, inside the encrypted pack.
 
@@ -198,6 +201,11 @@ chmod 644 ~/.ssh/*.pub 2>/dev/null || true
 Restore service-specific credentials deliberately, only onto the machine that
 owns them. Clean up extracted plaintext when finished:
 
+For Atuin, restore `service-credentials/atuin/key`, `session`, and `history.db`
+to `~/.local/share/atuin/` only on personal machines where history sync is
+allowed. The key decrypts synced history and the session is effectively an API
+token.
+
 ```bash
 rm -rf "$tmp"
 ```
@@ -209,6 +217,7 @@ Send a new recovery pack whenever any of these change:
 - A new laptop SSH key is created or renamed.
 - A server `authorized_keys` file changes.
 - Vaultwarden export is refreshed.
+- Atuin is registered, logged in on a new machine, or its recovery key changes.
 - Tailscale, DNS, registrar, or infrastructure recovery data changes.
 - Lan Mouse or other local service credentials rotate.
 - A machine is retired and its key should no longer be recoverable.

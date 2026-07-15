@@ -20,6 +20,10 @@ stow/global/neovim/.config/nvim/lazy-lock.json
 /.config/dotfiles/recovery.local
 /.config/dotfiles/recovery.local.*
 /.local/state/dotfiles/recovery/
+/.local/share/atuin/
+/.config/atuin/session
+/.config/atuin/key
+/.config/atuin/history.db
 /.msmtprc
 *.tar.gz.age
 *.age

@@ -61,7 +61,7 @@ press Enter.
 
 | Shortcut | Does |
 |---|---|
-| `Ctrl+R` | Fuzzy search shell history |
+| `Ctrl+R` | Atuin history search when installed; fzf history fallback otherwise |
 | `Ctrl+T` | Insert selected file(s) into the current command |
 | `Alt+C` | Jump to a selected directory |
 | `**<Tab>` | Fuzzy complete paths in many shell commands |
@@ -315,9 +315,9 @@ Agent names: `c`/`oc` = `opencode`, `cx` = `claude`, `codex` = `codex`.
 |---|---|---|
 | zsh history | all machines | Shared, deduped, leading-space commands skipped |
 | bash fallback | minimal/fallback shells | Append mode, timestamps, `ignoreboth` |
-| `Ctrl+R` | fzf history search | Best daily history picker |
-| Atuin | macOS/Omarchy | Run `atuin login && atuin sync` to sync |
-| Servers | Debian/Ubuntu | Plain history by default; Atuin is opt-in only |
+| `Ctrl+R` | macOS/Omarchy | Atuin owns history search when installed |
+| Atuin | macOS/Omarchy | Run `atuin login -u <username> && atuin sync`; guide: [`atuin.md`](atuin.md) |
+| Servers | Debian/Ubuntu | Plain history by default; personal-server Atuin is manual opt-in only |
 
 ## Server Diagnostics
 
@@ -356,6 +356,7 @@ Hardening and Ghostty SSH troubleshooting live in
 | Shell command not found after update | `exec zsh` or open a new terminal |
 | `cd foo` jumps wrong | `cd /full/correct/path` once so zoxide relearns |
 | fzf shortcuts do nothing | Confirm shell integration files exist: `command -v fzf` then `exec zsh` |
+| Atuin shortcuts do nothing | Confirm `command -v atuin`, then `exec zsh`; full guide: [`atuin.md`](atuin.md) |
 | `git diff` complains about delta | Confirm `command -v delta`; unset with `unset GIT_PAGER` for this shell |
 | Man pages look plain | Confirm `command -v bat batcat` |
 | zsh completion errors | `rm -f ~/.zcompdump*; exec zsh` |

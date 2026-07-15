@@ -75,6 +75,10 @@ if command -v fzf >/dev/null 2>&1; then
     /usr/share/doc/fzf/examples/key-bindings.zsh >/dev/null 2>&1 || true
 fi
 
+if command -v atuin >/dev/null 2>&1; then
+  eval "$(atuin init zsh)"
+fi
+
 if command -v zoxide >/dev/null 2>&1; then
   if _dotfiles_zoxide_init="$(zoxide init zsh --cmd cd 2>/dev/null)"; then
     eval "$_dotfiles_zoxide_init"

@@ -167,11 +167,21 @@ prefer `POWERLEVEL9K_MODE` override in `~/.config/shell/env.local`).
   commands starting with a space are not saved.
 - bash fallback: same properties via `HISTCONTROL=ignoreboth` + `histappend`.
 - Atuin is **not** installed on servers by default (the config file is stowed
-  but inert). Options, in increasing coupling:
-  - plain shell history (default; right answer for work servers),
-  - `atuin` local-only: install it, do not run `atuin login`,
-  - Atuin encrypted sync (personal servers only): install, then
-    `atuin login && atuin sync`.
+  but inert). Plain shell history is the default and the right answer for work
+  servers.
+- Personal servers may opt in manually when synced shell history is acceptable:
+
+  ```bash
+  sudo apt update
+  sudo apt install atuin
+  exec zsh
+  atuin login -u <username>
+  atuin sync
+  ```
+
+  If `atuin` is not in the server's stock apt repositories, leave it uninstalled
+  unless you intentionally create a per-host package/profile exception. Full
+  usage and recovery notes: [`atuin.md`](atuin.md).
 - Never enable external history sync on work servers. To pause history in any
   shell, prefix the command with a space.
 

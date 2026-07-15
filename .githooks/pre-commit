@@ -46,6 +46,11 @@ while IFS= read -r path; do
       printf '    only stow/**/.ssh/config is allowed; bypass intentionally with git commit --no-verify\n' >&2
       exit 1
       ;;
+    .local/share/atuin/*|.config/atuin/session|.config/atuin/key|.config/atuin/history.db|stow/*/*/.local/share/atuin/*|stow/*/*/.config/atuin/session|stow/*/*/.config/atuin/key|stow/*/*/.config/atuin/history.db)
+      printf 'err refusing to commit Atuin runtime state: %s\n' "$path" >&2
+      printf '    only stow/global/atuin/.config/atuin/config.toml is intended for Git\n' >&2
+      exit 1
+      ;;
   esac
 
   numstat=$(git diff --cached --numstat -- "$path" | sed -n '1p')

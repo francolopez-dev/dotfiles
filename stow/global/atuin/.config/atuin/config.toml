@@ -27,8 +27,18 @@ enter_accept = true
 # Supported: emacs, vim-normal, vim-insert, auto
 keymap_mode = "auto"
 
-# Store timestamps in UTC.
+# Store failed commands as well as successful commands.
 store_failed = true
+
+# Keep Atuin's built-in token/secret patterns out of history.
+secrets_filter = true
+
+# Prefer repo-aware history when working inside Git trees.
+workspaces = true
 
 # History filter: exclude commands starting with space.
 history_filter = ["^\\s"]
+
+# Show which machine a synced command came from.
+[ui]
+columns = ["duration", "time", "host", "command"]

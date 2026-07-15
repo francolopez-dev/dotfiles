@@ -135,6 +135,8 @@ repo remote — prompting before every change. Manual steps and troubleshooting:
 
 For server access from a new laptop, see
 [`server-minimal.md#add-a-new-laptop-ssh-key-to-a-server`](server-minimal.md#add-a-new-laptop-ssh-key-to-a-server).
+Private keys belong in the encrypted recovery pack, not Git; see
+[`recovery-pack.md`](recovery-pack.md).
 
 If `dotfiles update` finds local changes in the repo, it skips the pull and
 asks: continue without pulling (recommended), stash then pull, or reset
@@ -185,6 +187,7 @@ Setup and rebuild:
 - [`macos-first-time-setup.md`](macos-first-time-setup.md) — new Mac walkthrough.
 - [`macos-personal.md`](macos-personal.md) — personal Mac specifics.
 - [`server-minimal.md`](server-minimal.md) — headless Debian/Ubuntu servers, hardening, work vs personal.
+- [`recovery-pack.md`](recovery-pack.md) — encrypted backup for SSH keys, exports, and disaster recovery material.
 
 Terminal workflow:
 

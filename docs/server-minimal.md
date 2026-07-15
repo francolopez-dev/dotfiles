@@ -235,7 +235,36 @@ jfranco@100.121.26.52: Permission denied (publickey,password).
 ```
 
 Keys and `authorized_keys` are local machine state. Never commit them to this
-repo.
+repo. In this repo, only the SSH client config is tracked:
+
+For disaster recovery, put private keys and server `authorized_keys` in the
+encrypted recovery pack, not Git. See
+[`recovery-pack.md`](recovery-pack.md).
+
+```bash
+git -C ~/dotfiles ls-files -- stow/global/ssh/.ssh
+```
+
+Expected tracked file:
+
+```text
+stow/global/ssh/.ssh/config
+```
+
+The real keys live outside Git in `~/.ssh/`:
+
+```bash
+ls -la ~/.ssh
+```
+
+Fix local SSH permissions before debugging anything else:
+
+```bash
+chmod 700 ~/.ssh
+chmod 600 ~/.ssh/id_ed25519 2>/dev/null || true
+chmod 644 ~/.ssh/id_ed25519.pub 2>/dev/null || true
+chmod 600 ~/.ssh/known_hosts 2>/dev/null || true
+```
 
 On the new laptop, create a key if it does not already exist:
 
@@ -249,11 +278,28 @@ test -f ~/.ssh/id_ed25519 || ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519 -C "$(wh
 cat ~/.ssh/id_ed25519.pub
 ```
 
+That command is intentionally quiet when the key already exists. If nothing
+prints until `cat ~/.ssh/id_ed25519.pub`, it reused the existing key.
+
+The key filename is not what grants access. The server checks whether the
+public key line appears in `~/.ssh/authorized_keys` on the server. A key named
+`id_ed25519`, `id_ed25519-fornax`, or anything else works if SSH is configured
+to offer it and the server trusts the matching public key.
+
 If the server still allows password login, this is the easiest path:
 
 ```bash
 ssh-copy-id -i ~/.ssh/id_ed25519.pub domum-core
 ssh domum-core
+```
+
+`ssh-copy-id` is only a helper. It must log in first, either with a password or
+with another key that already works. If it fails like this, the server did not
+accept any current login method from this laptop:
+
+```text
+/usr/bin/ssh-copy-id: INFO: 1 key(s) remain to be installed -- if you are prompted now it is to install the new keys
+jfranco@100.121.26.52: Permission denied (publickey,password).
 ```
 
 If password login is disabled, use another machine that already has access:
@@ -286,6 +332,39 @@ If that still fails, debug with verbose SSH from the new laptop:
 ```bash
 ssh -v domum-core
 ```
+
+Optional named per-machine key, useful when you want the laptop name in the key
+filename:
+
+```bash
+ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519-fornax -C "$(whoami)@fornax"
+cat ~/.ssh/id_ed25519-fornax.pub
+```
+
+Because the stowed SSH config uses `IdentitiesOnly yes` for personal servers,
+tell SSH about any non-default key in the untracked local include file:
+
+```bash
+cat >> ~/.ssh/config.local <<'EOF'
+Host domum-core domum-core-tail domum-core-lan
+  IdentityFile ~/.ssh/id_ed25519-fornax
+EOF
+
+chmod 600 ~/.ssh/config.local
+```
+
+Then add `~/.ssh/id_ed25519-fornax.pub` to `~/.ssh/authorized_keys` on the
+server using the same existing-access path above.
+
+Quick troubleshooting:
+
+| Symptom | Meaning | Fix |
+|---|---|---|
+| `test -f ... || ssh-keygen ...` prints nothing | the key already exists | run `cat ~/.ssh/id_ed25519.pub` |
+| `ssh-copy-id` says permission denied | the server does not yet trust this laptop and password login did not work | add the public key from another trusted machine/session |
+| key has the same filename as another laptop | not a problem by itself | access depends on public key contents, not filename |
+| using `id_ed25519-fornax` | SSH may not offer it automatically because `IdentitiesOnly yes` is set | add `IdentityFile` in `~/.ssh/config.local` |
+| worried keys were committed | keys should be local under `~/.ssh` | check `git -C ~/dotfiles status --short` and `git -C ~/dotfiles ls-files -- stow/global/ssh/.ssh` |
 
 ## SSH And Login Hardening (Documented, Never Automated)
 

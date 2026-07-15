@@ -44,6 +44,9 @@ tableplus
 transmit
 docker-desktop
 
+# notes
+obsidian
+
 # media
 vlc
 handbrake-app

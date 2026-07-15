@@ -32,12 +32,13 @@
           "vertical" : 1
         },
         "distance" : {
-          "vertical" : 3
+          "vertical" : 4
         },
         "modifiers" : {
           "vertical" : {
             "control" : {
-              "type" : "auto"
+              "scale" : 4,
+              "type" : "changeSpeed"
             },
             "shift" : {
               "type" : "auto"

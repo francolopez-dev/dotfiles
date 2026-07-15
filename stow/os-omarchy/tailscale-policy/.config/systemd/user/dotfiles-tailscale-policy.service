@@ -1,0 +1,7 @@
+[Unit]
+Description=Dotfiles Tailscale trusted-network policy
+Documentation=file:%h/.config/dotfiles/tailscale-networks.conf
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/dotfiles-tailscale-policy evaluate

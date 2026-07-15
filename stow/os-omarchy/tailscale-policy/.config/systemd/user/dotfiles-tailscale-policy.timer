@@ -1,0 +1,11 @@
+[Unit]
+Description=Run Dotfiles Tailscale trusted-network policy periodically
+
+[Timer]
+OnBootSec=45s
+OnUnitActiveSec=60s
+AccuracySec=15s
+Unit=dotfiles-tailscale-policy.service
+
+[Install]
+WantedBy=timers.target

@@ -59,6 +59,7 @@ Usage:
   dotfiles commands doctor   Validate the discovery registry.
   dotfiles wallpaper rotate  Rotate wallpaper now.
   dotfiles wallpaper status  Show wallpaper rotation state.
+  dotfiles tailscale-policy   Manage trusted-network Tailscale automation.
   dotfiles git setup-ssh     Guided GitHub SSH setup; prompts before changes.
   dotfiles autostart status  Audit login/startup items.
   dotfiles autostart help    Show autostart subcommands.
@@ -1924,6 +1925,19 @@ cmd_wallpaper() {
   esac
 }
 
+cmd_tailscale_policy() {
+  local policy_cmd="$HOME/.local/bin/dotfiles-tailscale-policy"
+  if [[ ! -x "$policy_cmd" ]]; then
+    policy_cmd="$DOTFILES_DIR/stow/global/tailscale-policy/.local/bin/dotfiles-tailscale-policy"
+  fi
+  if [[ ! -x "$policy_cmd" ]]; then
+    err "tailscale policy command not installed"
+    printf '  run: dotfiles apply\n'
+    return 1
+  fi
+  "$policy_cmd" "$@"
+}
+
 print_next_steps() {
   local os
   os="$(detect_os)"
@@ -3489,6 +3503,7 @@ main() {
     doctor) cmd_doctor "$@" ;;
     commands) cmd_commands "$@" ;;
     wallpaper) cmd_wallpaper "$@" ;;
+    tailscale-policy) cmd_tailscale_policy "$@" ;;
     git) cmd_git "$@" ;;
     autostart) cmd_autostart "$@" ;;
     help|-h|--help) usage ;;

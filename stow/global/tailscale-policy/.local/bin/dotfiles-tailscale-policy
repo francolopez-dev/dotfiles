@@ -1,0 +1,475 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+CONFIG_FILE="${TAILSCALE_POLICY_CONFIG:-$HOME/.config/dotfiles/tailscale-networks.conf}"
+LOCAL_CONFIG_FILE="${TAILSCALE_POLICY_LOCAL_CONFIG:-$HOME/.config/dotfiles/tailscale-networks.local}"
+STATE_DIR="${TAILSCALE_POLICY_STATE_DIR:-$HOME/.local/state/dotfiles}"
+LOCK_DIR="${TAILSCALE_POLICY_LOCK_DIR:-$STATE_DIR/tailscale-policy.lock}"
+PAUSE_FILE="$STATE_DIR/tailscale-policy.pause"
+LAST_LOG_FILE="$STATE_DIR/tailscale-policy.lastlog"
+LOG_INTERVAL_SECONDS="${TAILSCALE_POLICY_LOG_INTERVAL_SECONDS:-300}"
+STABILIZE_SECONDS="${TAILSCALE_POLICY_STABILIZE_SECONDS:-3}"
+
+TAILSCALE_NETWORK_POLICY_ENABLED="${TAILSCALE_NETWORK_POLICY_ENABLED:-false}"
+TRUSTED_ACTION="${TRUSTED_ACTION:-down}"
+UNTRUSTED_ACTION="${UNTRUSTED_ACTION:-up}"
+TRUSTED_SSIDS=()
+TRUSTED_SUBNETS=()
+TRUSTED_GATEWAYS=()
+TRUSTED_DNS_SUFFIXES=()
+TRUSTED_MARKER_HOSTS=()
+
+VERBOSE=0
+DRY_RUN=0
+MODE="evaluate"
+
+usage() {
+  cat <<'EOF'
+Usage: dotfiles-tailscale-policy [command] [--dry-run] [--verbose]
+
+Commands:
+  status       Explain the current match without changing Tailscale.
+  evaluate     Apply the configured policy if enabled.
+  pause [dur]  Pause automation indefinitely or for a duration like 30m, 2h, 1d.
+  resume       Clear a pause.
+  force-up     Run tailscale up once, ignoring policy matching.
+  force-down   Run tailscale down once, ignoring policy matching.
+  install      Enable the per-user scheduler for this OS.
+  uninstall    Disable the per-user scheduler for this OS.
+EOF
+}
+
+log() { printf '%s\n' "$*"; }
+debug() { [[ "$VERBOSE" -eq 1 ]] && printf 'debug %s\n' "$*" >&2; }
+warn() { printf 'warn %s\n' "$*" >&2; }
+
+now_epoch() { date +%s; }
+
+mkdir_state() { mkdir -p "$STATE_DIR"; }
+
+rate_limited_warn() {
+  local key="$1" msg="$2" now last_key="" last_time=0
+  mkdir_state
+  now="$(now_epoch)"
+  if [[ -r "$LAST_LOG_FILE" ]]; then
+    read -r last_key last_time <"$LAST_LOG_FILE" || true
+  fi
+  if [[ "$key" != "$last_key" || $((now - last_time)) -ge "$LOG_INTERVAL_SECONDS" ]]; then
+    warn "$msg"
+    printf '%s %s\n' "$key" "$now" >"$LAST_LOG_FILE"
+  fi
+}
+
+load_config() {
+  if [[ -r "$CONFIG_FILE" ]]; then
+    # shellcheck disable=SC1090
+    . "$CONFIG_FILE"
+  fi
+  if [[ -r "$LOCAL_CONFIG_FILE" ]]; then
+    # shellcheck disable=SC1090
+    . "$LOCAL_CONFIG_FILE"
+  fi
+}
+
+is_true() {
+  case "${1,,}" in true|1|yes|on) return 0 ;; *) return 1 ;; esac
+}
+
+command_exists() { command -v "$1" >/dev/null 2>&1; }
+
+parse_duration() {
+  local input="${1:-}" value unit
+  [[ -n "$input" ]] || { printf '0\n'; return 0; }
+  if [[ "$input" =~ ^([0-9]+)([smhd]?)$ ]]; then
+    value="${BASH_REMATCH[1]}"
+    unit="${BASH_REMATCH[2]:-s}"
+    case "$unit" in
+      s) printf '%s\n' "$value" ;;
+      m) printf '%s\n' $((value * 60)) ;;
+      h) printf '%s\n' $((value * 3600)) ;;
+      d) printf '%s\n' $((value * 86400)) ;;
+    esac
+  else
+    return 1
+  fi
+}
+
+pause_policy() {
+  local duration="${1:-}" until=0 seconds
+  mkdir_state
+  if [[ -n "$duration" ]]; then
+    seconds="$(parse_duration "$duration")" || { warn "invalid pause duration: $duration"; return 2; }
+    until=$(($(now_epoch) + seconds))
+  fi
+  printf '%s\n' "$until" >"$PAUSE_FILE"
+  if [[ "$until" -eq 0 ]]; then
+    log "tailscale policy paused indefinitely"
+  else
+    log "tailscale policy paused until $(date -r "$until" '+%Y-%m-%d %H:%M:%S' 2>/dev/null || date -d "@$until" '+%Y-%m-%d %H:%M:%S')"
+  fi
+}
+
+resume_policy() {
+  rm -f "$PAUSE_FILE"
+  log "tailscale policy resumed"
+}
+
+pause_status() {
+  local until now
+  [[ -r "$PAUSE_FILE" ]] || return 1
+  read -r until <"$PAUSE_FILE" || until=0
+  now="$(now_epoch)"
+  if [[ "$until" =~ ^[0-9]+$ && "$until" -ne 0 && "$now" -ge "$until" ]]; then
+    rm -f "$PAUSE_FILE"
+    return 1
+  fi
+  if [[ "${until:-0}" -eq 0 ]]; then
+    log "automation paused indefinitely"
+  else
+    log "automation paused until epoch $until"
+  fi
+  return 0
+}
+
+with_lock() {
+  mkdir_state
+  if ! mkdir "$LOCK_DIR" 2>/dev/null; then
+    rate_limited_warn lock "tailscale policy already running; skipping"
+    return 0
+  fi
+  trap 'rmdir "$LOCK_DIR" 2>/dev/null || true' EXIT
+}
+
+ip_to_int() {
+  local IFS=. a b c d
+  read -r a b c d <<<"$1"
+  [[ "$a" =~ ^[0-9]+$ && "$b" =~ ^[0-9]+$ && "$c" =~ ^[0-9]+$ && "$d" =~ ^[0-9]+$ ]] || return 1
+  printf '%u\n' $(((a << 24) + (b << 16) + (c << 8) + d))
+}
+
+ip_in_cidr() {
+  local ip="$1" cidr="$2" network prefix ip_int net_int mask
+  network="${cidr%/*}"
+  prefix="${cidr#*/}"
+  [[ "$prefix" =~ ^[0-9]+$ && "$prefix" -ge 0 && "$prefix" -le 32 ]] || return 1
+  ip_int="$(ip_to_int "$ip")" || return 1
+  net_int="$(ip_to_int "$network")" || return 1
+  if [[ "$prefix" -eq 0 ]]; then
+    mask=0
+  else
+    mask=$(( (0xffffffff << (32 - prefix)) & 0xffffffff ))
+  fi
+  (( (ip_int & mask) == (net_int & mask) ))
+}
+
+array_contains() {
+  local needle="$1" item
+  shift
+  for item in "$@"; do
+    [[ "$item" == "$needle" ]] && return 0
+  done
+  return 1
+}
+
+network_ignored() {
+  local iface="$1" ip="$2"
+  case "$iface" in
+    lo|lo0|utun*|tailscale*|docker*|br-*|veth*|virbr*|vmnet*|bridge*) return 0 ;;
+  esac
+  case "$ip" in
+    127.*|169.254.*) return 0 ;;
+    100.*) ip_in_cidr "$ip" "100.64.0.0/10" && return 0 ;;
+  esac
+  return 1
+}
+
+wifi_device_macos() {
+  networksetup -listallhardwareports 2>/dev/null | awk '
+    /Hardware Port: Wi-Fi|Hardware Port: AirPort/ { wifi=1; next }
+    wifi && /Device:/ { print $2; exit }
+  '
+}
+
+collect_macos() {
+  local route iface ip gateway wifi ssid dns_suffixes
+  if [[ -n "${TAILSCALE_POLICY_MOCK_IFACE:-}" ]]; then
+    NET_IFACE="$TAILSCALE_POLICY_MOCK_IFACE"
+    NET_IP="${TAILSCALE_POLICY_MOCK_IP:-}"
+    NET_GATEWAY="${TAILSCALE_POLICY_MOCK_GATEWAY:-}"
+    NET_SSID="${TAILSCALE_POLICY_MOCK_SSID:-}"
+    NET_DNS_SUFFIXES="${TAILSCALE_POLICY_MOCK_DNS_SUFFIXES:-}"
+    return 0
+  fi
+  route="$(route -n get default 2>/dev/null || true)"
+  iface="$(awk '/interface:/{print $2; exit}' <<<"$route")"
+  gateway="$(awk '/gateway:/{print $2; exit}' <<<"$route")"
+  [[ -n "$iface" ]] || return 1
+  ip="$(ipconfig getifaddr "$iface" 2>/dev/null || true)"
+  wifi="$(wifi_device_macos || true)"
+  ssid=""
+  if [[ -n "$wifi" && "$iface" == "$wifi" ]]; then
+    ssid="$(networksetup -getairportnetwork "$wifi" 2>/dev/null | sed 's/^Current Wi-Fi Network: //; s/^You are not associated with an AirPort network\.//')"
+  fi
+  dns_suffixes="$(scutil --dns 2>/dev/null | awk '/search domain\[[0-9]+\]|domain[[:space:]]+:/ { print $3 }' | tr '\n' ' ')"
+  NET_IFACE="$iface"
+  NET_IP="$ip"
+  NET_GATEWAY="$gateway"
+  NET_SSID="$ssid"
+  NET_DNS_SUFFIXES="$dns_suffixes"
+}
+
+collect_linux() {
+  local route iface ip gateway ssid dns_suffixes
+  if [[ -n "${TAILSCALE_POLICY_MOCK_IFACE:-}" ]]; then
+    NET_IFACE="$TAILSCALE_POLICY_MOCK_IFACE"
+    NET_IP="${TAILSCALE_POLICY_MOCK_IP:-}"
+    NET_GATEWAY="${TAILSCALE_POLICY_MOCK_GATEWAY:-}"
+    NET_SSID="${TAILSCALE_POLICY_MOCK_SSID:-}"
+    NET_DNS_SUFFIXES="${TAILSCALE_POLICY_MOCK_DNS_SUFFIXES:-}"
+    return 0
+  fi
+  route="$(ip route show default 2>/dev/null | awk 'NR==1 {print}')"
+  iface="$(awk '{for (i=1;i<=NF;i++) if ($i=="dev") print $(i+1)}' <<<"$route")"
+  gateway="$(awk '{for (i=1;i<=NF;i++) if ($i=="via") print $(i+1)}' <<<"$route")"
+  [[ -n "$iface" ]] || return 1
+  ip="$(ip -4 addr show dev "$iface" scope global 2>/dev/null | awk 'NR==1 { sub(/\/.*$/, "", $2); print $2 }')"
+  ssid=""
+  if command_exists nmcli; then
+    ssid="$(nmcli -t -f active,ssid dev wifi 2>/dev/null | awk -F: '$1=="yes" {print $2; exit}')"
+    dns_suffixes="$(nmcli -g IP4.DOMAIN device show "$iface" 2>/dev/null | tr '\n' ' ')"
+  else
+    dns_suffixes=""
+  fi
+  NET_IFACE="$iface"
+  NET_IP="$ip"
+  NET_GATEWAY="$gateway"
+  NET_SSID="$ssid"
+  NET_DNS_SUFFIXES="$dns_suffixes"
+}
+
+collect_network() {
+  NET_IFACE="" NET_IP="" NET_GATEWAY="" NET_SSID="" NET_DNS_SUFFIXES=""
+  case "$(uname -s)" in
+    Darwin) collect_macos || return 1 ;;
+    Linux) collect_linux || return 1 ;;
+    *) return 1 ;;
+  esac
+  [[ -n "$NET_IFACE" && -n "$NET_IP" ]] || return 1
+  network_ignored "$NET_IFACE" "$NET_IP" && return 1
+  return 0
+}
+
+corroboration_matches() {
+  local suffix host
+  if [[ ${#TRUSTED_GATEWAYS[@]} -gt 0 && -n "$NET_GATEWAY" ]]; then
+    array_contains "$NET_GATEWAY" "${TRUSTED_GATEWAYS[@]}" && return 0
+  fi
+  if [[ ${#TRUSTED_DNS_SUFFIXES[@]} -gt 0 && -n "$NET_DNS_SUFFIXES" ]]; then
+    for suffix in "${TRUSTED_DNS_SUFFIXES[@]}"; do
+      [[ " $NET_DNS_SUFFIXES " == *" $suffix "* ]] && return 0
+    done
+  fi
+  if [[ ${#TRUSTED_MARKER_HOSTS[@]} -gt 0 ]]; then
+    for host in "${TRUSTED_MARKER_HOSTS[@]}"; do
+      ping -c 1 -W 1 "$host" >/dev/null 2>&1 && return 0
+    done
+  fi
+  return 1
+}
+
+evaluate_network() {
+  MATCH_REASON="untrusted network"
+  DESIRED_ACTION="$UNTRUSTED_ACTION"
+  if [[ -n "$NET_SSID" ]] && array_contains "$NET_SSID" "${TRUSTED_SSIDS[@]}"; then
+    MATCH_REASON="trusted SSID"
+    DESIRED_ACTION="$TRUSTED_ACTION"
+    return 0
+  fi
+  local subnet
+  for subnet in "${TRUSTED_SUBNETS[@]}"; do
+    if ip_in_cidr "$NET_IP" "$subnet"; then
+      if corroboration_matches; then
+        MATCH_REASON="trusted subnet with corroboration"
+      else
+        MATCH_REASON="trusted subnet only (weak trust signal)"
+        rate_limited_warn subnet-only "trusted subnet matched without gateway, DNS suffix, BSSID, or marker-host corroboration"
+      fi
+      DESIRED_ACTION="$TRUSTED_ACTION"
+      return 0
+    fi
+  done
+}
+
+tailscale_cmd() {
+  if [[ -n "${TAILSCALE_POLICY_TAILSCALE_CMD:-}" ]]; then
+    printf '%s\n' "$TAILSCALE_POLICY_TAILSCALE_CMD"
+  elif command_exists tailscale; then
+    command -v tailscale
+  elif [[ -x /opt/homebrew/bin/tailscale ]]; then
+    printf '%s\n' /opt/homebrew/bin/tailscale
+  elif [[ -x /usr/local/bin/tailscale ]]; then
+    printf '%s\n' /usr/local/bin/tailscale
+  fi
+}
+
+tailscale_state() {
+  if [[ -n "${TAILSCALE_POLICY_MOCK_TS_STATE:-}" ]]; then
+    printf '%s\n' "$TAILSCALE_POLICY_MOCK_TS_STATE"
+    return 0
+  fi
+  local cmd status out
+  cmd="$(tailscale_cmd)"
+  [[ -n "$cmd" ]] || { printf 'unavailable\n'; return 0; }
+  set +e
+  out="$($cmd status 2>&1)"
+  status=$?
+  set -e
+  if [[ "$status" -eq 0 ]]; then
+    printf 'up\n'
+  elif [[ "$out" == *"stopped"* || "$out" == *"Logged out"* ]]; then
+    printf 'down\n'
+  else
+    printf 'unavailable\n'
+  fi
+}
+
+apply_action() {
+  local desired="$1" state="$2" cmd
+  cmd="$(tailscale_cmd)"
+  [[ -n "$cmd" ]] || { rate_limited_warn tailscale-missing "tailscale CLI unavailable; skipping"; return 0; }
+  case "$desired:$state" in
+    up:up|down:down)
+      log "tailscale already $state; no change"
+      return 0
+      ;;
+  esac
+  if [[ "$DRY_RUN" -eq 1 ]]; then
+    log "dry-run: would run tailscale $desired"
+    return 0
+  fi
+  case "$desired" in
+    up) "$cmd" up ;;
+    down) "$cmd" down ;;
+    *) warn "invalid desired action: $desired"; return 2 ;;
+  esac
+}
+
+print_status() {
+  local state
+  state="$(tailscale_state)"
+  log "policy enabled: $TAILSCALE_NETWORK_POLICY_ENABLED"
+  if pause_status >/dev/null; then
+    pause_status
+  fi
+  if [[ -n "${NET_IFACE:-}" ]]; then
+    if [[ "$VERBOSE" -eq 1 ]]; then
+      log "interface: $NET_IFACE"
+      log "ipv4: $NET_IP"
+      log "gateway: ${NET_GATEWAY:-unknown}"
+      log "ssid: ${NET_SSID:-none}"
+      log "dns suffixes: ${NET_DNS_SUFFIXES:-none}"
+    else
+      log "interface: $NET_IFACE"
+      log "network identifiers: hidden (use --verbose)"
+    fi
+    log "match: $MATCH_REASON"
+    log "desired action: $DESIRED_ACTION"
+  else
+    log "network: none usable"
+  fi
+  log "tailscale state: $state"
+}
+
+install_scheduler() {
+  case "$(uname -s)" in
+    Darwin)
+      launchctl bootstrap "gui/$(id -u)" "$HOME/Library/LaunchAgents/com.francolopez.dotfiles.tailscale-policy.plist" 2>/dev/null || true
+      launchctl enable "gui/$(id -u)/com.francolopez.dotfiles.tailscale-policy" 2>/dev/null || true
+      launchctl kickstart -k "gui/$(id -u)/com.francolopez.dotfiles.tailscale-policy" 2>/dev/null || true
+      log "macOS LaunchAgent installed"
+      ;;
+    Linux)
+      systemctl --user daemon-reload
+      systemctl --user enable --now dotfiles-tailscale-policy.timer
+      log "systemd user timer installed"
+      ;;
+    *) warn "unsupported OS for scheduler install"; return 2 ;;
+  esac
+}
+
+uninstall_scheduler() {
+  case "$(uname -s)" in
+    Darwin)
+      launchctl bootout "gui/$(id -u)" "$HOME/Library/LaunchAgents/com.francolopez.dotfiles.tailscale-policy.plist" 2>/dev/null || true
+      log "macOS LaunchAgent uninstalled"
+      ;;
+    Linux)
+      systemctl --user disable --now dotfiles-tailscale-policy.timer 2>/dev/null || true
+      log "systemd user timer uninstalled"
+      ;;
+    *) warn "unsupported OS for scheduler uninstall"; return 2 ;;
+  esac
+}
+
+main() {
+  local arg state
+  while [[ $# -gt 0 ]]; do
+    arg="$1"
+    case "$arg" in
+      --dry-run) DRY_RUN=1 ;;
+      --verbose) VERBOSE=1 ;;
+      -h|--help) usage; exit 0 ;;
+      status|evaluate|pause|resume|force-up|force-down|install|uninstall) MODE="$arg" ;;
+      *)
+        if [[ "$MODE" == "pause" && -z "${PAUSE_DURATION:-}" ]]; then
+          PAUSE_DURATION="$arg"
+        else
+          warn "unknown argument: $arg"
+          usage
+          exit 2
+        fi
+        ;;
+    esac
+    shift
+  done
+
+  load_config
+
+  case "$MODE" in
+    pause) pause_policy "${PAUSE_DURATION:-}"; exit $? ;;
+    resume) resume_policy; exit $? ;;
+    install) install_scheduler; exit $? ;;
+    uninstall) uninstall_scheduler; exit $? ;;
+  esac
+
+  with_lock
+
+  if [[ "$MODE" == "force-up" || "$MODE" == "force-down" ]]; then
+    state="$(tailscale_state)"
+    apply_action "${MODE#force-}" "$state"
+    exit $?
+  fi
+
+  if ! is_true "$TAILSCALE_NETWORK_POLICY_ENABLED"; then
+    [[ "$MODE" == "status" ]] && print_status
+    exit 0
+  fi
+  if pause_status; then
+    exit 0
+  fi
+  [[ "$MODE" == "evaluate" ]] && sleep "$STABILIZE_SECONDS"
+  if ! collect_network; then
+    log "no usable network; no change"
+    exit 0
+  fi
+  evaluate_network
+  state="$(tailscale_state)"
+  if [[ "$MODE" == "status" ]]; then
+    print_status
+    exit 0
+  fi
+  [[ "$state" == "unavailable" ]] && { rate_limited_warn tailscale-unavailable "tailscale daemon/status unavailable; skipping"; exit 0; }
+  apply_action "$DESIRED_ACTION" "$state"
+}
+
+main "$@"

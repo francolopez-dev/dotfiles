@@ -12,6 +12,7 @@ minimal Debian/Ubuntu servers. Commands are ordered by how often they are used.
 | `dotfiles update --dry-run` | Preview update | No changes |
 | `dotfiles apply` | Re-stow after editing config | Does not install packages |
 | `dotfiles commands search <q>` | Find aliases, layouts, keybinds | Example: `dotfiles commands search fzf` |
+| `t` | Open or return to tmux for this directory | Best default for project work |
 | `v` | Open Neovim | Alias for `nvim` |
 | `y` | Open Yazi | Terminal file manager |
 | `l` | Pretty compact file listing | eza-backed, falls back to `ls` |
@@ -129,7 +130,83 @@ Vaultwarden-owned workflows.
 
 ## Tmux
 
-Use tmux for terminal tabs, panes, and long-running work. Prefix is `Ctrl+B`.
+Use tmux for terminal tabs, panes, and long-running work. Start simple: one
+Ghostty window, one tmux session per project, tmux windows as tabs, panes only
+when you actually need a split.
+
+Mental model:
+
+| Thing | Think of it as | Example |
+|---|---|---|
+| Ghostty window | The physical terminal app window | One tiled AeroSpace window |
+| tmux session | A saved terminal workspace | `dotfiles`, `work`, `server` |
+| tmux window | A tab inside that workspace | editor, shell, logs |
+| tmux pane | A split inside one tab | editor next to server logs |
+| detach | Hide tmux but keep it running | Leave work and come back later |
+
+### First Week Workflow
+
+This is the workflow to use until tmux feels normal:
+
+```bash
+cd ~/dotfiles
+t
+```
+
+Inside tmux, learn only these first:
+
+| Keys | Does |
+|---|---|
+| `Ctrl+B c` | New tmux window, like a terminal tab |
+| `Ctrl+B n` | Next tmux window |
+| `Ctrl+B p` | Previous tmux window |
+| `Ctrl+B ,` | Rename current tmux window |
+| `Ctrl+B w` | Pick from all tmux windows |
+| `Ctrl+B d` | Detach and leave everything running |
+
+Use `Ctrl+B d` instead of closing Ghostty. Later, run `t` from the same project
+directory to return to that session.
+
+### Beginner Commands
+
+| Command | Does |
+|---|---|
+| `t` | Open or return to tmux for the current directory |
+| `t work` | Open or return to a named session called `work` |
+| `tl` | List running tmux sessions |
+| `ta work` | Attach/switch to named session `work` |
+| `tk work` | Kill named session `work` |
+
+If `tl` shows many sessions, do not panic. A session is just a saved workspace.
+Attach with `ta <name>` if you still need it, or kill it with `tk <name>` if you
+are done.
+
+### What To Do When It Feels Messy
+
+| Situation | Do this |
+|---|---|
+| Too many tmux windows | Press `Ctrl+B w`, choose the one you want |
+| Window names are confusing | Press `Ctrl+B ,` and rename the current window |
+| You are done for now | Press `Ctrl+B d`, do not close every pane |
+| You opened tmux twice | Use `tl`, then `ta <name>` to pick the right session |
+| You are done forever | Use `tk <name>` from a normal shell |
+| A pane is taking the whole screen | Press `Ctrl+B z` to unzoom it |
+
+### Panes, Only After Windows Make Sense
+
+Prefix is `Ctrl+B`. Press and release `Ctrl+B`, then press the next key.
+
+| Keys | Does |
+|---|---|
+| `Ctrl+B \|` | Split left/right |
+| `Ctrl+B -` | Split top/bottom |
+| `Ctrl+B h/j/k/l` | Move between panes |
+| `Ctrl+B z` | Zoom/unzoom current pane |
+| `Ctrl+B x` | Kill current pane |
+
+Mouse support is on for pane selection, resizing, and scrollback.
+
+### Later Reference
 
 Start and reattach:
 
@@ -143,15 +220,10 @@ Start and reattach:
 | `tmux rename-session -t old new` | Rename a session |
 | `tmux switch -t work` | Switch sessions from inside tmux |
 
-Daily keys:
+Window keys:
 
 | Keys | Does |
 |---|---|
-| `Ctrl+B \|` | Split left/right |
-| `Ctrl+B -` | Split top/bottom |
-| `Ctrl+B h/j/k/l` | Move between panes |
-| `Ctrl+B z` | Zoom/unzoom current pane |
-| `Ctrl+B x` | Kill current pane |
 | `Ctrl+B c` | New window |
 | `Ctrl+B n` / `p` | Next / previous window |
 | `Ctrl+B 0-9` | Jump to window number |
@@ -181,16 +253,16 @@ Scrollback and copy mode:
 | `Ctrl+B ]` | Paste tmux buffer |
 | `Ctrl+B =` | Choose a paste buffer |
 
-Mouse support is on for pane selection, resizing, and scrollback. In Ghostty on
-macOS, use tmux windows instead of Ghostty tabs when running under AeroSpace;
-this avoids native tab/window-manager edge cases while keeping terminal tabs.
+In Ghostty on macOS, use tmux windows instead of Ghostty tabs when running under
+AeroSpace. This avoids native tab/window-manager edge cases while keeping
+terminal tabs.
 
 Recommended project pattern:
 
 ```bash
-tmux new -s dotfiles -c ~/dotfiles
+t
 # Create tmux windows with Ctrl+B c, rename with Ctrl+B ,.
-# Detach with Ctrl+B d; later run: tmux attach -t dotfiles
+# Detach with Ctrl+B d; later cd back to the project and run: t
 ```
 
 If a terminal closes, the tmux session keeps running unless the machine rebooted

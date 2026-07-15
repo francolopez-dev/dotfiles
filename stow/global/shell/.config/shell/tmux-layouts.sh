@@ -53,6 +53,61 @@ _dotfiles_tmux_open() {
   fi
 }
 
+_dotfiles_tmux_named_session() {
+  session_name=$(printf '%s' "$1" | tr -c '[:alnum:]_.-' '_')
+  [ -n "$session_name" ] || session_name="main"
+  printf '%s\n' "$session_name"
+}
+
+t() {
+  _dotfiles_tmux_require || return 1
+
+  if [ -n "${2:-}" ]; then
+    printf '%s\n' "t: usage: t [session-name]" >&2
+    return 1
+  fi
+
+  t_dir=$(pwd -P)
+  if [ -n "${1:-}" ]; then
+    t_session=$(_dotfiles_tmux_named_session "$1")
+  else
+    t_session=$(_dotfiles_tmux_session_name "tmux" "$t_dir")
+  fi
+
+  if ! tmux has-session -t "$t_session" 2>/dev/null; then
+    tmux new-session -d -s "$t_session" -n "main" -c "$t_dir" || return 1
+  fi
+
+  _dotfiles_tmux_open "$t_session"
+}
+
+tl() {
+  _dotfiles_tmux_require || return 1
+  tmux list-sessions
+}
+
+ta() {
+  _dotfiles_tmux_require || return 1
+
+  if [ -z "${1:-}" ] || [ -n "${2:-}" ]; then
+    printf '%s\n' "ta: usage: ta <session-name>" >&2
+    return 1
+  fi
+
+  _dotfiles_tmux_open "$(_dotfiles_tmux_named_session "$1")"
+}
+
+tk() {
+  _dotfiles_tmux_require || return 1
+
+  if [ -z "${1:-}" ] || [ -n "${2:-}" ]; then
+    printf '%s\n' "tk: usage: tk <session-name>" >&2
+    return 1
+  fi
+
+  tmux kill-session -t "$(_dotfiles_tmux_named_session "$1")"
+}
+
 _dotfiles_tdl_create_window() {
   target_session=$1
   target_window=$2

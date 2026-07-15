@@ -1,4 +1,9 @@
 id	scope	type	title	trigger	command	description	keywords	source
+tmux-open	global	tmux	Tmux: open project session	t	t	Open or return to a tmux session for the current directory	tmux session project attach tabs terminal	stow/global/shell/.config/shell/tmux-layouts.sh
+tmux-open-named	global	tmux	Tmux: open named session	t <name>	t <name>	Open or return to a named tmux session	tmux session named attach terminal	stow/global/shell/.config/shell/tmux-layouts.sh
+tmux-list	global	tmux	Tmux: list sessions	tl	tl	List running tmux sessions	tmux list sessions terminal	stow/global/shell/.config/shell/tmux-layouts.sh
+tmux-attach-named	global	tmux	Tmux: attach named session	ta <name>	ta <name>	Attach or switch to a named tmux session	tmux attach switch session terminal	stow/global/shell/.config/shell/tmux-layouts.sh
+tmux-kill-named	global	tmux	Tmux: kill named session	tk <name>	tk <name>	Kill a named tmux session	tmux kill session terminal	stow/global/shell/.config/shell/tmux-layouts.sh
 tdl-opencode	global	tmux	Tmux layout: OpenCode	tdl c	tdl c	Editor left, OpenCode right, shell bottom	tdl tmux layout ai opencode c oc editor shell	stow/global/shell/.config/shell/tmux-layouts.sh
 tdl-claude	global	tmux	Tmux layout: Claude	tdl cx	tdl cx	Editor left, Claude right, shell bottom	tdl tmux layout ai claude cx editor shell	stow/global/shell/.config/shell/tmux-layouts.sh
 tdl-opencode-claude	global	tmux	Tmux layout: OpenCode + Claude	tdl c cx	tdl c cx	Editor left, OpenCode and Claude stacked right, shell bottom	tdl tmux layout ai opencode claude c cx editor shell	stow/global/shell/.config/shell/tmux-layouts.sh

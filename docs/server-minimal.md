@@ -224,6 +224,69 @@ Leave `Unattended-Upgrade::Automatic-Reboot` at its default (`false`) unless
 the machine is disposable and you understand the consequences. Optional
 companion: `apt-listchanges` for changelog mail.
 
+## Add A New Laptop SSH Key To A Server
+
+Use this when a managed laptop knows a server alias, but the server does not
+trust this laptop yet. Example symptom:
+
+```text
+ssh domum-core
+jfranco@100.121.26.52: Permission denied (publickey,password).
+```
+
+Keys and `authorized_keys` are local machine state. Never commit them to this
+repo.
+
+On the new laptop, create a key if it does not already exist:
+
+```bash
+mkdir -p ~/.ssh
+chmod 700 ~/.ssh
+
+test -f ~/.ssh/id_ed25519 || ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519 -C "$(whoami)@$(hostname -s)"
+
+# Copy the whole output line.
+cat ~/.ssh/id_ed25519.pub
+```
+
+If the server still allows password login, this is the easiest path:
+
+```bash
+ssh-copy-id -i ~/.ssh/id_ed25519.pub domum-core
+ssh domum-core
+```
+
+If password login is disabled, use another machine that already has access:
+
+```bash
+ssh domum-core
+```
+
+Then, on the server, paste the new laptop public key into this command. Replace
+the example key with the full line from `cat ~/.ssh/id_ed25519.pub`:
+
+```bash
+mkdir -p ~/.ssh
+chmod 700 ~/.ssh
+
+printf '%s\n' 'ssh-ed25519 PASTE_THE_NEW_LAPTOP_PUBLIC_KEY_HERE' >> ~/.ssh/authorized_keys
+
+chmod 600 ~/.ssh/authorized_keys
+sort -u ~/.ssh/authorized_keys -o ~/.ssh/authorized_keys
+```
+
+Test from the new laptop:
+
+```bash
+ssh domum-core
+```
+
+If that still fails, debug with verbose SSH from the new laptop:
+
+```bash
+ssh -v domum-core
+```
+
 ## SSH And Login Hardening (Documented, Never Automated)
 
 This repo never edits `sshd_config` or firewall rules on servers. Recommended

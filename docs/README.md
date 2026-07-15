@@ -133,6 +133,9 @@ It walks through key generation, adding the key to GitHub, and switching the
 repo remote — prompting before every change. Manual steps and troubleshooting:
 [`git-github-cheatsheet.md`](git-github-cheatsheet.md).
 
+For server access from a new laptop, see
+[`server-minimal.md#add-a-new-laptop-ssh-key-to-a-server`](server-minimal.md#add-a-new-laptop-ssh-key-to-a-server).
+
 If `dotfiles update` finds local changes in the repo, it skips the pull and
 asks: continue without pulling (recommended), stash then pull, or reset
 (destructive, explicit confirmation only). Inspect first:

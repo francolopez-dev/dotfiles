@@ -67,6 +67,9 @@ The wizard:
 - Writes local-only config to `~/.config/dotfiles/recovery.local` with mode
   `0600`.
 
+Use the full Gmail address for `RECOVERY_SMTP_USER` unless Google explicitly
+shows a different SMTP username. Do not use only the part before `@gmail.com`.
+
 The local config looks like this:
 
 ```bash

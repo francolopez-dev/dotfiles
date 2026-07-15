@@ -2505,7 +2505,7 @@ recovery_setup() {
 
   to="$(prompt_tty "Send recovery packs to email: ")"
   from="$(prompt_tty "Gmail from address [$to]: ")"; from="${from:-$to}"
-  user="$(prompt_tty "Gmail SMTP username [$from]: ")"; user="${user:-$from}"
+  user="$(prompt_tty "Gmail SMTP username, usually full Gmail address [$from]: ")"; user="${user:-$from}"
   password="$(recovery_secret_prompt "Gmail app password (not your normal password): ")"
   interval="$(prompt_tty "Auto-send interval in days [30]: ")"; interval="${interval:-30}"
   output_dir="$(prompt_tty "Encrypted pack output directory [$(recovery_output_dir)]: ")"; output_dir="${output_dir:-$(recovery_output_dir)}"
@@ -2712,7 +2712,7 @@ recovery_build() {
   chmod 700 "$pack"
   RECOVERY_MANIFEST="$pack/MANIFEST.txt"
   export RECOVERY_MANIFEST
-  printf 'created: %s\nhostname: %s\nos: %s\n\n' "$(date -Is)" "$host" "$(detect_os)" >"$RECOVERY_MANIFEST"
+  printf 'created: %s\nhostname: %s\nos: %s\n\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$host" "$(detect_os)" >"$RECOVERY_MANIFEST"
   recovery_write_readme "$pack"
 
   recovery_collect_glob "$pack/ssh" "$HOME/.ssh"/id_* "$HOME/.ssh"/*.pub "$HOME/.ssh/authorized_keys" "$HOME/.ssh/config.local"
@@ -2832,7 +2832,7 @@ EOF
     printf 'Content-Type: application/octet-stream; name="%s"\n' "$encoded_name"
     printf 'Content-Transfer-Encoding: base64\n'
     printf 'Content-Disposition: attachment; filename="%s"\n\n' "$encoded_name"
-    base64 "$pack"
+    base64 <"$pack"
     printf '\n--%s--\n' "$boundary"
   } >"$body_file"
   if msmtp --file="$msmtp_config" "$RECOVERY_EMAIL_TO" <"$body_file"; then

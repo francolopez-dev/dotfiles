@@ -42,6 +42,25 @@ cat >"$DOTFILES_RECOVERY_TEST_MAIL"
 EOF
 chmod +x "$TMP/bin/msmtp"
 
+cat >"$TMP/bin/date" <<'EOF'
+#!/usr/bin/env bash
+case "${1:-}" in
+  -I*) printf 'date: invalid argument %q for -I\n' "${1#-I}" >&2; exit 1 ;;
+esac
+exec /usr/bin/date "$@"
+EOF
+chmod +x "$TMP/bin/date"
+
+cat >"$TMP/bin/base64" <<'EOF'
+#!/usr/bin/env bash
+if [[ $# -gt 0 ]]; then
+  printf 'base64: invalid argument %s\n' "$1" >&2
+  exit 1
+fi
+exec /usr/bin/base64
+EOF
+chmod +x "$TMP/bin/base64"
+
 cat >"$TMP/config/recovery.local" <<EOF
 RECOVERY_EMAIL_TO='restore@example.com'
 RECOVERY_EMAIL_FROM='sender@gmail.com'

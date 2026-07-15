@@ -28,6 +28,8 @@ rsync
 unzip
 fd-find
 file
+age
+msmtp
 # Provides infocmp/tic/tput for terminfo handling; the shell fallback and
 # Ghostty ssh-terminfo both need it.
 ncurses-bin

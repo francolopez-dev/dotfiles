@@ -19,6 +19,7 @@ satty
 socat
 restic
 age
+msmtp
 
 # lan-mouse (KVM sharing, docs/kvm-sharing.md) is deliberately NOT declared
 # here: Omarchy's package snapshot can lag on incompatible protocol versions,

@@ -53,7 +53,11 @@ the active profile should be `profile-nox-omarchy`.
 - Authenticate Tailscale manually: `sudo tailscale up`.
 - Log in to Atuin manually: `atuin login`.
 - Restore private keys only from the encrypted recovery pack.
+- Configure recovery email after keys are restored: `dotfiles recovery setup`.
 - Keep passwords in Vaultwarden, never in Git.
+
+Store the AGE recovery identity (`~/.config/age/recovery.txt`), the printed
+`age1...` recipient, and the Gmail app password somewhere safer than the laptop.
 
 ## 5. GitHub SSH
 

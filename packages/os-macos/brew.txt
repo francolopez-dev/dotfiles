@@ -9,6 +9,7 @@ atuin
 zoxide
 yazi
 age
+msmtp
 restic
 rsync
 telnet

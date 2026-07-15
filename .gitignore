@@ -14,6 +14,13 @@ stow/global/neovim/.config/nvim/lazy-lock.json
 
 # Recovery pack working dir & encrypted artifacts (Phase 2)
 /recovery-pack/
+/recovery/
+/recovery.local
+/recovery.local.*
+/.config/dotfiles/recovery.local
+/.config/dotfiles/recovery.local.*
+/.local/state/dotfiles/recovery/
+/.msmtprc
 *.tar.gz.age
 *.age
 

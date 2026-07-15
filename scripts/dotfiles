@@ -60,6 +60,8 @@ Usage:
   dotfiles wallpaper rotate  Rotate wallpaper now.
   dotfiles wallpaper status  Show wallpaper rotation state.
   dotfiles tailscale-policy   Manage trusted-network Tailscale automation.
+  dotfiles recovery setup     Configure AGE + Gmail app-password recovery email.
+  dotfiles recovery send      Build, verify, and email an encrypted recovery pack.
   dotfiles git setup-ssh     Guided GitHub SSH setup; prompts before changes.
   dotfiles autostart status  Audit login/startup items.
   dotfiles autostart help    Show autostart subcommands.
@@ -1955,7 +1957,7 @@ print_next_steps() {
     printf '  Tailscale login: sudo tailscale up\n'
   fi
   printf '  GitHub SSH: dotfiles git setup-ssh\n'
-  printf '  Recovery pack: build the encrypted recovery pack when ready\n'
+  printf '  Recovery pack: dotfiles recovery setup && dotfiles recovery send\n'
   printf '  Atuin: atuin login && atuin sync\n'
   printf '  Shell: open a new terminal or run exec zsh -l\n'
 }
@@ -2412,15 +2414,525 @@ cmd_status() {
     wallpaper_status_lines
   fi
 
-  info "Recovery pack"
-  local pack="${RECOVERY_PACK_PATH:-$HOME/recovery/recovery-pack.age}"
-  if [[ -f "$pack" ]]; then
-    local age_days
-    age_days=$(( ( $(date +%s) - $(_mtime "$pack") ) / 86400 ))
-    ok "present (${age_days}d old): $pack"
+  recovery_status
+}
+
+# --- recovery pack -------------------------------------------------------
+recovery_config_file() { printf '%s\n' "${DOTFILES_RECOVERY_CONFIG:-${XDG_CONFIG_HOME:-$HOME/.config}/dotfiles/recovery.local}"; }
+recovery_state_dir() { printf '%s\n' "${DOTFILES_RECOVERY_STATE_DIR:-${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles/recovery}"; }
+recovery_output_dir() { printf '%s\n' "${RECOVERY_OUTPUT_DIR:-$HOME/recovery}"; }
+recovery_age_identity() { printf '%s\n' "${RECOVERY_AGE_IDENTITY:-${XDG_CONFIG_HOME:-$HOME/.config}/age/recovery.txt}"; }
+
+recovery_usage() {
+  cat <<'EOF'
+Usage:
+  dotfiles recovery setup
+  dotfiles recovery status
+  dotfiles recovery build [--no-prompt]
+  dotfiles recovery send [--if-due] [--no-prompt]
+  dotfiles recovery verify <pack.age>
+  dotfiles recovery install-timer [--days N]
+  dotfiles recovery uninstall-timer
+
+The pack is encrypted with AGE before it is emailed. Gmail sending uses an app
+password stored only in ~/.config/dotfiles/recovery.local.
+EOF
+}
+
+cmd_recovery() {
+  local subcmd="${1:-status}"
+  [[ $# -gt 0 ]] && shift || true
+  case "$subcmd" in
+    setup) recovery_setup "$@" ;;
+    status) recovery_status ;;
+    build) recovery_build_cmd "$@" ;;
+    send) recovery_send_cmd "$@" ;;
+    verify) recovery_verify_cmd "$@" ;;
+    install-timer) recovery_install_timer "$@" ;;
+    uninstall-timer) recovery_uninstall_timer ;;
+    help|-h|--help) recovery_usage ;;
+    *) err "unknown recovery subcommand: $subcmd"; recovery_usage; return 1 ;;
+  esac
+}
+
+recovery_load_config() {
+  local config
+  config="$(recovery_config_file)"
+  [[ -f "$config" ]] || return 1
+  # shellcheck disable=SC1090
+  . "$config"
+}
+
+recovery_secret_prompt() {
+  local prompt="$1" ans
+  have_tty || return 1
+  printf '%s' "$prompt" >/dev/tty
+  stty -echo </dev/tty
+  IFS= read -r ans </dev/tty || true
+  stty echo </dev/tty
+  printf '\n' >/dev/tty
+  printf '%s\n' "$ans"
+}
+
+recovery_setup() {
+  local config config_dir age_dir identity recipient to from user password interval output_dir
+  config="$(recovery_config_file)"
+  config_dir="$(dirname "$config")"
+  identity="$(recovery_age_identity)"
+  age_dir="$(dirname "$identity")"
+
+  have_tty || { err "recovery setup requires a TTY"; return 1; }
+  command -v age-keygen >/dev/null 2>&1 || { err "age-keygen is required; install age first"; return 1; }
+
+  mkdir -p "$config_dir" "$age_dir" "$(recovery_state_dir)" "$(recovery_output_dir)"
+  chmod 700 "$config_dir" "$age_dir" "$(recovery_state_dir)" "$(recovery_output_dir)" 2>/dev/null || true
+
+  if [[ -f "$identity" ]]; then
+    ok "AGE recovery identity exists: $identity"
+  elif confirm "Create AGE recovery identity at $identity?"; then
+    age-keygen -o "$identity"
+    chmod 600 "$identity"
   else
-    printf '  recovery pack: not built yet (%s)\n' "$pack"
-    printf '  next step: build the encrypted recovery pack when ready\n'
+    err "AGE identity is required to decrypt recovery packs"
+    return 1
+  fi
+  recipient="$(age-keygen -y "$identity")"
+
+  printf '\nStore these securely outside this machine:\n'
+  printf '  SECRET: %s (AGE private identity; required to decrypt packs)\n' "$identity"
+  printf '  PUBLIC: %s (AGE recipient; safe to use for encryption)\n' "$recipient"
+  printf '  SECRET: Gmail app password for the sending account\n\n'
+
+  to="$(prompt_tty "Send recovery packs to email: ")"
+  from="$(prompt_tty "Gmail from address [$to]: ")"; from="${from:-$to}"
+  user="$(prompt_tty "Gmail SMTP username [$from]: ")"; user="${user:-$from}"
+  password="$(recovery_secret_prompt "Gmail app password (not your normal password): ")"
+  interval="$(prompt_tty "Auto-send interval in days [30]: ")"; interval="${interval:-30}"
+  output_dir="$(prompt_tty "Encrypted pack output directory [$(recovery_output_dir)]: ")"; output_dir="${output_dir:-$(recovery_output_dir)}"
+
+  mkdir -p "$output_dir"
+  chmod 700 "$output_dir" 2>/dev/null || true
+  umask 077
+  cat >"$config" <<EOF
+# Local recovery-pack config. Contains secrets. Never commit.
+RECOVERY_EMAIL_TO=$(printf '%q' "$to")
+RECOVERY_EMAIL_FROM=$(printf '%q' "$from")
+RECOVERY_SMTP_HOST=smtp.gmail.com
+RECOVERY_SMTP_PORT=587
+RECOVERY_SMTP_USER=$(printf '%q' "$user")
+RECOVERY_SMTP_PASSWORD=$(printf '%q' "$password")
+RECOVERY_AGE_RECIPIENT=$(printf '%q' "$recipient")
+RECOVERY_AGE_IDENTITY=$(printf '%q' "$identity")
+RECOVERY_OUTPUT_DIR=$(printf '%q' "$output_dir")
+RECOVERY_SEND_INTERVAL_DAYS=$(printf '%q' "$interval")
+EOF
+  chmod 600 "$config"
+  ok "wrote local recovery config: $config"
+  warn "store $identity and the Gmail app password securely outside this machine"
+}
+
+recovery_require_config() {
+  local config
+  config="$(recovery_config_file)"
+  if ! recovery_load_config; then
+    err "recovery config missing: $config"
+    printf '  run: dotfiles recovery setup\n' >&2
+    return 1
+  fi
+  : "${RECOVERY_EMAIL_TO:?missing RECOVERY_EMAIL_TO in $config}"
+  : "${RECOVERY_EMAIL_FROM:?missing RECOVERY_EMAIL_FROM in $config}"
+  : "${RECOVERY_SMTP_USER:?missing RECOVERY_SMTP_USER in $config}"
+  : "${RECOVERY_SMTP_PASSWORD:?missing RECOVERY_SMTP_PASSWORD in $config}"
+  : "${RECOVERY_AGE_RECIPIENT:?missing RECOVERY_AGE_RECIPIENT in $config}"
+}
+
+recovery_set_config_value() {
+  local key="$1" value="$2" config tmp quoted
+  config="$(recovery_config_file)"
+  [[ -f "$config" ]] || { err "recovery config missing: $config"; return 1; }
+  quoted="$(printf '%q' "$value")"
+  tmp="$(mktemp)"
+  awk -v key="$key" -v value="$quoted" '
+    BEGIN { done = 0 }
+    $0 ~ "^" key "=" { print key "=" value; done = 1; next }
+    { print }
+    END { if (!done) print key "=" value }
+  ' "$config" >"$tmp"
+  cat "$tmp" >"$config"
+  rm -f "$tmp"
+  chmod 600 "$config"
+}
+
+recovery_status() {
+  local config state last_pack last_sent age_days interval identity output_dir
+  config="$(recovery_config_file)"
+  state="$(recovery_state_dir)"
+  identity="$(recovery_age_identity)"
+  info "Recovery pack"
+  printf '  config   : %s\n' "$config"
+  if [[ -f "$config" ]]; then
+    ok "local config present"
+  else
+    warn "local config missing; run: dotfiles recovery setup"
+  fi
+  if recovery_load_config; then
+    output_dir="$(recovery_output_dir)"
+    interval="${RECOVERY_SEND_INTERVAL_DAYS:-30}"
+    printf '  email to : %s\n' "${RECOVERY_EMAIL_TO:-unset}"
+    printf '  subject  : recovery pack from %s\n' "$(detect_hostname)"
+    printf '  output   : %s\n' "$output_dir"
+    printf '  interval : %s day(s)\n' "$interval"
+    identity="${RECOVERY_AGE_IDENTITY:-$identity}"
+  fi
+  if [[ -f "$identity" ]]; then
+    ok "AGE identity present: $identity"
+  else
+    warn "AGE identity missing: $identity"
+  fi
+  last_pack="$(sed -n '1p' "$state/last-pack" 2>/dev/null || true)"
+  last_sent="$(sed -n '1p' "$state/last-sent" 2>/dev/null || true)"
+  [[ -n "$last_pack" && -f "$last_pack" ]] && printf '  last pack: %s\n' "$last_pack" || printf '  last pack: none\n'
+  if [[ -n "$last_sent" && -f "$last_sent" ]]; then
+    age_days=$(( ( $(date +%s) - $(_mtime "$last_sent") ) / 86400 ))
+    printf '  last sent: %s (%sd old)\n' "$last_sent" "$age_days"
+  else
+    printf '  last sent: none\n'
+  fi
+}
+
+recovery_copy_if_exists() {
+  local src="$1" dest_dir="$2" dest
+  [[ -e "$src" ]] || return 0
+  mkdir -p "$dest_dir"
+  dest="$dest_dir/$(basename "$src")"
+  if [[ -d "$src" ]]; then
+    cp -pR "$src" "$dest_dir/"
+  else
+    cp -p "$src" "$dest"
+  fi
+  printf '%s\n' "$src" >>"$RECOVERY_MANIFEST"
+}
+
+recovery_collect_glob() {
+  local dest_dir="$1" f
+  shift
+  for f in "$@"; do
+    [[ -e "$f" ]] || continue
+    recovery_copy_if_exists "$f" "$dest_dir"
+  done
+}
+
+recovery_write_readme() {
+  local pack="$1"
+  cat >"$pack/README.txt" <<'EOF'
+Recovery pack contents are secrets.
+
+Restore SSH keys:
+  mkdir -p ~/.ssh
+  chmod 700 ~/.ssh
+  cp -p ssh/id_* ~/.ssh/ 2>/dev/null || true
+  cp -p ssh/config.local ~/.ssh/ 2>/dev/null || true
+  chmod 600 ~/.ssh/id_* ~/.ssh/config.local 2>/dev/null || true
+  chmod 644 ~/.ssh/*.pub 2>/dev/null || true
+
+Restore service-specific credentials only on the machine that owns them.
+Never commit this pack, extracted files, AGE identities, SMTP config, or logs.
+EOF
+}
+
+recovery_collect_server_authorized_keys() {
+  local pack="$1" host hosts=() line host_parts=() ssh_config
+  ssh_config="$HOME/.ssh/config"
+  [[ -r "$ssh_config" ]] || return 0
+  while read -r line; do
+    line="${line#Host }"
+    [[ -n "$line" ]] || continue
+    case "$line" in \**|*\**) continue ;; esac
+    read -r -a host_parts <<<"$line"
+    hosts+=("${host_parts[@]}")
+  done < <(awk 'tolower($1) == "host" { $1=""; sub(/^ /, ""); print }' "$ssh_config")
+  [[ ${#hosts[@]} -gt 0 ]] || return 0
+  mkdir -p "$pack/servers"
+  for host in "${hosts[@]}"; do
+    [[ "$host" == github.com || "$host" == gitlab.com ]] && continue
+    if ssh -o BatchMode=yes -o ConnectTimeout=5 "$host" 'cat ~/.ssh/authorized_keys 2>/dev/null' >"$pack/servers/${host}-authorized_keys" 2>/dev/null; then
+      printf 'server authorized_keys: %s\n' "$host" >>"$RECOVERY_MANIFEST"
+    else
+      rm -f "$pack/servers/${host}-authorized_keys"
+      printf 'server authorized_keys unavailable: %s\n' "$host" >>"$RECOVERY_MANIFEST"
+    fi
+  done
+}
+
+recovery_add_manual_exports() {
+  local pack="$1" ans path
+  have_tty || return 0
+  if ! confirm "Add manual export files or directories now?"; then
+    return 0
+  fi
+  printf 'Enter one path per line. Empty line finishes.\n' >/dev/tty
+  while true; do
+    ans="$(prompt_tty "export path: ")"
+    [[ -n "$ans" ]] || break
+    path="${ans/#\~/$HOME}"
+    if [[ -e "$path" ]]; then
+      recovery_copy_if_exists "$path" "$pack/exports"
+    else
+      warn "not found: $path"
+    fi
+  done
+}
+
+recovery_build_cmd() {
+  local no_prompt=0 arg pack_path
+  for arg in "$@"; do
+    case "$arg" in
+      --no-prompt) no_prompt=1 ;;
+      *) err "unknown recovery build option: $arg"; return 2 ;;
+    esac
+  done
+  pack_path="$(recovery_build "$no_prompt")"
+  printf '%s\n' "$pack_path"
+}
+
+recovery_build() {
+  local no_prompt="$1" work pack stamp host output_dir out identity
+  recovery_require_config || return 1
+  command -v age >/dev/null 2>&1 || { err "age is required"; return 1; }
+  command -v tar >/dev/null 2>&1 || { err "tar is required"; return 1; }
+
+  host="$(detect_hostname)"
+  stamp="$(date +%Y-%m-%d-%H%M%S)"
+  output_dir="$(recovery_output_dir)"
+  mkdir -p "$output_dir" "$(recovery_state_dir)"
+  chmod 700 "$output_dir" "$(recovery_state_dir)" 2>/dev/null || true
+  work="$(mktemp -d)"
+  pack="$work/recovery-pack"
+  mkdir -p "$pack/ssh" "$pack/exports" "$pack/local" "$pack/service-credentials"
+  chmod 700 "$pack"
+  RECOVERY_MANIFEST="$pack/MANIFEST.txt"
+  export RECOVERY_MANIFEST
+  printf 'created: %s\nhostname: %s\nos: %s\n\n' "$(date -Is)" "$host" "$(detect_os)" >"$RECOVERY_MANIFEST"
+  recovery_write_readme "$pack"
+
+  recovery_collect_glob "$pack/ssh" "$HOME/.ssh"/id_* "$HOME/.ssh"/*.pub "$HOME/.ssh/authorized_keys" "$HOME/.ssh/config.local"
+  recovery_copy_if_exists "$HOME/.config/lan-mouse/lan-mouse.pem" "$pack/service-credentials/lan-mouse"
+  recovery_copy_if_exists "$HOME/.config/dotfiles/tailscale-networks.local" "$pack/service-credentials/dotfiles"
+  recovery_copy_if_exists "$HOME/.config/gh/hosts.yml" "$pack/service-credentials/gh"
+  recovery_copy_if_exists "$HOME/.kube/config" "$pack/service-credentials/kube"
+  recovery_copy_if_exists "$HOME/.config/syncthing/cert.pem" "$pack/service-credentials/syncthing"
+  recovery_copy_if_exists "$HOME/.config/syncthing/key.pem" "$pack/service-credentials/syncthing"
+  recovery_copy_if_exists "$HOME/.config/syncthing/config.xml" "$pack/service-credentials/syncthing"
+  recovery_copy_if_exists "$HOME/.config/kdeconnect" "$pack/service-credentials/kdeconnect"
+  recovery_copy_if_exists "$HOME/.local/share/keyrings" "$pack/service-credentials/keyrings"
+  recovery_copy_if_exists "$HOME/.config/restic" "$pack/service-credentials/restic"
+  recovery_copy_if_exists "$HOME/.config/rclone/rclone.conf" "$pack/service-credentials/rclone"
+  recovery_copy_if_exists "$(recovery_config_file)" "$pack/local"
+  identity="${RECOVERY_AGE_IDENTITY:-$(recovery_age_identity)}"
+  if [[ -f "$identity" ]]; then
+    printf 'AGE identity intentionally NOT included: %s\n' "$identity" >>"$RECOVERY_MANIFEST"
+  fi
+  recovery_collect_server_authorized_keys "$pack"
+  [[ "$no_prompt" -eq 1 ]] || recovery_add_manual_exports "$pack"
+
+  out="$output_dir/recovery-pack-${host}-${stamp}.tar.gz.age"
+  tar -C "$work" -czf - recovery-pack | age -r "$RECOVERY_AGE_RECIPIENT" >"$out"
+  chmod 600 "$out"
+  rm -rf "$work"
+  printf '%s\n' "$out" >"$(recovery_state_dir)/last-pack"
+  printf '%s\n' "$out"
+}
+
+recovery_verify_cmd() {
+  local pack="${1:-}" tmp identity
+  [[ -n "$pack" ]] || { err "usage: dotfiles recovery verify <pack.age>"; return 2; }
+  recovery_load_config || true
+  identity="${RECOVERY_AGE_IDENTITY:-$(recovery_age_identity)}"
+  [[ -f "$identity" ]] || { err "AGE identity missing: $identity"; return 1; }
+  command -v age >/dev/null 2>&1 || { err "age is required"; return 1; }
+  tmp="$(mktemp -d)"
+  if age -d -i "$identity" "$pack" | tar -C "$tmp" -xzf -; then
+    ok "pack decrypts: $pack"
+    find "$tmp/recovery-pack" -maxdepth 3 -type f -print | sed 's|.*/recovery-pack/|  |'
+    rm -rf "$tmp"
+  else
+    rm -rf "$tmp"
+    err "pack verification failed"
+    return 1
+  fi
+}
+
+recovery_due() {
+  local last_sent interval
+  recovery_load_config || return 0
+  interval="${RECOVERY_SEND_INTERVAL_DAYS:-30}"
+  last_sent="$(sed -n '1p' "$(recovery_state_dir)/last-sent" 2>/dev/null || true)"
+  [[ -n "$last_sent" && -f "$last_sent" ]] || return 0
+  [[ $(( ( $(date +%s) - $(_mtime "$last_sent") ) / 86400 )) -ge "$interval" ]]
+}
+
+recovery_send_cmd() {
+  local if_due=0 no_prompt=0 arg pack
+  for arg in "$@"; do
+    case "$arg" in
+      --if-due) if_due=1 ;;
+      --no-prompt) no_prompt=1 ;;
+      *) err "unknown recovery send option: $arg"; return 2 ;;
+    esac
+  done
+  if [[ "$if_due" -eq 1 ]] && ! recovery_due; then
+    ok "recovery pack send skipped; interval has not elapsed"
+    return 0
+  fi
+  pack="$(recovery_build "$no_prompt")"
+  recovery_verify_cmd "$pack" >/dev/null
+  recovery_send_email "$pack"
+  printf '%s\n' "$pack" >"$(recovery_state_dir)/last-sent"
+  ok "sent recovery pack: $pack"
+}
+
+recovery_send_email() {
+  local pack="$1" msmtp_config boundary subject encoded_name body_file
+  recovery_require_config || return 1
+  command -v msmtp >/dev/null 2>&1 || { err "msmtp is required to send email"; return 1; }
+  command -v base64 >/dev/null 2>&1 || { err "base64 is required to send email"; return 1; }
+  subject="recovery pack from $(detect_hostname)"
+  boundary="dotfiles-recovery-$(date +%s)-$$"
+  encoded_name="$(basename "$pack")"
+  msmtp_config="$(mktemp)"
+  body_file="$(mktemp)"
+  chmod 600 "$msmtp_config" "$body_file"
+  cat >"$msmtp_config" <<EOF
+defaults
+auth on
+tls on
+tls_trust_file /etc/ssl/certs/ca-certificates.crt
+account gmail
+host ${RECOVERY_SMTP_HOST:-smtp.gmail.com}
+port ${RECOVERY_SMTP_PORT:-587}
+from $RECOVERY_EMAIL_FROM
+user $RECOVERY_SMTP_USER
+password $RECOVERY_SMTP_PASSWORD
+account default : gmail
+EOF
+  if [[ "$(uname -s)" == "Darwin" ]]; then
+    sed -i '' '/tls_trust_file/d' "$msmtp_config"
+  fi
+  {
+    printf 'From: %s\n' "$RECOVERY_EMAIL_FROM"
+    printf 'To: %s\n' "$RECOVERY_EMAIL_TO"
+    printf 'Subject: %s\n' "$subject"
+    printf 'MIME-Version: 1.0\n'
+    printf 'Content-Type: multipart/mixed; boundary="%s"\n\n' "$boundary"
+    printf -- '--%s\n' "$boundary"
+    printf 'Content-Type: text/plain; charset=UTF-8\n\n'
+    printf 'Encrypted AGE recovery pack from %s.\n\n' "$(detect_hostname)"
+    printf 'Store the AGE identity and Gmail app password securely outside this machine.\n\n'
+    printf -- '--%s\n' "$boundary"
+    printf 'Content-Type: application/octet-stream; name="%s"\n' "$encoded_name"
+    printf 'Content-Transfer-Encoding: base64\n'
+    printf 'Content-Disposition: attachment; filename="%s"\n\n' "$encoded_name"
+    base64 "$pack"
+    printf '\n--%s--\n' "$boundary"
+  } >"$body_file"
+  if msmtp --file="$msmtp_config" "$RECOVERY_EMAIL_TO" <"$body_file"; then
+    rm -f "$msmtp_config" "$body_file"
+  else
+    rm -f "$msmtp_config" "$body_file"
+    err "msmtp failed to send recovery email"
+    return 1
+  fi
+}
+
+recovery_install_timer() {
+  local days="" service_dir launch_dir script log_dir label plist
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --days) shift; days="${1:-}" ;;
+      --days=*) days="${1#--days=}" ;;
+      *) err "unknown recovery install-timer option: $1"; return 2 ;;
+    esac
+    shift || true
+  done
+  if [[ -n "$days" && ! "$days" =~ ^[0-9]+$ ]]; then
+    err "--days must be a positive integer"
+    return 2
+  fi
+  if [[ -n "$days" ]]; then
+    recovery_set_config_value RECOVERY_SEND_INTERVAL_DAYS "$days"
+    RECOVERY_SEND_INTERVAL_DAYS="$days"
+    ok "updated recovery send interval: $days day(s)"
+  fi
+  script="$(command -v dotfiles || printf '%s/scripts/dotfiles' "$DOTFILES_DIR")"
+  if command -v systemctl >/dev/null 2>&1; then
+    service_dir="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user"
+    mkdir -p "$service_dir"
+    cat >"$service_dir/dotfiles-recovery.service" <<EOF
+[Unit]
+Description=Build and email encrypted dotfiles recovery pack
+
+[Service]
+Type=oneshot
+ExecStart=$script recovery send --if-due --no-prompt
+EOF
+    cat >"$service_dir/dotfiles-recovery.timer" <<'EOF'
+[Unit]
+Description=Daily dotfiles recovery due check
+
+[Timer]
+OnCalendar=daily
+Persistent=true
+Unit=dotfiles-recovery.service
+
+[Install]
+WantedBy=timers.target
+EOF
+    systemctl --user daemon-reload
+    systemctl --user enable --now dotfiles-recovery.timer
+    ok "installed systemd user timer: dotfiles-recovery.timer"
+  elif command -v launchctl >/dev/null 2>&1; then
+    launch_dir="$HOME/Library/LaunchAgents"
+    log_dir="$HOME/Library/Logs/dotfiles"
+    mkdir -p "$launch_dir" "$log_dir"
+    label="com.francolopez.dotfiles.recovery"
+    plist="$launch_dir/$label.plist"
+    cat >"$plist" <<EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>Label</key><string>$label</string>
+  <key>ProgramArguments</key><array>
+    <string>$script</string><string>recovery</string><string>send</string><string>--if-due</string><string>--no-prompt</string>
+  </array>
+  <key>StartInterval</key><integer>86400</integer>
+  <key>StandardOutPath</key><string>$log_dir/recovery.out.log</string>
+  <key>StandardErrorPath</key><string>$log_dir/recovery.err.log</string>
+</dict></plist>
+EOF
+    launchctl unload "$plist" >/dev/null 2>&1 || true
+    launchctl load "$plist"
+    ok "installed LaunchAgent: $plist"
+  else
+    err "no supported scheduler found (systemd user or launchctl)"
+    return 1
+  fi
+}
+
+recovery_uninstall_timer() {
+  local label plist
+  if command -v systemctl >/dev/null 2>&1; then
+    systemctl --user disable --now dotfiles-recovery.timer 2>/dev/null || true
+    rm -f "${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/dotfiles-recovery.service" \
+      "${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/dotfiles-recovery.timer"
+    systemctl --user daemon-reload 2>/dev/null || true
+    ok "removed systemd recovery timer"
+  fi
+  if command -v launchctl >/dev/null 2>&1; then
+    label="com.francolopez.dotfiles.recovery"
+    plist="$HOME/Library/LaunchAgents/$label.plist"
+    launchctl unload "$plist" >/dev/null 2>&1 || true
+    rm -f "$plist"
+    ok "removed LaunchAgent recovery timer"
   fi
 }
 
@@ -3504,6 +4016,7 @@ main() {
     commands) cmd_commands "$@" ;;
     wallpaper) cmd_wallpaper "$@" ;;
     tailscale-policy) cmd_tailscale_policy "$@" ;;
+    recovery) cmd_recovery "$@" ;;
     git) cmd_git "$@" ;;
     autostart) cmd_autostart "$@" ;;
     help|-h|--help) usage ;;

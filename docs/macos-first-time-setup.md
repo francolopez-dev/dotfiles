@@ -76,6 +76,16 @@ Set up GitHub SSH:
 dotfiles git setup-ssh
 ```
 
+Set up encrypted recovery-pack email after key restore:
+
+```bash
+dotfiles recovery setup
+dotfiles recovery send
+```
+
+Store `~/.config/age/recovery.txt`, the printed `age1...` recipient, and the
+Gmail app password securely outside the Mac.
+
 ## 5. Services
 
 Start the managed UI services. Homebrew 6+ refuses to manage services from

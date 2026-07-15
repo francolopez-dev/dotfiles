@@ -1,12 +1,18 @@
 # Recovery Pack
 
-The recovery pack is the encrypted, offline backup for material that must not
-live in Git. Dotfiles can rebuild system intent; the recovery pack restores the
-private keys and exports needed after a laptop loss, disk failure, or full
-machine rebuild.
+The recovery pack is the encrypted backup for material that must not live in
+Git. Dotfiles can rebuild system intent; the recovery pack restores private keys
+and credential exports after laptop loss, disk failure, or a full rebuild.
 
-This repo does not currently build the recovery pack automatically. Use this
-manual runbook until a dedicated helper exists.
+The normal path is the wizard:
+
+```bash
+dotfiles recovery setup
+dotfiles recovery send
+```
+
+The command is not OS-gated. It works on any machine where the required tools are
+installed: `age`, `tar`, `base64`, and `msmtp` for email sending.
 
 ## What Goes Where
 
@@ -17,170 +23,161 @@ manual runbook until a dedicated helper exists.
 | Public SSH keys | no, usually local | yes, useful |
 | `authorized_keys` from servers | no | yes |
 | `~/.ssh/config.local` | no | yes, if useful |
-| Vaultwarden export | no | yes |
+| Lan Mouse TLS private key | no | yes |
+| Tailscale trusted-network local config | no | yes |
+| Vaultwarden export | no | yes, added manually |
 | Tailscale/admin exports | no | yes, if available |
-| Recovery instructions | yes | yes |
-| Browser/session/cache files | no | no |
+| Gmail app password | no | local config and encrypted pack |
+| AGE recovery identity | no | no, unless you already have another offline copy |
 
-Secrets, private keys, `.age` files, logs, and recovery-pack working
-directories must never be committed.
+Secrets, private keys, `.age` files, logs, recovery-pack working directories,
+and `~/.config/dotfiles/recovery.local` must never be committed.
 
-## Install Tools
+## Keys To Store Securely
 
-On managed Omarchy/macOS machines, `age` is already declared. On a Debian or
-Ubuntu server, install it before creating or opening a pack:
+Store these outside the machine, ideally in Vaultwarden plus an offline USB or
+printed emergency copy:
 
-```bash
-sudo apt update
-sudo apt install age tar
-```
+- `~/.config/age/recovery.txt`: the AGE private identity. This is the secret
+  required to decrypt every recovery pack encrypted to its recipient.
+- `age1...`: the AGE public recipient printed by `age-keygen -y`. This is safe
+  to use in scripts, but keep a copy with your recovery notes so setup can be
+  recreated.
+- Gmail app password: the SMTP credential used by `msmtp`. This is not your
+  normal Gmail password. Create it from the Google account with 2FA enabled.
+- Recovery-pack email account access: Gmail stores the encrypted `.age`
+  attachments. Keep account recovery current.
 
-Verify locally:
+Do not put the only copy of `recovery.txt` inside the recovery pack. Without the
+AGE identity, the encrypted pack cannot be opened.
 
-```bash
-command -v age
-command -v tar
-```
+## Setup Wizard
 
-## Create A Recovery Identity
-
-Do this once on the machine that will decrypt recovery packs. Store the
-identity somewhere safer than the laptop itself, such as an offline USB drive or
-printed emergency copy.
-
-```bash
-mkdir -p ~/.config/age
-chmod 700 ~/.config/age
-
-test -f ~/.config/age/recovery.txt || age-keygen -o ~/.config/age/recovery.txt
-chmod 600 ~/.config/age/recovery.txt
-
-age-keygen -y ~/.config/age/recovery.txt
-```
-
-The last command prints the public recipient, which starts with `age1...`. That
-recipient is safe to use in scripts and commands. The identity file
-`~/.config/age/recovery.txt` is the secret.
-
-Do not put the only copy of `recovery.txt` inside the recovery pack. Without
-that identity, the encrypted pack cannot be opened.
-
-## Build The Pack
-
-Create a temporary working directory:
+Run once per machine that should send recovery packs:
 
 ```bash
-pack="$HOME/recovery-pack"
-stamp="$(date +%Y-%m-%d)"
-
-rm -rf "$pack"
-mkdir -p "$pack/ssh" "$pack/notes" "$pack/exports"
-chmod 700 "$pack"
+dotfiles recovery setup
 ```
 
-Copy SSH material. This copies common key names and skips missing files:
+The wizard:
+
+- Creates or reuses `~/.config/age/recovery.txt`.
+- Prints the AGE recipient and the keys you must store securely.
+- Prompts for Gmail SMTP values and an app password.
+- Writes local-only config to `~/.config/dotfiles/recovery.local` with mode
+  `0600`.
+
+The local config looks like this:
 
 ```bash
-cp -p ~/.ssh/id_* "$pack/ssh/" 2>/dev/null || true
-cp -p ~/.ssh/authorized_keys "$pack/ssh/" 2>/dev/null || true
-cp -p ~/.ssh/config.local "$pack/ssh/" 2>/dev/null || true
+RECOVERY_EMAIL_TO='you@gmail.com'
+RECOVERY_EMAIL_FROM='you@gmail.com'
+RECOVERY_SMTP_HOST=smtp.gmail.com
+RECOVERY_SMTP_PORT=587
+RECOVERY_SMTP_USER='you@gmail.com'
+RECOVERY_SMTP_PASSWORD='gmail app password'
+RECOVERY_AGE_RECIPIENT='age1...'
+RECOVERY_AGE_IDENTITY='/home/you/.config/age/recovery.txt'
+RECOVERY_OUTPUT_DIR='/home/you/recovery'
+RECOVERY_SEND_INTERVAL_DAYS='30'
 ```
 
-If you use a named laptop key such as `id_ed25519-fornax`, confirm it is in the
-pack:
+This file contains secrets and is ignored by Git.
+
+## Send A Pack
 
 ```bash
-ls -la "$pack/ssh"
+dotfiles recovery send
 ```
 
-Collect server `authorized_keys` from any server you can currently reach. This
-is useful after a server rebuild because it tells you which laptop keys were
-trusted. Skip hosts that are offline or unreachable:
+This builds a plaintext working directory in a temporary location, writes a
+manifest, encrypts it with AGE, verifies decryption, emails it with Gmail SMTP,
+and deletes the plaintext working directory.
+
+The email subject is deterministic so it is easy to identify during disaster
+recovery:
+
+```text
+recovery pack from <hostname>
+```
+
+The encrypted attachment name includes the host and timestamp:
+
+```text
+recovery-pack-<hostname>-YYYY-MM-DD-HHMMSS.tar.gz.age
+```
+
+## Automatic Send
+
+Install a daily due-check scheduler:
 
 ```bash
-ssh domum-core 'cat ~/.ssh/authorized_keys 2>/dev/null' > "$pack/ssh/domum-core-authorized_keys" || true
+dotfiles recovery install-timer --days 30
 ```
 
-Add a simple restore note:
+The timer runs daily but only sends when `RECOVERY_SEND_INTERVAL_DAYS` has
+elapsed since the last successful send:
 
 ```bash
-cat > "$pack/README.txt" <<'EOF'
-Recovery pack contents are secrets.
-
-Restore SSH keys:
-  mkdir -p ~/.ssh
-  chmod 700 ~/.ssh
-  cp -p ssh/id_* ~/.ssh/ 2>/dev/null || true
-  cp -p ssh/config.local ~/.ssh/ 2>/dev/null || true
-  chmod 600 ~/.ssh/id_* ~/.ssh/config.local 2>/dev/null || true
-  chmod 644 ~/.ssh/*.pub 2>/dev/null || true
-
-Restore server authorized_keys only on the server that owns them.
-Never commit this pack or its extracted files to Git.
-EOF
+dotfiles recovery send --if-due --no-prompt
 ```
 
-Add manual exports as needed:
+Schedulers are local machine state, not stowed config:
+
+- systemd user timer when `systemctl` is available.
+- LaunchAgent when `launchctl` is available.
+
+Remove it with:
 
 ```bash
-# Put Vaultwarden exports, registrar/DNS exports, Tailscale notes, or other
-# manual files under "$pack/exports" before encrypting.
-ls -la "$pack/exports"
+dotfiles recovery uninstall-timer
 ```
 
-Do not store the recovery identity itself in `"$pack"` unless another offline
-copy already exists.
+## What The Wizard Collects
 
-Encrypt the pack. Replace `age1REPLACE_WITH_YOUR_RECIPIENT` with the recipient
-from `age-keygen -y ~/.config/age/recovery.txt`:
+Automatically, when present:
+
+- `~/.ssh/id_*`, `~/.ssh/*.pub`, `~/.ssh/authorized_keys`,
+  `~/.ssh/config.local`.
+- Reachable SSH hosts' `~/.ssh/authorized_keys` from `~/.ssh/config` entries.
+- `~/.config/lan-mouse/lan-mouse.pem`.
+- `~/.config/dotfiles/tailscale-networks.local`.
+- `~/.config/gh/hosts.yml`.
+- `~/.kube/config`.
+- Syncthing cert/key/config files.
+- KDE Connect config.
+- Local keyrings, Restic config, and rclone config when present.
+- The local recovery SMTP config, inside the encrypted pack.
+
+The AGE identity itself is intentionally not included. The manifest records that
+it was skipped.
+
+The wizard also asks for manual export files or directories. Use that prompt for
+Vaultwarden, registrar/DNS, Tailscale admin exports, infrastructure notes, or
+anything else that should be encrypted into the pack.
+
+## Verify A Pack
 
 ```bash
-tar -C "$HOME" -czf - recovery-pack \
-  | age -r 'age1REPLACE_WITH_YOUR_RECIPIENT' \
-  > "$HOME/recovery-pack-$stamp.tar.gz.age"
-
-chmod 600 "$HOME/recovery-pack-$stamp.tar.gz.age"
+dotfiles recovery verify ~/recovery/recovery-pack-<hostname>-YYYY-MM-DD-HHMMSS.tar.gz.age
 ```
 
-Remove the unencrypted working copy after verifying the encrypted file exists:
-
-```bash
-ls -lh "$HOME/recovery-pack-$stamp.tar.gz.age"
-rm -rf "$pack"
-```
-
-Move the encrypted `.age` file to offline storage. Do not leave the only copy on
-the machine it is meant to recover.
-
-## Verify The Pack
-
-Test decryption in a temporary directory before trusting it:
-
-```bash
-tmp="$(mktemp -d)"
-age -d -i ~/.config/age/recovery.txt "$HOME/recovery-pack-$stamp.tar.gz.age" \
-  | tar -C "$tmp" -xzf -
-
-find "$tmp/recovery-pack" -maxdepth 3 -type f -print
-rm -rf "$tmp"
-```
-
-If decryption fails, the recovery identity does not match the recipient used to
-encrypt the pack.
+Verification decrypts into a temporary directory, lists contents, and removes the
+temporary plaintext copy.
 
 ## Restore On A New Machine
 
-Bootstrap dotfiles first, then restore secrets:
+Bootstrap dotfiles first:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/jfrancolopez/dotfiles/main/scripts/bootstrap.sh | bash
 ```
 
-Decrypt the pack:
+Decrypt the pack with your offline AGE identity:
 
 ```bash
 tmp="$(mktemp -d)"
-age -d -i /path/to/recovery.txt /path/to/recovery-pack-YYYY-MM-DD.tar.gz.age \
+age -d -i /path/to/recovery.txt /path/to/recovery-pack-YYYY-MM-DD-HHMMSS.tar.gz.age \
   | tar -C "$tmp" -xzf -
 ```
 
@@ -189,21 +186,14 @@ Restore laptop SSH keys:
 ```bash
 mkdir -p ~/.ssh
 chmod 700 ~/.ssh
-
 cp -p "$tmp/recovery-pack/ssh"/id_* ~/.ssh/ 2>/dev/null || true
 cp -p "$tmp/recovery-pack/ssh/config.local" ~/.ssh/ 2>/dev/null || true
-
 chmod 600 ~/.ssh/id_* ~/.ssh/config.local 2>/dev/null || true
 chmod 644 ~/.ssh/*.pub 2>/dev/null || true
 ```
 
-Test access:
-
-```bash
-ssh domum-core
-```
-
-Clean up the extracted copy when finished:
+Restore service-specific credentials deliberately, only onto the machine that
+owns them. Clean up extracted plaintext when finished:
 
 ```bash
 rm -rf "$tmp"
@@ -211,19 +201,21 @@ rm -rf "$tmp"
 
 ## Rotation Checklist
 
-Rebuild the recovery pack whenever any of these change:
+Send a new recovery pack whenever any of these change:
 
 - A new laptop SSH key is created or renamed.
 - A server `authorized_keys` file changes.
 - Vaultwarden export is refreshed.
 - Tailscale, DNS, registrar, or infrastructure recovery data changes.
+- Lan Mouse or other local service credentials rotate.
 - A machine is retired and its key should no longer be recoverable.
 
 After rotation:
 
 ```bash
 git -C ~/dotfiles status --short
+dotfiles recovery status
 ```
 
-The recovery pack should not appear in Git status. If it does, stop and move it
-outside the repo before committing anything.
+The recovery pack and local config should not appear in Git status. If they do,
+stop and move them outside the repo before committing anything.

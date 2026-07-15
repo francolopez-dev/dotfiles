@@ -59,6 +59,7 @@ dotfiles status    # machine, layers, package drift, sync state
 dotfiles update    # pull, install missing packages, re-stow layers
 dotfiles apply     # re-stow only, after editing configs locally
 dotfiles doctor    # health checks
+dotfiles recovery  # encrypted recovery-pack setup/status/send
 ```
 
 Use dry runs before risky changes:
@@ -137,6 +138,16 @@ For server access from a new laptop, see
 [`server-minimal.md#add-a-new-laptop-ssh-key-to-a-server`](server-minimal.md#add-a-new-laptop-ssh-key-to-a-server).
 Private keys belong in the encrypted recovery pack, not Git; see
 [`recovery-pack.md`](recovery-pack.md).
+
+Recovery packs are built and emailed with:
+
+```bash
+dotfiles recovery setup
+dotfiles recovery send
+```
+
+Store `~/.config/age/recovery.txt`, the printed `age1...` recipient, and the
+Gmail app password securely outside the machine.
 
 If `dotfiles update` finds local changes in the repo, it skips the pull and
 asks: continue without pulling (recommended), stash then pull, or reset

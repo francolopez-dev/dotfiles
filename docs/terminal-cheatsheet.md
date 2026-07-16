@@ -226,6 +226,7 @@ Inside tmux, learn only these first. `Ctrl+Space` is the preferred prefix;
 | `Ctrl+Space c` | New tmux window, like a terminal tab |
 | `Ctrl+Space n` | Next tmux window |
 | `Ctrl+Space p` | Previous tmux window |
+| `Ctrl+Space Tab` | Last tmux window, like quick back-and-forth |
 | `Ctrl+Space ,` | Rename current tmux window |
 | `Ctrl+Space w` | Pick from all tmux windows |
 | `Ctrl+Space d` | Detach and leave everything running |
@@ -233,6 +234,10 @@ Inside tmux, learn only these first. `Ctrl+Space` is the preferred prefix;
 Use `Ctrl+Space d` instead of closing Ghostty. Later, run `t` from the same
 project directory to return to that session. If `Ctrl+Space` is intercepted by
 an input method or app on a machine, use `Ctrl+B` with the same second key.
+
+New windows ask for a name. Use short role names such as `editor`, `server`,
+`logs`, `git`, or `scratch`; tmux will keep the name stable instead of changing
+it to whatever subprocess is currently active.
 
 ### Beginner Commands
 
@@ -254,10 +259,28 @@ are done.
 |---|---|
 | Too many tmux windows | Press `Ctrl+Space w`, choose the one you want |
 | Window names are confusing | Press `Ctrl+Space ,` and rename the current window |
+| You want to remove a whole tab/window | Press `Ctrl+Space X` and confirm |
+| You want to remove only one split/pane | Press `Ctrl+Space x` and confirm |
 | You are done for now | Press `Ctrl+Space d`, do not close every pane |
 | You opened tmux twice | Use `tl`, then `ta <name>` to pick the right session |
 | You are done forever | Use `tk <name>` from a normal shell |
 | A pane is taking the whole screen | Press `Ctrl+Space z` to unzoom it |
+
+If you are not sure whether something is a session, window, or pane, press
+`Ctrl+Space w`. tmux opens a tree with previews. Use arrows to move, `Enter` to
+switch, `x` to kill the selected item, and `q` to leave without changing
+anything.
+
+The tmux status bar stays at the bottom and uses the same dark/green/purple/yellow
+palette as Ghostty, Waybar, and SketchyBar. The left status block changes color
+by mode:
+
+| Status | Meaning |
+|---|---|
+| `READY` | Normal tmux state |
+| `PREFIX` | You pressed `Ctrl+Space` or `Ctrl+B`; tmux is waiting for the next key |
+| `COPY` | The active pane is in copy/scrollback mode |
+| `ZOOM` | The active pane is temporarily fullscreened with `Ctrl+Space z` |
 
 ### Panes, Only After Windows Make Sense
 
@@ -374,11 +397,16 @@ Window keys:
 |---|---|
 | `Ctrl+Space c` | New window |
 | `Ctrl+Space n` / `p` | Next / previous window |
+| `Ctrl+Space Tab` | Last window |
 | `Ctrl+Space 0-9` | Jump to window number |
 | `Ctrl+Space w` | Choose window |
 | `Ctrl+Space ,` | Rename current window |
+| `Ctrl+Space X` | Kill current window with confirmation |
 | `Ctrl+Space d` | Detach session |
 | `Ctrl+Space r` | Reload tmux config |
+
+Window numbers start at `1` and renumber automatically after windows are closed,
+matching the OS workspace habit better than tmux's default `0`-based numbering.
 
 Pane and window layout:
 

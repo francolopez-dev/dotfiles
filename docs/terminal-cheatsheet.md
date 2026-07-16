@@ -224,16 +224,21 @@ Inside tmux, learn only these first. `Ctrl+Space` is the preferred prefix;
 | Keys | Does |
 |---|---|
 | `Ctrl+Space c` | New tmux window, like a terminal tab |
+| `Ctrl+Space C` | New tmux session, like a separate project workspace |
+| `Ctrl+Space s` | Switch sessions |
 | `Ctrl+Space n` | Next tmux window |
 | `Ctrl+Space p` | Previous tmux window |
 | `Ctrl+Space Tab` | Last tmux window, like quick back-and-forth |
 | `Ctrl+Space ,` | Rename current tmux window |
+| `Ctrl+Space $` | Rename current tmux session |
 | `Ctrl+Space w` | Pick from all tmux windows |
 | `Ctrl+Space d` | Detach and leave everything running |
+| `Ctrl+Space Q` | Kill the current tmux session with confirmation |
 
-Use `Ctrl+Space d` instead of closing Ghostty. Later, run `t` from the same
-project directory to return to that session. If `Ctrl+Space` is intercepted by
-an input method or app on a machine, use `Ctrl+B` with the same second key.
+Use `Ctrl+Space d` to exit tmux without closing the session, windows, or panes.
+Later, run `t` from the same project directory to return to that session. If
+`Ctrl+Space` is intercepted by an input method or app on a machine, use `Ctrl+B`
+with the same second key.
 
 New windows ask for a name. Use short role names such as `editor`, `server`,
 `logs`, `git`, or `scratch`; tmux will keep the name stable instead of changing
@@ -263,7 +268,7 @@ are done.
 | You want to remove only one split/pane | Press `Ctrl+Space x` and confirm |
 | You are done for now | Press `Ctrl+Space d`, do not close every pane |
 | You opened tmux twice | Use `tl`, then `ta <name>` to pick the right session |
-| You are done forever | Use `tk <name>` from a normal shell |
+| You are done forever | Press `Ctrl+Space Q` inside that session, or use `tk <name>` from a normal shell |
 | A pane is taking the whole screen | Press `Ctrl+Space z` to unzoom it |
 
 If you are not sure whether something is a session, window, or pane, press
@@ -271,9 +276,9 @@ If you are not sure whether something is a session, window, or pane, press
 switch, `x` to kill the selected item, and `q` to leave without changing
 anything.
 
-The tmux status bar stays at the bottom and uses the same dark/green/purple/yellow
-palette as Ghostty, Waybar, and SketchyBar. The left status block changes color
-by mode:
+The tmux status bar stays at the top and uses the same dark/green/purple/yellow
+palette as Ghostty, Waybar, and SketchyBar. The bottom pane-border line shows
+command/path context and the right-side mode block changes color by mode:
 
 | Status | Meaning |
 |---|---|
@@ -391,10 +396,15 @@ Start and reattach:
 | `tmux rename-session -t old new` | Rename a session |
 | `tmux switch -t work` | Switch sessions from inside tmux |
 
-Window keys:
+Session and window keys:
 
 | Keys | Does |
 |---|---|
+| `Ctrl+Space C` | New session and switch to it |
+| `Ctrl+Space s` | Choose/switch sessions |
+| `Ctrl+Space d` | Detach session without stopping it |
+| `Ctrl+Space $` | Rename current session |
+| `Ctrl+Space Q` | Kill current session with confirmation |
 | `Ctrl+Space c` | New window |
 | `Ctrl+Space n` / `p` | Next / previous window |
 | `Ctrl+Space Tab` | Last window |
@@ -402,7 +412,6 @@ Window keys:
 | `Ctrl+Space w` | Choose window |
 | `Ctrl+Space ,` | Rename current window |
 | `Ctrl+Space X` | Kill current window with confirmation |
-| `Ctrl+Space d` | Detach session |
 | `Ctrl+Space r` | Reload tmux config |
 
 Window numbers start at `1` and renumber automatically after windows are closed,

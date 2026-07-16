@@ -92,13 +92,26 @@ automatically. So adding a kernel is four steps:
    built into `/boot/EFI/Linux/`, and `Updated: /boot/limine.conf`. That
    means the boot entry exists. Nothing else to wire up.
 
-3. **Choose the default kernel** in `/etc/default/limine`. Entry order is
-   controlled by `BOOT_ORDER`; the first kernel listed becomes the default:
+3. **Choose the default kernel** in `/etc/default/limine`. `BOOT_ORDER`
+   controls the generated Limine default selection. Put the wanted kernel first,
+   regenerate the boot config, then reboot:
 
    ```bash
    BOOT_ORDER="linux-cachyos, *, *fallback, Snapshots"
    sudo limine-update
    ```
+
+   Do not judge this by the first visible kernel block in `/boot/limine.conf`;
+   Limine may still list `//linux` before `//linux-cachyos`. Check the generated
+   `default_entry` and the running kernel instead:
+
+   ```bash
+   grep '^default_entry:' /boot/limine.conf
+   reboot
+   uname -r
+   ```
+
+   If `uname -r` contains `cachyos`, the CachyOS kernel is the active default.
 
 4. **Keep the stock kernel installed.** It stays in the boot menu as the
    fallback. If the extra kernel ever fails to boot, select `linux` at the

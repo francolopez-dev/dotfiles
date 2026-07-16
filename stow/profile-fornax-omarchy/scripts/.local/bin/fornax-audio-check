@@ -30,7 +30,7 @@ else
 fi
 
 printf '\n== Woofer amp driver ==\n'
-if lsmod | grep -q '^snd_hda_scodec_aw88399'; then
+if grep -q '^snd_hda_scodec_aw88399 ' /proc/modules; then
   pass "snd_hda_scodec_aw88399 module loaded"
 else
   fail "snd_hda_scodec_aw88399 module not loaded"

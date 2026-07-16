@@ -203,7 +203,7 @@ Setup and rebuild:
 Terminal workflow:
 
 - [`atuin.md`](atuin.md) — Atuin shell-history setup, daily commands, server policy, and recovery notes.
-- [`terminal-cheatsheet.md`](terminal-cheatsheet.md) — daily terminal commands, aliases, fzf, zoxide, delta, tmux/TDL, history, diagnostics.
+- [`terminal-cheatsheet.md`](terminal-cheatsheet.md) — daily terminal commands, aliases, fzf, zoxide, delta, tmux/TDL, Ghostty/tmux clipboard workflow, history, diagnostics.
 - [`git-github-cheatsheet.md`](git-github-cheatsheet.md) — git commands and GitHub SSH.
 
 Desktop and machines:

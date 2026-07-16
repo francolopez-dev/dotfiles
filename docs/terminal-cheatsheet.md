@@ -90,6 +90,71 @@ but excluding `.git`.
 Zoxide learns only after you visit directories. If a jump goes somewhere
 unexpected, use the full path once and it will learn the better match.
 
+## Neovim
+
+This repo uses LazyVim from `stow/global/neovim/.config/nvim/`. Keep the core
+Vim habits intact: `y` yanks/copies, `p` pastes, `c` changes text, and `Ctrl+C`
+is not a generic copy shortcut.
+
+Daily editing:
+
+| Keys | Does |
+|---|---|
+| `v` | Start character selection |
+| `V` | Start line selection |
+| `y` | Yank/copy the selected text |
+| `yy` | Yank/copy the current line |
+| `p` / `P` | Paste after / before the cursor |
+| `d` | Delete selection or motion |
+| `c` | Change selection or motion, then enter insert mode |
+| `u` | Undo |
+| `Ctrl+R` | Redo |
+| `Esc` | Leave insert/visual mode, clear search highlight in LazyVim |
+
+Movement and search:
+
+| Keys | Does |
+|---|---|
+| `h/j/k/l` | Move left/down/up/right |
+| `w` / `b` | Next / previous word |
+| `0` / `$` | Start / end of line |
+| `gg` / `G` | Top / bottom of file |
+| `/text` | Search forward |
+| `n` / `N` | Next / previous search match |
+| `s` | LazyVim Flash jump |
+
+Files, buffers, and windows:
+
+| Keys | Does |
+|---|---|
+| `<leader><space>` | Find files from the project root |
+| `<leader>/` | Grep/search project text |
+| `<leader>,` | Pick an open buffer |
+| `Shift+H` / `Shift+L` | Previous / next buffer |
+| `<leader>e` | Open the file explorer |
+| `<leader>-` | Split window below |
+| `<leader>\|` | Split window right |
+| `Ctrl+H/J/K/L` | Move between Neovim windows |
+| `<leader>wd` | Delete the current Neovim window |
+
+Save, quit, and help discovery:
+
+| Keys | Does |
+|---|---|
+| `Ctrl+S` | Save file in LazyVim |
+| `:w` | Save file |
+| `:q` | Quit current window |
+| `:wq` | Save and quit |
+| `:qa` | Quit all |
+| `<leader>?` | Show buffer keymaps |
+| `<leader>sk` | Search all keymaps |
+| `<leader>p` | Open Yanky yank history |
+
+Clipboard note: LazyVim's Yanky extra is enabled in this repo. Normal `y`, `p`,
+and `P` are the primary Neovim copy/paste workflow; use Ghostty-native
+selection only when you intentionally want terminal text outside Neovim's buffer
+model.
+
 ## Git
 
 | Command | Does |
@@ -153,19 +218,21 @@ cd ~/dotfiles
 t
 ```
 
-Inside tmux, learn only these first:
+Inside tmux, learn only these first. `Ctrl+Space` is the preferred prefix;
+`Ctrl+B` remains enabled as the tmux default and fallback.
 
 | Keys | Does |
 |---|---|
-| `Ctrl+B c` | New tmux window, like a terminal tab |
-| `Ctrl+B n` | Next tmux window |
-| `Ctrl+B p` | Previous tmux window |
-| `Ctrl+B ,` | Rename current tmux window |
-| `Ctrl+B w` | Pick from all tmux windows |
-| `Ctrl+B d` | Detach and leave everything running |
+| `Ctrl+Space c` | New tmux window, like a terminal tab |
+| `Ctrl+Space n` | Next tmux window |
+| `Ctrl+Space p` | Previous tmux window |
+| `Ctrl+Space ,` | Rename current tmux window |
+| `Ctrl+Space w` | Pick from all tmux windows |
+| `Ctrl+Space d` | Detach and leave everything running |
 
-Use `Ctrl+B d` instead of closing Ghostty. Later, run `t` from the same project
-directory to return to that session.
+Use `Ctrl+Space d` instead of closing Ghostty. Later, run `t` from the same
+project directory to return to that session. If `Ctrl+Space` is intercepted by
+an input method or app on a machine, use `Ctrl+B` with the same second key.
 
 ### Beginner Commands
 
@@ -185,26 +252,107 @@ are done.
 
 | Situation | Do this |
 |---|---|
-| Too many tmux windows | Press `Ctrl+B w`, choose the one you want |
-| Window names are confusing | Press `Ctrl+B ,` and rename the current window |
-| You are done for now | Press `Ctrl+B d`, do not close every pane |
+| Too many tmux windows | Press `Ctrl+Space w`, choose the one you want |
+| Window names are confusing | Press `Ctrl+Space ,` and rename the current window |
+| You are done for now | Press `Ctrl+Space d`, do not close every pane |
 | You opened tmux twice | Use `tl`, then `ta <name>` to pick the right session |
 | You are done forever | Use `tk <name>` from a normal shell |
-| A pane is taking the whole screen | Press `Ctrl+B z` to unzoom it |
+| A pane is taking the whole screen | Press `Ctrl+Space z` to unzoom it |
 
 ### Panes, Only After Windows Make Sense
 
-Prefix is `Ctrl+B`. Press and release `Ctrl+B`, then press the next key.
+Preferred prefix is `Ctrl+Space`. Press and release `Ctrl+Space`, then press the
+next key. `Ctrl+B` still works everywhere as a compatibility fallback.
 
 | Keys | Does |
 |---|---|
-| `Ctrl+B \|` | Split left/right |
-| `Ctrl+B -` | Split top/bottom |
-| `Ctrl+B h/j/k/l` | Move between panes |
-| `Ctrl+B z` | Zoom/unzoom current pane |
-| `Ctrl+B x` | Kill current pane |
+| `Ctrl+Space \|` | Split left/right |
+| `Ctrl+Space -` | Split top/bottom |
+| `Ctrl+Space h/j/k/l` | Move between panes |
+| `Ctrl+Space H/J/K/L` | Resize panes left/down/up/right; keep tapping `H/J/K/L` to repeat |
+| `Ctrl+Space z` | Zoom/unzoom current pane |
+| `Ctrl+Space x` | Kill current pane |
 
 Mouse support is on for pane selection, resizing, and scrollback.
+
+### Ghostty And Tmux Clipboard Workflow
+
+This repo does not remap Ghostty, Hyprland, AeroSpace, or OS-level copy/paste
+shortcuts for tmux. tmux gets its own small workflow instead.
+
+Mental model:
+
+| Layer | Owns | Use it when |
+|---|---|---|
+| Ghostty / OS clipboard | Native terminal selection and Cmd/Super/Ctrl+Shift copy-paste | You selected text with Ghostty, usually by holding `Shift` while dragging inside tmux |
+| tmux buffer and copy mode | Pane-aware scrollback, pane-aware mouse selection, tmux paste buffer | You want text from one tmux pane or its history |
+| Shell, Neovim, or TUI app | Process input and app shortcuts | You are interacting with a running program; plain `Ctrl+C` remains interrupt |
+
+Shortcut reference:
+
+| Task | macOS | Omarchy/Arch | Notes |
+|---|---|---|---|
+| Preferred tmux prefix | `Ctrl+Space` | `Ctrl+Space` | `Ctrl+B` still works as fallback |
+| Enter pane copy mode | `Ctrl+Space Space` | `Ctrl+Space Space` | Pane-specific scrollback |
+| Start selection in copy mode | `v` | `v` | Vim/Neovim-style selection |
+| Select current line in copy mode | `V` | `V` | Useful for command output lines |
+| Copy tmux selection | `c` or `y` | `c` or `y` | Saves to tmux buffer and OS clipboard through OSC 52 |
+| Paste tmux buffer | `Ctrl+Space v` | `Ctrl+Space v` | Existing `Ctrl+Space ]` also works |
+| Native Ghostty selection | `Shift+drag`, then `Cmd+C` | `Shift+drag`, then existing terminal copy shortcut | Bypasses tmux; not pane-history aware |
+| Interrupt a process | `Ctrl+C` | `Ctrl+C` | Not remapped to copy |
+
+Which copy method should you use?
+
+| Situation | Use |
+|---|---|
+| Visible text in one tmux pane | Mouse drag in tmux, or `Ctrl+Space Space`, select, `c`/`y` |
+| Pane scrollback/history | `Ctrl+Space Space`, use `g`/`G` and movement, select with `v`, copy with `c`/`y` |
+| Native Ghostty escape hatch | Hold `Shift` while dragging, then use the existing Ghostty/OS copy shortcut |
+| Entire visible terminal surface | Ghostty Select All if desired, but it is not tmux-pane-aware |
+| Paste from OS clipboard | Existing Ghostty/OS paste shortcut |
+| Paste from tmux buffer | `Ctrl+Space v` or `Ctrl+Space ]` |
+
+Select All warning: Ghostty sees tmux as one terminal surface. Cmd/Super+A can
+select the visible terminal/scrollback surface, but it cannot select only the
+active tmux pane's complete history. Use tmux copy mode for pane-specific
+history.
+
+Clipboard security: tmux uses native OSC 52 through `set-clipboard external`.
+That lets tmux copies reach Ghostty and then the macOS or Linux clipboard
+without relying on `pbcopy`, `wl-copy`, `xclip`, or `xsel`. `external` is chosen
+instead of `on` because it lets tmux write outward while preventing arbitrary
+programs running inside tmux from creating tmux paste buffers through OSC 52.
+Copying secrets still places them on the OS clipboard.
+
+Reload and verify:
+
+```bash
+tmux source-file ~/.tmux.conf
+tmux -V
+tmux show -g prefix
+tmux show -g prefix2
+tmux show -s set-clipboard
+tmux info | grep 'Ms:'
+echo "$TERM"
+```
+
+If OSC 52 terminal capability changes do not apply to an existing tmux server,
+start a new tmux server later. `tmux kill-server` forces a full restart but also
+terminates every active tmux session, so do not run it casually.
+
+Verification checklist:
+
+| Check | Expected result |
+|---|---|
+| `Ctrl+Space d` | Detaches tmux |
+| `Ctrl+B d` | Still detaches tmux |
+| `Ctrl+Space Space` | Enters pane copy mode |
+| `v`, move, `c` | Copies selection to tmux buffer and OS clipboard |
+| `v`, move, `y` | Same as `c`, for Vim/Neovim muscle memory |
+| `Ctrl+Space v` | Pastes the tmux buffer |
+| Mouse drag in tmux | Pane-aware tmux selection/copy behavior |
+| `Shift+drag` | Ghostty-native selection bypassing tmux |
+| `Ctrl+C` at a running command | Still interrupts the process |
 
 ### Later Reference
 
@@ -224,34 +372,36 @@ Window keys:
 
 | Keys | Does |
 |---|---|
-| `Ctrl+B c` | New window |
-| `Ctrl+B n` / `p` | Next / previous window |
-| `Ctrl+B 0-9` | Jump to window number |
-| `Ctrl+B w` | Choose window |
-| `Ctrl+B ,` | Rename current window |
-| `Ctrl+B d` | Detach session |
-| `Ctrl+B r` | Reload tmux config |
+| `Ctrl+Space c` | New window |
+| `Ctrl+Space n` / `p` | Next / previous window |
+| `Ctrl+Space 0-9` | Jump to window number |
+| `Ctrl+Space w` | Choose window |
+| `Ctrl+Space ,` | Rename current window |
+| `Ctrl+Space d` | Detach session |
+| `Ctrl+Space r` | Reload tmux config |
 
 Pane and window layout:
 
 | Keys | Does |
 |---|---|
-| `Ctrl+B Space` | Cycle pane layouts |
-| `Ctrl+B {` / `}` | Move pane left / right in the layout |
-| `Ctrl+B !` | Break pane out into its own window |
-| `Ctrl+B :join-pane -t :1` | Move current pane into window 1 |
-| `Ctrl+B :swap-window -s 2 -t 1` | Swap window 2 with window 1 |
+| `Ctrl+Space Space` | Enter copy mode; use `Ctrl+Space :next-layout` for layout cycling |
+| `Ctrl+Space H/J/K/L` | Resize pane left/down/up/right; repeat without prefix for a short window |
+| `Ctrl+Space {` / `}` | Move pane left / right in the layout |
+| `Ctrl+Space !` | Break pane out into its own window |
+| `Ctrl+Space :join-pane -t :1` | Move current pane into window 1 |
+| `Ctrl+Space :swap-window -s 2 -t 1` | Swap window 2 with window 1 |
 
 Scrollback and copy mode:
 
 | Keys | Does |
 |---|---|
-| `Ctrl+B [` | Enter copy/scrollback mode |
+| `Ctrl+Space Space` / `Ctrl+Space [` | Enter copy/scrollback mode |
 | `q` | Exit copy mode |
-| `Space` | Start selection in copy mode |
-| `Enter` | Copy selection in copy mode |
-| `Ctrl+B ]` | Paste tmux buffer |
-| `Ctrl+B =` | Choose a paste buffer |
+| `v` | Start selection in copy mode |
+| `V` | Select line in copy mode |
+| `c` / `y` / `Enter` | Copy selection in copy mode |
+| `Ctrl+Space v` / `Ctrl+Space ]` | Paste tmux buffer |
+| `Ctrl+Space =` | Choose a paste buffer |
 
 In Ghostty on macOS, use tmux windows instead of Ghostty tabs when running under
 AeroSpace. This avoids native tab/window-manager edge cases while keeping
@@ -261,8 +411,8 @@ Recommended project pattern:
 
 ```bash
 t
-# Create tmux windows with Ctrl+B c, rename with Ctrl+B ,.
-# Detach with Ctrl+B d; later cd back to the project and run: t
+# Create tmux windows with Ctrl+Space c, rename with Ctrl+Space ,.
+# Detach with Ctrl+Space d; later cd back to the project and run: t
 ```
 
 If a terminal closes, the tmux session keeps running unless the machine rebooted

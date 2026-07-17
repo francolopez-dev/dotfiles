@@ -70,3 +70,8 @@ fi
 command -v direnv >/dev/null 2>&1 && eval "$(direnv hook bash)"
 unset _dotfiles_zoxide_init
 unset -f _dotfiles_source_first 2>/dev/null || true
+
+# Added by LM Studio CLI (lms)
+export PATH="$PATH:/home/jfranco/.lmstudio/bin"
+# End of LM Studio CLI section
+

@@ -248,7 +248,6 @@ run = 'move-node-to-workspace five'
 # System utility windows that should float.
 [[on-window-detected]]
 if.app-id = 'com.apple.finder'
-check-further-callbacks = true
 run = 'move-node-to-workspace five'
 
 [[on-window-detected]]

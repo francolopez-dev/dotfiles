@@ -5,8 +5,10 @@ start-at-login = true
 after-login-command = []
 after-startup-command = []
 # Notify SketchyBar when the focused AeroSpace workspace changes.
-exec-on-workspace-change = ['/bin/bash', '-c',
-    'sketchybar --trigger aerospace_workspace_change FOCUSED_WORKSPACE=$AEROSPACE_FOCUSED_WORKSPACE'
+exec-on-workspace-change = [
+  '/bin/bash',
+  '-c',
+  'sketchybar --trigger aerospace_workspace_change FOCUSED_WORKSPACE=$AEROSPACE_FOCUSED_WORKSPACE',
 ]
 
 # Layout defaults.
@@ -17,7 +19,16 @@ accordion-padding = 30
 default-root-container-layout = 'tiles'
 default-root-container-orientation = 'auto'
 automatically-unhide-macos-hidden-apps = false
-persistent-workspaces = ['one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight']
+persistent-workspaces = [
+  'one',
+  'two',
+  'three',
+  'four',
+  'five',
+  'six',
+  'seven',
+  'eight',
+]
 
 # Keep the pointer on the active display when focus changes across monitors.
 on-focused-monitor-changed = ['move-mouse monitor-lazy-center']
@@ -39,13 +50,13 @@ outer.bottom = 5
 
 # Workspace placement. SketchyBar renders these in the explicit order.
 [workspace-to-monitor-force-assignment]
-'one' = 'main'    # Communication
-'two' = 'main'    # Personal and work mail
-'three' = 'main'  # AI tools
-'four' = 'main'   # Extra workspace
-'five' = 'main'   # Browser / web
-'six' = 'main'    # Development / terminal
-'seven' = 'main'  # Extra workspace
+'one' = 'main'   # Communication
+'two' = 'main'   # Personal and work mail
+'three' = 'main' # AI tools
+'four' = 'main'  # Extra workspace
+'five' = 'main'  # Browser / web
+'six' = 'main'   # Development / terminal
+'seven' = 'main' # Extra workspace
 'eight' = 'main'
 # Ideas to review later:
 # 'x' = 'Built-in Retina Display'    # Extra built-in workspace
@@ -56,7 +67,7 @@ outer.bottom = 5
 
 # Main keybindings.
 [mode.main.binding]
-cmd-h = [] # Disable "hide application"
+cmd-h = []     # Disable "hide application"
 cmd-alt-h = [] # Disable "hide others"
 
 # Window navigation.
@@ -131,6 +142,14 @@ alt-shift-b = 'exec-and-forget open -a Safari'
 ctrl-shift-z = 'layout floating tiling'
 alt-shift-z = 'flatten-workspace-tree'
 
+# Manual layout shaping: use these to nest the focused window into a neighbor.
+# Example: after opening a third window, focus it and press Alt+Ctrl+Shift+H
+# to split it with the window on its left.
+alt-ctrl-shift-h = 'join-with left'
+alt-ctrl-shift-j = 'join-with down'
+alt-ctrl-shift-k = 'join-with up'
+alt-ctrl-shift-l = 'join-with right'
+
 # Move the focused window to the next or previous monitor.
 ctrl-shift-h = 'move-node-to-monitor --wrap-around next --focus-follows-window'
 ctrl-shift-l = 'move-node-to-monitor --wrap-around prev --focus-follows-window'
@@ -197,14 +216,17 @@ ctrl-alt-r = 'reload-config'
 # Communication and AI apps that should float.
 [[on-window-detected]]
 if.app-id = 'com.microsoft.teams'
+check-further-callbacks = true
 run = 'move-node-to-workspace five'
 
 [[on-window-detected]]
 if.app-id = 'com.microsoft.teams2'
+check-further-callbacks = true
 run = 'move-node-to-workspace five'
 
 [[on-window-detected]]
 if.app-id = 'com.apple.reminders'
+check-further-callbacks = true
 run = 'move-node-to-workspace five'
 
 #[[on-window-detected]]
@@ -226,10 +248,12 @@ run = 'move-node-to-workspace five'
 # System utility windows that should float.
 [[on-window-detected]]
 if.app-id = 'com.apple.finder'
-run = 'layout floating'
+check-further-callbacks = true
+run = 'move-node-to-workspace five'
 
 [[on-window-detected]]
 if.app-id = 'com.apple.MobileSMS'
+check-further-callbacks = true
 run = 'layout floating'
 
 #[[on-window-detected]]
@@ -239,6 +263,7 @@ run = 'layout floating'
 # Workspace assignment rules.
 [[on-window-detected]]
 if.app-id = 'com.microsoft.Outlook'
+check-further-callbacks = true
 run = 'move-node-to-workspace six'
 
 #[[on-window-detected]]
@@ -276,11 +301,17 @@ run = 'move-node-to-workspace six'
 
 [[on-window-detected]]
 if.app-id = 'de.feschber.LanMouse'
+check-further-callbacks = true
 run = 'layout floating'
 
 [[on-window-detected]]
 if.app-id = 'com.lujjjh.LinearMouse'
+check-further-callbacks = true
 run = 'layout floating'
+
+[[on-window-detected]]
+if = 'true'
+run = 'exec-and-forget ~/.config/aerospace/auto-layout.sh'
 
 # Ideas to review later:
 # - Add config-version = 2 and persistent-workspaces = ['one', 'two', 'three', 'four', 'five', 'six', 'seven'] after testing.

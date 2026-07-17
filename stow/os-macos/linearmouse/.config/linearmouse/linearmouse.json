@@ -1,5 +1,5 @@
 {
-  "$schema" : "https:\/\/schema.linearmouse.app\/0.11.2",
+  "$schema" : "https:\/\/schema.linearmouse.app\/0.11.3",
   "schemes" : [
     {
       "if" : {
@@ -32,12 +32,12 @@
           "vertical" : 1
         },
         "distance" : {
-          "vertical" : 4
+          "vertical" : 3
         },
         "modifiers" : {
           "vertical" : {
             "control" : {
-              "scale" : 4,
+              "scale" : 10,
               "type" : "changeSpeed"
             },
             "shift" : {

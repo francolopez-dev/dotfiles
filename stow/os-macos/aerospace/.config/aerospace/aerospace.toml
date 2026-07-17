@@ -34,7 +34,7 @@ outer.left = 5
 outer.right = 5
 # The native menu bar is auto-hidden (scripts/macos-defaults.sh) and
 # SketchyBar (height 28) is the primary bar on every display.
-outer.top = [{ monitor.'built-in' = 5 }, 28]
+outer.top = [{ monitor.'built-in' = 5 }, 38]
 outer.bottom = 5
 
 # Workspace placement. SketchyBar renders these in the explicit order.
@@ -77,23 +77,23 @@ ctrl-equal = 'resize smart +50'
 
 
 # Workspace switching (Ctrl + number).
-ctrl-cmd-1 = 'workspace one'
-ctrl-cmd-2 = 'workspace two'
-ctrl-cmd-3 = 'workspace three'
-ctrl-cmd-4 = 'workspace four'
-ctrl-1 = 'workspace five'
-ctrl-2 = 'workspace six'
-ctrl-3 = 'workspace seven'
-ctrl-4 = 'workspace eight'
+ctrl-cmd-1 = 'workspace five'
+ctrl-cmd-2 = 'workspace six'
+ctrl-cmd-3 = 'workspace seven'
+ctrl-cmd-4 = 'workspace eight'
+ctrl-1 = 'workspace one'
+ctrl-2 = 'workspace two'
+ctrl-3 = 'workspace three'
+ctrl-4 = 'workspace four'
 # Move the focused window to a workspace (Ctrl + Shift + number).
-ctrl-cmd-shift-1 = 'move-node-to-workspace one --focus-follows-window'
-ctrl-cmd-shift-2 = 'move-node-to-workspace two --focus-follows-window'
-ctrl-cmd-shift-3 = 'move-node-to-workspace three --focus-follows-window'
-ctrl-cmd-shift-4 = 'move-node-to-workspace four --focus-follows-window'
-ctrl-shift-1 = 'move-node-to-workspace five --focus-follows-window'
-ctrl-shift-2 = 'move-node-to-workspace six --focus-follows-window'
-ctrl-shift-3 = 'move-node-to-workspace seven --focus-follows-window'
-ctrl-shift-4 = 'move-node-to-workspace eight --focus-follows-window'
+ctrl-cmd-shift-1 = 'move-node-to-workspace five --focus-follows-window'
+ctrl-cmd-shift-2 = 'move-node-to-workspace six --focus-follows-window'
+ctrl-cmd-shift-3 = 'move-node-to-workspace seven --focus-follows-window'
+ctrl-cmd-shift-4 = 'move-node-to-workspace eight --focus-follows-window'
+ctrl-shift-1 = 'move-node-to-workspace one --focus-follows-window'
+ctrl-shift-2 = 'move-node-to-workspace two --focus-follows-window'
+ctrl-shift-3 = 'move-node-to-workspace three --focus-follows-window'
+ctrl-shift-4 = 'move-node-to-workspace four --focus-follows-window'
 alt-tab = 'workspace-back-and-forth'
 
 # App launchers.
@@ -197,15 +197,15 @@ ctrl-alt-r = 'reload-config'
 # Communication and AI apps that should float.
 [[on-window-detected]]
 if.app-id = 'com.microsoft.teams'
-run = 'move-node-to-workspace one'
+run = 'move-node-to-workspace five'
 
 [[on-window-detected]]
 if.app-id = 'com.microsoft.teams2'
-run = 'move-node-to-workspace one'
+run = 'move-node-to-workspace five'
 
 [[on-window-detected]]
 if.app-id = 'com.apple.reminders'
-run = 'move-node-to-workspace one'
+run = 'move-node-to-workspace five'
 
 #[[on-window-detected]]
 #if.app-id = 'com.openai.codex' # ChatGPT.app
@@ -239,7 +239,7 @@ run = 'layout floating'
 # Workspace assignment rules.
 [[on-window-detected]]
 if.app-id = 'com.microsoft.Outlook'
-run = 'move-node-to-workspace two'
+run = 'move-node-to-workspace six'
 
 #[[on-window-detected]]
 #if.app-id = 'com.apple.Safari'

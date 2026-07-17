@@ -9,7 +9,7 @@
 search_mode = "fuzzy"
 
 # Filter mode: show only commands from this host by default.
-filter_mode = "host"
+filter_mode = "global"
 
 # Style: compact display.
 style = "compact"

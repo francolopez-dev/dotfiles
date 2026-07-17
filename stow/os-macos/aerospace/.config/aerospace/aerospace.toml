@@ -110,8 +110,8 @@ alt-tab = 'workspace-back-and-forth'
 # App launchers.
 alt-shift-enter = 'exec-and-forget open -n /Applications/Alacritty.app'
 cmd-shift-enter = 'exec-and-forget open -n /Applications/Alacritty.app'
-alt-enter = 'exec-and-forget open -n /Applications/Ghostty.app'
-cmd-enter = 'exec-and-forget open -n /Applications/Ghostty.app'
+alt-enter = 'exec-and-forget ~/.local/bin/dotfiles-ghostty-new-window'
+cmd-enter = 'exec-and-forget ~/.local/bin/dotfiles-ghostty-new-window'
 alt-semicolon = """exec-and-forget open -a "System Settings" """
 alt-t = 'exec-and-forget open -n /Applications/Microsoft\ Teams.app'
 alt-r = 'exec-and-forget open -a "Reminders"'

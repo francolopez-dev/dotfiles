@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if pgrep -x ghostty >/dev/null 2>&1; then
+  osascript \
+    -e 'tell application "Ghostty" to activate' \
+    -e 'tell application "System Events" to keystroke "n" using command down'
+else
+  open -a Ghostty
+fi

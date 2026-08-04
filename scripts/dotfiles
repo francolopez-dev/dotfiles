@@ -59,6 +59,8 @@ Usage:
   dotfiles commands doctor   Validate the discovery registry.
   dotfiles wallpaper rotate  Rotate wallpaper now.
   dotfiles wallpaper status  Show wallpaper rotation state.
+  dotfiles oled on|off|status
+                             Toggle fornax OLED idle protection.
   dotfiles tailscale-policy   Manage trusted-network Tailscale automation.
   dotfiles recovery setup     Configure AGE + Gmail app-password recovery email.
   dotfiles recovery send      Build, verify, and email an encrypted recovery pack.
@@ -683,7 +685,7 @@ refresh_omarchy_session() {
     eval "$needs_manual_ref+=(hyprpaper)"
   fi
 
-  for unit in xdg-desktop-portal.service xdg-desktop-portal-hyprland.service mako.service swaync.service lan-mouse.service dotfiles-clipboard-notify.service; do
+  for unit in xdg-desktop-portal.service xdg-desktop-portal-hyprland.service hypridle.service mako.service swaync.service lan-mouse.service dotfiles-clipboard-notify.service; do
     if systemd_user_unit_active "$unit"; then
       run_refresh_cmd "$dry" "$unit restarted" systemctl --user try-restart "$unit" || true
     fi
@@ -1924,6 +1926,143 @@ cmd_wallpaper() {
       printf 'Usage:\n  dotfiles wallpaper rotate\n  dotfiles wallpaper status\n  dotfiles wallpaper open-local\n  dotfiles wallpaper set <file>\n'
       ;;
     *) err "unknown wallpaper subcommand: $subcmd"; return 1 ;;
+  esac
+}
+
+# --- oled guard -----------------------------------------------------------
+oled_state_file() {
+  printf '%s/dotfiles/oled-fornax\n' "${XDG_STATE_HOME:-$HOME/.local/state}"
+}
+
+oled_current_mode() {
+  local state
+  state="$(sed -n '1p' "$(oled_state_file)" 2>/dev/null || true)"
+  case "$state" in
+    on|oled) printf 'on\n' ;;
+    *) printf 'off\n' ;;
+  esac
+}
+
+oled_require_fornax() {
+  local os host
+  os="$(detect_os)"
+  host="$(detect_hostname)"
+  if [[ "$os" != "omarchy" || "$host" != "fornax" ]]; then
+    err "dotfiles oled is only supported on fornax Omarchy systems"
+    printf '  current: %s (%s)\n' "$host" "$os" >&2
+    return 1
+  fi
+}
+
+oled_restart_hypridle() {
+  if systemd_user_unit_active hypridle.service; then
+    if systemctl --user restart hypridle.service >/dev/null 2>&1; then
+      ok "hypridle restarted"
+    else
+      warn "failed to restart hypridle.service"
+    fi
+  elif pgrep -x hypridle >/dev/null 2>&1; then
+    pkill -x hypridle >/dev/null 2>&1 || true
+    if command -v hypridle >/dev/null 2>&1; then
+      hypridle >/dev/null 2>&1 &
+      ok "hypridle restarted"
+    else
+      warn "hypridle process was running but hypridle command is missing"
+    fi
+  else
+    warn "hypridle is not running; it will use the selected mode next time it starts"
+  fi
+}
+
+oled_run_action() {
+  local action="$1"
+  case "$action" in
+    dim) brightnessctl -s set 10 ;;
+    lock) omarchy-system-lock ;;
+    screensaver) pidof hyprlock >/dev/null 2>&1 || omarchy-launch-screensaver ;;
+    display-off) hyprctl dispatch dpms off ;;
+    suspend) systemctl suspend ;;
+    *) return 1 ;;
+  esac
+}
+
+oled_run_resume() {
+  local action="$1"
+  case "$action" in
+    dim) brightnessctl -r ;;
+    display-off) hyprctl dispatch dpms on ;;
+    *) return 0 ;;
+  esac
+}
+
+oled_internal_event() {
+  local event_mode="$1" action="$2" current
+  current="$(oled_current_mode)"
+  if [[ "$event_mode" == "oled" && "$current" != "on" ]]; then
+    return 0
+  fi
+  if [[ "$event_mode" == "default" && "$current" == "on" ]]; then
+    return 0
+  fi
+  oled_run_action "$action"
+}
+
+oled_internal_resume() {
+  local event_mode="$1" action="$2" current
+  current="$(oled_current_mode)"
+  if [[ "$event_mode" == "oled" && "$current" != "on" ]]; then
+    return 0
+  fi
+  if [[ "$event_mode" == "default" && "$current" == "on" ]]; then
+    return 0
+  fi
+  oled_run_resume "$action"
+}
+
+cmd_oled() {
+  local subcmd="${1:-status}" state_file
+  case "$subcmd" in
+    on)
+      oled_require_fornax || return 1
+      state_file="$(oled_state_file)"
+      mkdir -p "$(dirname "$state_file")"
+      printf 'on\n' >"$state_file"
+      ok "fornax OLED protection enabled"
+      oled_restart_hypridle
+      ;;
+    off)
+      oled_require_fornax || return 1
+      state_file="$(oled_state_file)"
+      mkdir -p "$(dirname "$state_file")"
+      printf 'off\n' >"$state_file"
+      ok "fornax OLED protection disabled"
+      oled_restart_hypridle
+      ;;
+    status)
+      oled_require_fornax || return 1
+      printf 'OLED protection: %s\n' "$(oled_current_mode)"
+      if [[ "$(oled_current_mode)" == "on" ]]; then
+        printf '  active policy: 10 min dim, 35 min screensaver, 1 hr lock, 120 min display off, 5 hr suspend\n'
+      else
+        printf '  active policy: 3 min dim, 10 min lock, 15 min display off, 60 min suspend\n'
+      fi
+      ;;
+    _timeout)
+      shift
+      oled_internal_event "${1:-}" "${2:-}"
+      ;;
+    _resume)
+      shift
+      oled_internal_resume "${1:-}" "${2:-}"
+      ;;
+    help|-h|--help|"")
+      printf 'Usage:\n  dotfiles oled on\n  dotfiles oled off\n  dotfiles oled status\n'
+      ;;
+    *)
+      err "unknown oled command: $subcmd"
+      printf 'Usage:\n  dotfiles oled on\n  dotfiles oled off\n  dotfiles oled status\n' >&2
+      return 1
+      ;;
   esac
 }
 
@@ -3985,7 +4124,13 @@ _status_line() {
   fi
 }
 
-_mtime() { stat -f %m "$1" 2>/dev/null || stat -c %Y "$1"; }
+_mtime() {
+  if [[ "$(uname -s)" == "Darwin" ]]; then
+    stat -f %m "$1"
+  else
+    stat -c %Y "$1"
+  fi
+}
 
 # Installed formulae+casks, fetched once per run. Plain `brew list` avoids
 # loading package definitions, so Homebrew 6 tap-trust checks cannot error,
@@ -4018,6 +4163,7 @@ main() {
     doctor) cmd_doctor "$@" ;;
     commands) cmd_commands "$@" ;;
     wallpaper) cmd_wallpaper "$@" ;;
+    oled) cmd_oled "$@" ;;
     tailscale-policy) cmd_tailscale_policy "$@" ;;
     recovery) cmd_recovery "$@" ;;
     git) cmd_git "$@" ;;

@@ -257,7 +257,7 @@ check_aur_helper
 check_bootstrap_prereqs_declared
 
 check_hypridle_timeouts profile-nox-omarchy 240,600,660,1800
-check_hypridle_timeouts profile-fornax-omarchy 180,600,900,3600
+check_hypridle_timeouts profile-fornax-omarchy 180,600,900,3600,600,2100,3600,7200,18000
 
 stale_profile="laptop-personal"
 if grep -Rqs \

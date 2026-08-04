@@ -97,14 +97,22 @@ Linux.
 Launch Windows from the app menu entry named `Windows`, or run:
 
 ```bash
+omarchy-windows-dockurr-rdp launch --keep-alive
+```
+
+The app menu entry uses `--keep-alive` by default. Closing the RDP client does
+not stop the Docker Windows VM; shut down from inside the Windows Start menu
+when you intentionally want to stop Windows.
+
+For a one-off session where closing RDP should stop the VM, run:
+
+```bash
 omarchy-windows-dockurr-rdp launch
 ```
 
-Keep the VM running after the RDP window closes:
-
-```bash
-omarchy-windows-dockurr-rdp launch --keep-alive
-```
+`Super+W` is protected for the Dockurr FreeRDP window (`xfreerdp` titled
+`Windows VM - Omarchy`) by `omarchy-close-window`, so accidental close-window
+keystrokes do not terminate the RDP client.
 
 The wrapper starts the existing container if needed, then connects with
 `xfreerdp3` using supported FreeRDP 3 options:

@@ -1,7 +1,7 @@
 [Desktop Entry]
 Name=Windows
-Comment=Start Omarchy Dockurr Windows VM via tuned FreeRDP
-Exec=uwsm app -- omarchy-windows-dockurr-rdp launch
+Comment=Start Omarchy Dockurr Windows VM via tuned FreeRDP and keep it running when RDP closes
+Exec=uwsm app -- omarchy-windows-dockurr-rdp launch --keep-alive
 Icon=/home/jfranco/.local/share/applications/icons/windows.png
 Terminal=false
 Type=Application

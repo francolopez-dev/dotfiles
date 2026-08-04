@@ -14,6 +14,14 @@ fail() {
   exit 1
 }
 
+file_mode() {
+  if [[ "$(uname -s)" == "Darwin" ]]; then
+    stat -f '%Lp' "$1"
+  else
+    stat -c '%a' "$1"
+  fi
+}
+
 make_legacy_home() {
   local home="$1" repo
   repo="$home/dotfiles"
@@ -62,12 +70,12 @@ make_legacy_home "$home2"
 run_rescue "$home2" 0 >/dev/null 2>&1
 
 [[ ! -L "$home2/.ssh" && -d "$home2/.ssh" ]] || fail "~/.ssh must become a real directory"
-perms="$(stat -f '%Lp' "$home2/.ssh" 2>/dev/null || stat -c '%a' "$home2/.ssh")"
+perms="$(file_mode "$home2/.ssh")"
 [[ "$perms" == "700" ]] || fail "~/.ssh must be mode 700, got $perms"
 for f in config id_ed25519 id_ed25519.pub authorized_keys known_hosts; do
   [[ -f "$home2/.ssh/$f" ]] || fail "missing ~/.ssh/$f after migration"
 done
-key_perms="$(stat -f '%Lp' "$home2/.ssh/id_ed25519" 2>/dev/null || stat -c '%a' "$home2/.ssh/id_ed25519")"
+key_perms="$(file_mode "$home2/.ssh/id_ed25519")"
 [[ "$key_perms" == "600" ]] || fail "private key must keep mode 600, got $key_perms"
 
 # Untracked key material must be gone from the repo; the tracked config must

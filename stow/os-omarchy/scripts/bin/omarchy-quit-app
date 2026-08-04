@@ -6,6 +6,7 @@ set -euo pipefail
 # Hyprland closewindow, which bypasses Ghostty's prompts.
 window_json=$(hyprctl activewindow -j)
 class=$(jq -r '.class // empty' <<<"$window_json")
+title=$(jq -r '.title // empty' <<<"$window_json")
 address=$(jq -r '.address // empty' <<<"$window_json")
 
 if [ -z "$class" ] || [ -z "$address" ]; then
@@ -13,6 +14,15 @@ if [ -z "$class" ] || [ -z "$address" ]; then
 fi
 
 case "$class" in
+  xfreerdp)
+    if [[ "$title" == "Windows VM - Omarchy" ]]; then
+      notify-send "Windows VM protected" "Use the Windows Start menu to shut down." -t 4000 2>/dev/null || true
+      exit 0
+    fi
+    hyprctl clients -j | jq -r --arg class "$class" '.[] | select(.class == $class) | .address' | while read -r addr; do
+      hyprctl dispatch closewindow "address:$addr"
+    done
+    ;;
   com.mitchellh.ghostty)
     hyprctl dispatch sendshortcut "SUPER,Q,address:$address"
     ;;

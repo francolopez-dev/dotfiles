@@ -110,9 +110,10 @@ For a one-off session where closing RDP should stop the VM, run:
 omarchy-windows-dockurr-rdp launch
 ```
 
-`Super+W` is protected for the Dockurr FreeRDP window (`xfreerdp` titled
-`Windows VM - Omarchy`) by `omarchy-close-window`, so accidental close-window
-keystrokes do not terminate the RDP client.
+`Super+W` and `Super+Q` are protected for the Dockurr FreeRDP window (`xfreerdp`
+titled `Windows VM - Omarchy`) by `omarchy-close-window` and
+`omarchy-quit-app`, so accidental close-window/quit-app keystrokes do not
+terminate the RDP client.
 
 The wrapper starts the existing container if needed, then connects with
 `xfreerdp3` using supported FreeRDP 3 options:

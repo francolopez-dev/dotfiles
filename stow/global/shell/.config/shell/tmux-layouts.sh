@@ -36,25 +36,35 @@ _dotfiles_tmux_require() {
 _dotfiles_tmux_session_name() {
   layout_prefix=$1
   layout_dir=$2
-  layout_base=$(basename "$layout_dir" | tr -c '[:alnum:]_.-' '_')
+  layout_base=$(basename "$layout_dir")
+  layout_base=$(printf '%s' "$layout_base" | tr -c '[:alnum:]_-' '_')
   layout_hash=$(printf '%s' "$layout_dir" | cksum | while read -r sum _rest; do printf '%s' "$sum"; done)
 
   [ -n "$layout_base" ] || layout_base="home"
   printf '%s\n' "${layout_prefix}-${layout_base}-${layout_hash}"
 }
 
+_dotfiles_tmux_session_target() {
+  printf '=%s:\n' "$1"
+}
+
+_dotfiles_tmux_window_target() {
+  printf '=%s:=%s\n' "$1" "$2"
+}
+
 _dotfiles_tmux_open() {
   target_session=$1
+  target_session_ref=$(_dotfiles_tmux_session_target "$target_session")
 
   if [ -n "${TMUX:-}" ]; then
-    tmux switch-client -t "$target_session"
+    tmux switch-client -t "$target_session_ref"
   else
-    tmux attach-session -t "$target_session"
+    tmux attach-session -t "$target_session_ref"
   fi
 }
 
 _dotfiles_tmux_named_session() {
-  session_name=$(printf '%s' "$1" | tr -c '[:alnum:]_.-' '_')
+  session_name=$(printf '%s' "$1" | tr -c '[:alnum:]_-' '_')
   [ -n "$session_name" ] || session_name="main"
   printf '%s\n' "$session_name"
 }
@@ -74,7 +84,7 @@ t() {
     t_session=$(_dotfiles_tmux_session_name "tmux" "$t_dir")
   fi
 
-  if ! tmux has-session -t "$t_session" 2>/dev/null; then
+  if ! tmux has-session -t "$(_dotfiles_tmux_session_target "$t_session")" 2>/dev/null; then
     tmux new-session -d -s "$t_session" -n "main" -c "$t_dir" || return 1
   fi
 
@@ -105,7 +115,7 @@ tk() {
     return 1
   fi
 
-  tmux kill-session -t "$(_dotfiles_tmux_named_session "$1")"
+  tmux kill-session -t "$(_dotfiles_tmux_session_target "$(_dotfiles_tmux_named_session "$1")")"
 }
 
 _dotfiles_tdl_create_window() {
@@ -117,8 +127,8 @@ _dotfiles_tdl_create_window() {
   editor_command="${EDITOR:-nvim} ."
   shell_command="${SHELL:-/bin/sh}"
 
-  if tmux has-session -t "$target_session" 2>/dev/null; then
-    editor_pane=$(tmux new-window -d -P -F '#{pane_id}' -t "$target_session:" -n "$target_window" -c "$target_dir" "$editor_command") || return 1
+  if tmux has-session -t "$(_dotfiles_tmux_session_target "$target_session")" 2>/dev/null; then
+    editor_pane=$(tmux new-window -d -P -F '#{pane_id}' -t "$(_dotfiles_tmux_session_target "$target_session")" -n "$target_window" -c "$target_dir" "$editor_command") || return 1
   else
     editor_pane=$(tmux new-session -d -P -F '#{pane_id}' -s "$target_session" -n "$target_window" -c "$target_dir" "$editor_command") || return 1
   fi
@@ -153,7 +163,7 @@ tdl() {
     tdl_command_2=""
   fi
 
-  if ! tmux has-session -t "$tdl_session" 2>/dev/null; then
+  if ! tmux has-session -t "$(_dotfiles_tmux_session_target "$tdl_session")" 2>/dev/null; then
     _dotfiles_tdl_create_window "$tdl_session" "main" "$tdl_dir" "$tdl_command_1" "$tdl_command_2" || return 1
   fi
 
@@ -173,7 +183,7 @@ tdlm() {
     return 1
   fi
 
-  if tmux has-session -t "$tdlm_session" 2>/dev/null; then
+  if tmux has-session -t "$(_dotfiles_tmux_session_target "$tdlm_session")" 2>/dev/null; then
     _dotfiles_tmux_open "$tdlm_session"
     return
   fi
@@ -194,7 +204,8 @@ tdlm() {
   fi
 
   find "$tdlm_dir" -mindepth 1 -maxdepth 1 -type d | sort | while IFS= read -r child_dir; do
-    child_name=$(basename "$child_dir" | tr -c '[:alnum:]_.-' '_')
+    child_name=$(basename "$child_dir")
+    child_name=$(printf '%s' "$child_name" | tr -c '[:alnum:]_-' '_')
     _dotfiles_tdl_create_window "$tdlm_session" "$child_name" "$child_dir" "$tdlm_command" || exit 1
   done || return 1
 
@@ -230,12 +241,12 @@ tsl() {
   tsl_dir=$(pwd -P)
   tsl_session=$(_dotfiles_tmux_session_name "tsl" "$tsl_dir")
 
-  if ! tmux has-session -t "$tsl_session" 2>/dev/null; then
+  if ! tmux has-session -t "$(_dotfiles_tmux_session_target "$tsl_session")" 2>/dev/null; then
     tmux new-session -d -s "$tsl_session" -n "swarm" -c "$tsl_dir" "$tsl_command" || return 1
     tsl_index=2
     while [ "$tsl_index" -le "$tsl_panes" ]; do
-      tmux split-window -t "$tsl_session:swarm" -c "$tsl_dir" "$tsl_command" >/dev/null || return 1
-      tmux select-layout -t "$tsl_session:swarm" tiled >/dev/null || return 1
+      tmux split-window -t "$(_dotfiles_tmux_window_target "$tsl_session" "swarm")" -c "$tsl_dir" "$tsl_command" >/dev/null || return 1
+      tmux select-layout -t "$(_dotfiles_tmux_window_target "$tsl_session" "swarm")" tiled >/dev/null || return 1
       tsl_index=$((tsl_index + 1))
     done
   fi

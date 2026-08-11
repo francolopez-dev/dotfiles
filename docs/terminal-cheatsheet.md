@@ -270,6 +270,7 @@ are done.
 | You opened tmux twice | Use `tl`, then `ta <name>` to pick the right session |
 | You are done forever | Press `Ctrl+Space Q` inside that session, or use `tk <name>` from a normal shell |
 | A pane is taking the whole screen | Press `Ctrl+Space z` to unzoom it |
+| `can't find pane` when killing a session | Use `tmux list-sessions -F '#{session_id} #{session_name}'`, then kill by ID, for example `tmux kill-session -t '$0'` |
 
 If you are not sure whether something is a session, window, or pane, press
 `Ctrl+Space w`. tmux opens a tree with previews. Use arrows to move, `Enter` to
@@ -484,6 +485,21 @@ message and install nothing.
 | `ic` / `icx` / `icl` | aliases for `tdl c` / `tdl c cx` / `tdl cx` |
 
 Agent names: `c`/`oc` = `opencode`, `cx` = `claude`, `codex` = `codex`.
+
+TDL session names are generated from the current directory plus a stable hash.
+The helpers avoid tmux target delimiters such as `.` and `:` in generated names
+and use exact tmux targets internally. If an older session with a dotted name is
+stuck, list session IDs with:
+
+```bash
+tmux list-sessions -F '#{session_id} #{session_name}'
+```
+
+Then kill the session by ID, for example:
+
+```bash
+tmux kill-session -t '$0'
+```
 
 ## Dotfiles Helpers
 

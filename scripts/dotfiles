@@ -675,6 +675,18 @@ refresh_omarchy_session() {
     run_refresh_cmd "$dry" "waybar user service restarted" systemctl --user restart waybar.service || true
   fi
 
+  if command -v hypridle >/dev/null 2>&1 && [[ -f "$HOME/.config/hypr/hypridle.conf" ]]; then
+    if [[ "$dry" -eq 1 ]]; then
+      dim "  would restart profile Hypridle policy"
+    else
+      mkdir -p "${XDG_STATE_HOME:-$HOME/.local/state}/omarchy/indicators"
+      : >"${XDG_STATE_HOME:-$HOME/.local/state}/omarchy/indicators/stay-awake"
+      pkill -x hypridle >/dev/null 2>&1 || true
+      setsid -f hypridle >/dev/null 2>&1
+      ok "profile Hypridle policy restarted"
+    fi
+  fi
+
   if systemd_user_unit_active hyprpaper.service; then
     run_refresh_cmd "$dry" "hyprpaper user service restarted" systemctl --user restart hyprpaper.service || true
   elif pgrep -x hyprpaper >/dev/null 2>&1; then

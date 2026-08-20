@@ -76,13 +76,13 @@ The Shift variants move the focused window and follow it:
 
 | Keys | Action |
 |---|---|
-| `Super+A` / `Alt+A` | Select all through `omarchy-terminal-shortcut` |
-| `Super+C` / `Alt+C` | Copy through `omarchy-terminal-shortcut` |
-| `Super+V` / `Alt+V` | Paste through `omarchy-terminal-shortcut` |
+| `Super+A` / `Alt+A` | Terminal-aware select all |
+| `Super+C` / `Alt+C` | Omarchy universal copy / swapped-modifier alias |
+| `Super+V` / `Alt+V` | Omarchy universal paste / swapped-modifier alias |
 | `Super+W` / `Alt+W` | Close window/tab |
 | `Super+Q` / `Alt+Q` | Quit app |
 | `Super+Shift+V` / `Alt+Shift+V` | Clipboard manager |
-| `Super+Return` / `Alt+Return` | Default terminal via `xdg-terminal-exec` |
+| `Super+Return` / `Alt+Return` | Default terminal via `omarchy-launch-terminal` |
 
 Ghostty is the default terminal through both `$TERMINAL=ghostty` and
 `~/.config/xdg-terminals.list`.
@@ -95,12 +95,12 @@ Ghostty is the default terminal through both `$TERMINAL=ghostty` and
 | `Ctrl+plus` | Same as `Ctrl+equal` on common Linux keyboard layouts |
 | `Ctrl+minus` | Horizontal resize with Hyprland `resizeactive -100 0` |
 
-Hyprland receives `equal` as `code:21` and `minus` as `code:20` on the current
-Omarchy setup. `plus` is usually `Shift+equal`, so both `Ctrl+equal` and
-`Ctrl+Shift+equal` are bound.
+`plus` is usually `Shift+equal`, so both `Ctrl+equal` and `Ctrl+Shift+equal`
+are bound. The Lua configuration uses symbolic keys because Omarchy 4.0.0's
+`code:N` bindings register as blank keys under Hyprland 0.56.
 
-This uses Omarchy's existing `resizeactive` dispatcher rather than scripts or
-key injection. It is predictable and works globally, but it is directional: in
+This uses Omarchy 4's native Lua window-resize dispatcher. It is predictable
+and works globally, but it is directional: in
 some layouts the visual effect is tied to the active window's position in the
 split tree rather than a universal app-level "make this larger" operation. If
 that proves wrong for daily use, the next safe variant to test is Hyprland's

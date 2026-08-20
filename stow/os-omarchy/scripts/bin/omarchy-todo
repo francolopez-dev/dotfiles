@@ -76,7 +76,7 @@ is_on_active_workspace() {
 move_to_active_workspace() {
   local address="$1" workspace
   workspace="$(active_workspace_id)"
-  hyprctl dispatch movetoworkspacesilent "$workspace,address:$address" >/dev/null
+  hyprctl dispatch "hl.dsp.window.move({workspace=\"$workspace\",follow=false,window=\"address:$address\"})" >/dev/null
 }
 
 mark_manual_open() {
@@ -101,17 +101,17 @@ show_window() {
   mark_manual_open
   move_to_active_workspace "$address"
   sleep 0.05
-  hyprctl dispatch setfloating "address:$address" >/dev/null
-  hyprctl dispatch resizewindowpixel "exact $width $height,address:$address" >/dev/null
-  hyprctl dispatch movewindowpixel "exact $x $mon_y,address:$address" >/dev/null
-  hyprctl dispatch resizewindowpixel "exact $width $height,address:$address" >/dev/null
-  hyprctl dispatch focuswindow "address:$address" >/dev/null
+  hyprctl dispatch "hl.dsp.window.float({action=\"enable\",window=\"address:$address\"})" >/dev/null
+  hyprctl dispatch "hl.dsp.window.resize({x=$width,y=$height,relative=false,window=\"address:$address\"})" >/dev/null
+  hyprctl dispatch "hl.dsp.window.move({x=$x,y=$mon_y,relative=false,window=\"address:$address\"})" >/dev/null
+  hyprctl dispatch "hl.dsp.window.resize({x=$width,y=$height,relative=false,window=\"address:$address\"})" >/dev/null
+  hyprctl dispatch "hl.dsp.focus({window=\"address:$address\"})" >/dev/null
   printf 'open\n' >"$STATE_FILE"
 }
 
 hide_window() {
   local address="$1"
-  hyprctl dispatch movetoworkspacesilent "$HIDDEN_WORKSPACE,address:$address" >/dev/null
+  hyprctl dispatch "hl.dsp.window.move({workspace=\"$HIDDEN_WORKSPACE\",follow=false,window=\"address:$address\"})" >/dev/null
   printf 'closed\n' >"$STATE_FILE"
 }
 
@@ -122,12 +122,6 @@ hide_todo() {
 }
 
 launch_window() {
-  rm -f "$NVIM_SOCKET"
-  uwsm-app -- ghostty --class="$CLASS" --working-directory="$NOTES_DIR" -e nvim --listen "$NVIM_SOCKET" "$TODO_FILE" >/dev/null 2>&1 &
-  printf '%s\n' "$!" >"$STATE_DIR/todo-launch.pid"
-}
-
-launch_fallback_window() {
   rm -f "$NVIM_SOCKET"
   uwsm-app -- alacritty --class "$CLASS" --working-directory "$NOTES_DIR" --command nvim --listen "$NVIM_SOCKET" "$TODO_FILE" >/dev/null 2>&1 &
   printf '%s\n' "$!" >"$STATE_DIR/todo-launch.pid"
@@ -144,29 +138,23 @@ wait_for_window() {
 }
 
 open_todo() {
-  local address launch_pid
+  local address
   ensure_notes
   address="$(todo_address)"
   [ -n "$address" ] && { show_window "$address"; return 0; }
 
   launch_window
-  if ! address="$(wait_for_window)"; then
-    launch_pid="$(cat "$STATE_DIR/todo-launch.pid" 2>/dev/null || true)"
-    [ -n "$launch_pid" ] && kill "$launch_pid" 2>/dev/null || true
-    launch_fallback_window
-    address="$(wait_for_window)"
-  fi
+  address="$(wait_for_window)"
   show_window "$address"
 }
 
 toggle_todo() {
-  local address state
+  local address
   ensure_notes
   address="$(todo_address)"
-  state="$(cat "$STATE_FILE" 2>/dev/null || printf 'closed')"
   if [ -z "$address" ]; then
     open_todo
-  elif [ "$state" = "open" ] && is_on_active_workspace "$address"; then
+  elif is_on_active_workspace "$address"; then
     hide_window "$address"
   else
     show_window "$address"
@@ -174,10 +162,9 @@ toggle_todo() {
 }
 
 status() {
-  local address state
+  local address
   address="$(todo_address)"
-  state="$(cat "$STATE_FILE" 2>/dev/null || printf 'closed')"
-  if [ -n "$address" ] && [ "$state" = "open" ] && is_on_active_workspace "$address"; then
+  if [ -n "$address" ] && is_on_active_workspace "$address"; then
     jq -cn '{text: "☑", tooltip: "Todo drawer open", class: "open"}'
   elif [ -n "$address" ]; then
     jq -cn '{text: "☑", tooltip: "Todo drawer hidden", class: "hidden"}'

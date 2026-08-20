@@ -10,21 +10,32 @@ if [ -z "$class" ] || [ -z "$address" ]; then
   exit 0
 fi
 
+close_window() {
+  hyprctl dispatch "hl.dsp.window.close({window=\"address:$1\"})"
+}
+
+send_shortcut() {
+  local mods="$1" key="$2"
+  hyprctl dispatch "hl.dsp.send_key_state({mods=\"$mods\",key=\"$key\",state=\"down\"})"
+  sleep 0.05
+  hyprctl dispatch "hl.dsp.send_key_state({mods=\"$mods\",key=\"$key\",state=\"up\"})"
+}
+
 case "$class" in
   xfreerdp)
     if [[ "$title" == "Windows VM - Omarchy" ]]; then
       notify-send "Windows VM protected" "Use the Windows Start menu to shut down." -t 4000 2>/dev/null || true
       exit 0
     fi
-    hyprctl dispatch killactive
+    close_window "$address"
     ;;
   com.mitchellh.ghostty)
-    hyprctl dispatch sendshortcut "SUPER,W,address:$address"
+    send_shortcut SUPER W
     ;;
   Alacritty)
-    hyprctl dispatch closewindow "address:$address"
+    close_window "$address"
     ;;
   *)
-    hyprctl dispatch killactive
+    close_window "$address"
     ;;
 esac

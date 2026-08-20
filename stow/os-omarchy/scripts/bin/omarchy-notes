@@ -99,7 +99,7 @@ is_on_active_workspace() {
 move_to_active_workspace() {
   local address="$1" workspace
   workspace="$(active_workspace_id)"
-  hyprctl dispatch movetoworkspacesilent "$workspace,address:$address" >/dev/null
+  hyprctl dispatch "hl.dsp.window.move({workspace=\"$workspace\",follow=false,window=\"address:$address\"})" >/dev/null
 }
 
 mark_manual_open() {
@@ -123,18 +123,18 @@ show_window() {
   mark_manual_open
   move_to_active_workspace "$address"
   sleep 0.05
-  hyprctl dispatch setfloating "address:$address" >/dev/null
-  hyprctl dispatch resizewindowpixel "exact $width $height,address:$address" >/dev/null
-  hyprctl dispatch movewindowpixel "exact $mon_x $mon_y,address:$address" >/dev/null
-  hyprctl dispatch resizewindowpixel "exact $width $height,address:$address" >/dev/null
-  hyprctl dispatch focuswindow "address:$address" >/dev/null
+  hyprctl dispatch "hl.dsp.window.float({action=\"enable\",window=\"address:$address\"})" >/dev/null
+  hyprctl dispatch "hl.dsp.window.resize({x=$width,y=$height,relative=false,window=\"address:$address\"})" >/dev/null
+  hyprctl dispatch "hl.dsp.window.move({x=$mon_x,y=$mon_y,relative=false,window=\"address:$address\"})" >/dev/null
+  hyprctl dispatch "hl.dsp.window.resize({x=$width,y=$height,relative=false,window=\"address:$address\"})" >/dev/null
+  hyprctl dispatch "hl.dsp.focus({window=\"address:$address\"})" >/dev/null
   printf 'open\n' >"$STATE_FILE"
   omarchy-quake layout >/dev/null 2>&1 || true
 }
 
 hide_window() {
   local address="$1"
-  hyprctl dispatch movetoworkspacesilent "$HIDDEN_WORKSPACE,address:$address" >/dev/null
+  hyprctl dispatch "hl.dsp.window.move({workspace=\"$HIDDEN_WORKSPACE\",follow=false,window=\"address:$address\"})" >/dev/null
   printf 'closed\n' >"$STATE_FILE"
 }
 
@@ -190,14 +190,13 @@ open_notes() {
 }
 
 toggle_notes() {
-  local address state
+  local address
   ensure_notes
   address="$(note_address)"
-  state="$(cat "$STATE_FILE" 2>/dev/null || printf 'closed')"
 
   if [ -z "$address" ]; then
     open_notes "$INBOX_FILE"
-  elif [ "$state" = "open" ] && is_on_active_workspace "$address"; then
+  elif is_on_active_workspace "$address"; then
     hide_window "$address"
   else
     show_window "$address"
@@ -205,10 +204,9 @@ toggle_notes() {
 }
 
 status() {
-  local address state
+  local address
   address="$(note_address)"
-  state="$(cat "$STATE_FILE" 2>/dev/null || printf 'closed')"
-  if [ -n "$address" ] && [ "$state" = "open" ] && is_on_active_workspace "$address"; then
+  if [ -n "$address" ] && is_on_active_workspace "$address"; then
     jq -cn '{text: "󰎞", tooltip: "Notes drawer open", class: "open"}'
   elif [ -n "$address" ]; then
     jq -cn '{text: "󰎞", tooltip: "Notes drawer hidden", class: "hidden"}'

@@ -12,7 +12,7 @@ dotfiles autostart status --all
 
 The status view reports:
 
-- Managed Hyprland `exec-once` entries from the active stow layers.
+- Managed Omarchy 4 `o.exec_on_start` entries from the active stow layers.
 - Items that need a keep/adopt/remove decision.
 - Ignored local decisions.
 - Read-only system defaults.
@@ -20,7 +20,7 @@ The status view reports:
 By default, read-only system XDG defaults are summarized. Use `--all` to list
 them with their `Exec=` commands.
 
-Items that need a decision include local Hyprland `exec-once` entries, user XDG
+Items that need a decision include local Hyprland startup entries, user XDG
 desktop files in `~/.config/autostart/`, and enabled, linked, or masked user
 systemd units.
 
@@ -35,10 +35,10 @@ dotfiles autostart add uwsm-app -- slack
 dotfiles autostart apply
 ```
 
-This appends an `exec-once` entry to the current machine profile:
+This appends an Omarchy 4 Lua startup entry to the current machine profile:
 
 ```text
-stow/profile-<hostname>-omarchy/hyprland/.config/hypr/conf.d/30-autostart.conf
+stow/profile-<hostname>-omarchy/hyprland/.config/hypr/profile.lua
 ```
 
 ## Adopt A Local Item
@@ -57,7 +57,7 @@ dotfiles autostart adopt xdg dropbox.desktop
 dotfiles autostart apply
 ```
 
-XDG adoption reads `Exec=` and stores it as a managed Hyprland startup command.
+XDG adoption reads `Exec=` and stores it as a managed Omarchy Lua startup command.
 
 ## Keep Something Local
 

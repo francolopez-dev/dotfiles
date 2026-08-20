@@ -13,6 +13,17 @@ if [ -z "$class" ] || [ -z "$address" ]; then
   exit 0
 fi
 
+close_window() {
+  hyprctl dispatch "hl.dsp.window.close({window=\"address:$1\"})"
+}
+
+send_shortcut() {
+  local mods="$1" key="$2"
+  hyprctl dispatch "hl.dsp.send_key_state({mods=\"$mods\",key=\"$key\",state=\"down\"})"
+  sleep 0.05
+  hyprctl dispatch "hl.dsp.send_key_state({mods=\"$mods\",key=\"$key\",state=\"up\"})"
+}
+
 case "$class" in
   xfreerdp)
     if [[ "$title" == "Windows VM - Omarchy" ]]; then
@@ -20,15 +31,15 @@ case "$class" in
       exit 0
     fi
     hyprctl clients -j | jq -r --arg class "$class" '.[] | select(.class == $class) | .address' | while read -r addr; do
-      hyprctl dispatch closewindow "address:$addr"
+      close_window "$addr"
     done
     ;;
   com.mitchellh.ghostty)
-    hyprctl dispatch sendshortcut "SUPER,Q,address:$address"
+    send_shortcut SUPER Q
     ;;
   *)
     hyprctl clients -j | jq -r --arg class "$class" '.[] | select(.class == $class) | .address' | while read -r addr; do
-      hyprctl dispatch closewindow "address:$addr"
+      close_window "$addr"
     done
     ;;
 esac

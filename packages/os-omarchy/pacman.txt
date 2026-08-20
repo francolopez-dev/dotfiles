@@ -6,6 +6,7 @@ networkmanager
 tailscale
 pamixer
 power-profiles-daemon
+hypridle
 iw
 ghostty
 alacritty

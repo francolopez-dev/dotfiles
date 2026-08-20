@@ -35,7 +35,7 @@ change true everywhere it should apply.
 | Shared wallpapers | `stow/global/wallpapers/.local/share/wallpapers/shared/` |
 | Monitor scale/resolution for `nox` | `stow/profile-nox-omarchy/hyprland/.config/hypr/monitors.lua` |
 | Monitor scale/resolution for `fornax` | `stow/profile-fornax-omarchy/hyprland/.config/hypr/monitors.lua` |
-| Autostart apps (one machine) | `stow/profile-<hostname>-omarchy/hyprland/.config/hypr/autostart.lua` |
+| Profile policy and autostart apps (one machine) | `stow/profile-<hostname>-omarchy/hyprland/.config/hypr/profile.lua` |
 | Fornax away/no-suspend service | `stow/profile-fornax-omarchy/away/.config/systemd/user/dotfiles-away-inhibit.service` |
 | Autostart audit ignore list | `stow/profile-<hostname>-omarchy/dotfiles/.config/dotfiles/autostart.ignore` |
 | Add an Omarchy pacman package everywhere | `packages/global/pacman.txt` |

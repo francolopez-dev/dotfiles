@@ -10,3 +10,5 @@ table.insert(kept, 1, user_bin)
 hl.env("PATH", table.concat(kept, ":"))
 
 o.exec_on_start("omarchy-quick-surfaces-daemon")
+
+require("default.hypr.require_optional").module("hypr.profile")

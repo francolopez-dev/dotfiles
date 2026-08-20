@@ -10,31 +10,30 @@ if [ -z "$action" ] || [ -z "$address" ]; then
   exit 0
 fi
 
-send_to_active() {
-  hyprctl dispatch sendshortcut "$1"
-}
-
-send_to_window() {
-  hyprctl dispatch sendshortcut "$1,address:$address"
+send_shortcut() {
+  local mods="$1" key="$2"
+  hyprctl dispatch "hl.dsp.send_key_state({mods=\"$mods\",key=\"$key\",state=\"down\"})"
+  sleep 0.05
+  hyprctl dispatch "hl.dsp.send_key_state({mods=\"$mods\",key=\"$key\",state=\"up\"})"
 }
 
 case "$action:$class" in
   select-all:com.mitchellh.ghostty|select-all:Alacritty)
-    send_to_window "SUPER,A"
+    send_shortcut SUPER A
     ;;
   copy:com.mitchellh.ghostty|copy:Alacritty)
-    send_to_window "SUPER,C"
+    send_shortcut SUPER C
     ;;
   paste:com.mitchellh.ghostty|paste:Alacritty)
-    send_to_window "SUPER,V"
+    send_shortcut SUPER V
     ;;
   select-all:*)
-    send_to_active "CTRL,A,activewindow"
+    send_shortcut CTRL A
     ;;
   copy:*)
-    send_to_active "CTRL,Insert,activewindow"
+    send_shortcut CTRL Insert
     ;;
   paste:*)
-    send_to_active "SHIFT,Insert,activewindow"
+    send_shortcut SHIFT Insert
     ;;
 esac

@@ -75,13 +75,13 @@ bind_exec("SUPER + Q", "Quit app", "omarchy-quit-app")
 bind_exec("ALT + Q", "Quit app", "omarchy-quit-app")
 bind_exec("SUPER + SHIFT + V", "Clipboard manager", "omarchy-shell shell toggle omarchy.clipboard")
 bind_exec("ALT + SHIFT + V", "Clipboard manager", "omarchy-shell shell toggle omarchy.clipboard")
-bind_exec("SUPER + SHIFT + N", "Quick capture", "omarchy-notes-capture")
+bind_exec("SUPER + SHIFT + N", "Quick capture", "omarchy-launch-terminal --title='Quick capture' -- omarchy-notes-capture")
 
 -- Quick surfaces.
 bind_exec("CTRL + grave", "Quake terminal", "omarchy-quake toggle")
 bind_exec("CTRL + SHIFT + grave", "Quick notes", "omarchy-notes toggle")
 bind_exec("CTRL + ALT + grave", "Todo drawer", "omarchy-todo toggle")
-bind_exec("CTRL + SHIFT + Z", "Toggle floating", "hyprctl dispatch togglefloating")
+o.bind("CTRL + SHIFT + Z", "Toggle floating", hl.dsp.window.float({ action = "toggle" }))
 
 -- Omarchy 4 top bar toggle replacement for the old Waybar toggle.
 bind_exec("CTRL + SHIFT + B", "Toggle menu bar", "omarchy toggle bar")
@@ -103,23 +103,23 @@ unbind("SUPER + SHIFT + LEFT")
 unbind("SUPER + SHIFT + RIGHT")
 unbind("SUPER + SHIFT + UP")
 unbind("SUPER + SHIFT + DOWN")
-bind_exec("CTRL + H", "Focus window left", "hyprctl dispatch movefocus l")
-bind_exec("CTRL + J", "Focus window down", "hyprctl dispatch movefocus d")
-bind_exec("CTRL + K", "Focus window up", "hyprctl dispatch movefocus u")
-bind_exec("CTRL + L", "Focus window right", "hyprctl dispatch movefocus r")
-bind_exec("CTRL + SHIFT + H", "Move window left", "hyprctl dispatch swapwindow l")
-bind_exec("CTRL + SHIFT + J", "Move window down", "hyprctl dispatch swapwindow d")
-bind_exec("CTRL + SHIFT + K", "Move window up", "hyprctl dispatch swapwindow u")
-bind_exec("CTRL + SHIFT + L", "Move window right", "hyprctl dispatch swapwindow r")
+o.bind("CTRL + H", "Focus window left", hl.dsp.focus({ direction = "l" }))
+o.bind("CTRL + J", "Focus window down", hl.dsp.focus({ direction = "d" }))
+o.bind("CTRL + K", "Focus window up", hl.dsp.focus({ direction = "u" }))
+o.bind("CTRL + L", "Focus window right", hl.dsp.focus({ direction = "r" }))
+o.bind("CTRL + SHIFT + H", "Move window left", hl.dsp.window.swap({ direction = "l" }))
+o.bind("CTRL + SHIFT + J", "Move window down", hl.dsp.window.swap({ direction = "d" }))
+o.bind("CTRL + SHIFT + K", "Move window up", hl.dsp.window.swap({ direction = "u" }))
+o.bind("CTRL + SHIFT + L", "Move window right", hl.dsp.window.swap({ direction = "r" }))
 
 -- Move Omarchy's plus/minus resize behavior from Super to Ctrl.
 unbind("SUPER + code:20")
 unbind("SUPER + code:21")
 unbind("SUPER + SHIFT + code:20")
 unbind("SUPER + SHIFT + code:21")
-bind_exec("CTRL + equal", "Horizontal resize active window", "hyprctl dispatch resizeactive 100 0")
-bind_exec("CTRL + SHIFT + equal", "Horizontal resize active window", "hyprctl dispatch resizeactive 100 0")
-bind_exec("CTRL + minus", "Horizontal resize active window opposite", "hyprctl dispatch resizeactive -100 0")
+o.bind("CTRL + equal", "Horizontal resize active window", hl.dsp.window.resize({ x = 100, y = 0, relative = true }))
+o.bind("CTRL + SHIFT + equal", "Horizontal resize active window", hl.dsp.window.resize({ x = 100, y = 0, relative = true }))
+o.bind("CTRL + minus", "Horizontal resize active window opposite", hl.dsp.window.resize({ x = -100, y = 0, relative = true }))
 
 -- Aerospace-style workspace navigation.
 for workspace = 1, 10 do
@@ -140,15 +140,15 @@ bind_exec("SUPER + SHIFT + 4", "Region screenshot", "omarchy-capture-screenshot 
 -- Recreate the switch bindings with symbolic number-row keys.
 for workspace = 1, 10 do
   local key = workspace == 10 and "0" or tostring(workspace)
-  bind_exec("SUPER + " .. key, "Switch to workspace " .. workspace, "hyprctl dispatch workspace " .. workspace)
+  o.bind("SUPER + " .. key, "Switch to workspace " .. workspace, hl.dsp.focus({ workspace = tostring(workspace) }))
 end
 
 for workspace = 1, 4 do
   local key = tostring(workspace)
   unbind("CTRL + " .. key)
   unbind("CTRL + SHIFT + " .. key)
-  bind_exec("CTRL + " .. key, "Workspace " .. workspace, "hyprctl dispatch workspace " .. workspace)
-  bind_exec("CTRL + SHIFT + " .. key, "Move window to workspace " .. workspace, "sh -lc 'hyprctl dispatch movetoworkspace " .. workspace .. " && hyprctl dispatch workspace " .. workspace .. "'")
+  o.bind("CTRL + " .. key, "Workspace " .. workspace, hl.dsp.focus({ workspace = tostring(workspace) }))
+  o.bind("CTRL + SHIFT + " .. key, "Move window to workspace " .. workspace, hl.dsp.window.move({ workspace = tostring(workspace) }))
 end
 
 for workspace = 5, 8 do
@@ -157,10 +157,44 @@ for workspace = 5, 8 do
   unbind("CTRL + ALT + " .. key)
   unbind("CTRL + SUPER + SHIFT + " .. key)
   unbind("CTRL + ALT + SHIFT + " .. key)
-  bind_exec("CTRL + SUPER + " .. key, "Workspace " .. workspace, "hyprctl dispatch workspace " .. workspace)
-  bind_exec("CTRL + ALT + " .. key, "Workspace " .. workspace, "hyprctl dispatch workspace " .. workspace)
-  bind_exec("CTRL + SUPER + SHIFT + " .. key, "Move window to workspace " .. workspace, "sh -lc 'hyprctl dispatch movetoworkspace " .. workspace .. " && hyprctl dispatch workspace " .. workspace .. "'")
-  bind_exec("CTRL + ALT + SHIFT + " .. key, "Move window to workspace " .. workspace, "sh -lc 'hyprctl dispatch movetoworkspace " .. workspace .. " && hyprctl dispatch workspace " .. workspace .. "'")
+  o.bind("CTRL + SUPER + " .. key, "Workspace " .. workspace, hl.dsp.focus({ workspace = tostring(workspace) }))
+  o.bind("CTRL + ALT + " .. key, "Workspace " .. workspace, hl.dsp.focus({ workspace = tostring(workspace) }))
+  o.bind("CTRL + SUPER + SHIFT + " .. key, "Move window to workspace " .. workspace, hl.dsp.window.move({ workspace = tostring(workspace) }))
+  o.bind("CTRL + ALT + SHIFT + " .. key, "Move window to workspace " .. workspace, hl.dsp.window.move({ workspace = tostring(workspace) }))
+end
+
+-- Repair the remaining Omarchy 4.0.0 defaults whose code:N keys register as
+-- blank bindings under Hyprland 0.56.
+local resize_repairs = {
+  { "SUPER + ALT", "minus", "Expand window left a little", -25, 0 },
+  { "SUPER + ALT", "equal", "Shrink window left a little", 25, 0 },
+  { "SUPER + SHIFT + ALT", "minus", "Shrink window up a little", 0, -25 },
+  { "SUPER + SHIFT + ALT", "equal", "Expand window down a little", 0, 25 },
+  { "SUPER + CTRL", "minus", "Expand window left a lot", -300, 0 },
+  { "SUPER + CTRL", "equal", "Shrink window left a lot", 300, 0 },
+  { "SUPER + CTRL + SHIFT", "minus", "Shrink window up a lot", 0, -300 },
+  { "SUPER + CTRL + SHIFT", "equal", "Expand window down a lot", 0, 300 },
+}
+
+for _, repair in ipairs(resize_repairs) do
+  o.bind(
+    repair[1] .. " + " .. repair[2],
+    repair[3],
+    hl.dsp.window.resize({ x = repair[4], y = repair[5], relative = true })
+  )
+end
+
+for index = 1, 5 do
+  o.bind("SUPER + ALT + " .. index, "Switch to group window " .. index, hl.dsp.group.active({ index = index }))
+end
+
+bind_exec("SUPER + SHIFT + F23", "Omarchy menu", "omarchy-menu toggle root")
+bind_exec("SUPER + ALT + bracketleft", "Make webcam overlay smaller", "omarchy-capture-webcam-resize smaller")
+bind_exec("SUPER + ALT + bracketright", "Make webcam overlay larger", "omarchy-capture-webcam-resize larger")
+
+for panel = 1, 9 do
+  local keys = panel <= 4 and "SUPER + CTRL + ALT + " .. panel or "SUPER + CTRL + " .. panel
+  bind_exec(keys, "Bar panel " .. panel, "omarchy-shell -q shell togglePanelAt right " .. panel)
 end
 
 -- App launchers.

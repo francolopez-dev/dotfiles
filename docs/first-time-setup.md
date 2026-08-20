@@ -96,5 +96,5 @@ cp -a stow/profile-fornax-omarchy stow/profile-$(hostname -s)-omarchy
 cp -a packages/profile-fornax-omarchy packages/profile-$(hostname -s)-omarchy
 ```
 
-Then edit `monitors.lua`, `autostart.lua`, and package declarations for that
+Then edit `monitors.lua`, `profile.lua`, and package declarations for that
 machine.

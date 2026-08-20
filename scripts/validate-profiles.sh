@@ -25,7 +25,7 @@ allowed_source_aur_package() {
 
 known_pacman_package() {
   case "$1" in
-    git|stow|tmux|fzf|fd|ripgrep|jq|bat|eza|fastfetch|btop|htop|ncdu|git-delta|direnv|tldr|neovim|zsh|curl|bash|wget|nano|ca-certificates|shellcheck|atuin|networkmanager|tailscale|pamixer|power-profiles-daemon|iw|ghostty|alacritty|vivaldi|firefox|zoxide|yazi|socat|restic|age|obsidian|kdeconnect|wl-clipboard|libnotify|ollama|ollama-cuda|pacman|base-devel) return 0 ;;
+    git|stow|tmux|fzf|fd|ripgrep|jq|bat|eza|fastfetch|btop|htop|ncdu|git-delta|direnv|tldr|neovim|zsh|curl|bash|wget|nano|ca-certificates|shellcheck|atuin|networkmanager|tailscale|pamixer|power-profiles-daemon|hypridle|iw|ghostty|alacritty|vivaldi|firefox|zoxide|yazi|socat|restic|age|obsidian|kdeconnect|wl-clipboard|libnotify|ollama|ollama-cuda|pacman|base-devel) return 0 ;;
     *) return 1 ;;
   esac
 }
@@ -235,12 +235,31 @@ check_profile profile-nox-omarchy
 check_profile profile-fornax-omarchy
 
 nox_monitor="$repo_dir/stow/profile-nox-omarchy/hyprland/.config/hypr/monitors.lua"
-if grep -Eq 'hl\.monitor\(\{ output = "eDP-1", mode = "preferred", position = "auto", scale = 1(\.10?)? \}\)' "$nox_monitor"; then
-  printf 'ok nox monitor scale: eDP-1 scale 1 or 1.1\n'
+if grep -q '^local omarchy_monitor_scale = 1$' "$nox_monitor" &&
+  grep -q '^hl.monitor({ output = "", mode = "preferred", position = "auto", scale = omarchy_monitor_scale })$' "$nox_monitor"; then
+  printf 'ok nox monitor scale is Display-panel persistent\n'
 else
   printf 'bad nox monitor scale in %s\n' "$nox_monitor" >&2
   failed=1
 fi
+
+for profile in profile-nox-omarchy profile-fornax-omarchy; do
+  profile_lua="$repo_dir/stow/$profile/hyprland/.config/hypr/profile.lua"
+  input_lua="$repo_dir/stow/$profile/hyprland/.config/hypr/input.lua"
+  if [[ -f "$profile_lua" ]] && grep -q 'vrr = 1' "$profile_lua" &&
+    grep -q 'powerprofilesctl set balanced' "$profile_lua" && grep -q 'exec hypridle' "$profile_lua"; then
+    printf 'ok Omarchy 4 profile policy: %s\n' "$profile"
+  else
+    printf 'bad Omarchy 4 profile policy: %s\n' "$profile" >&2
+    failed=1
+  fi
+  if grep -q 'tap_to_click = true' "$input_lua"; then
+    printf 'ok explicit tap-to-click: %s\n' "$profile"
+  else
+    printf 'bad explicit tap-to-click: %s\n' "$profile" >&2
+    failed=1
+  fi
+done
 
 fornax_monitor="$repo_dir/stow/profile-fornax-omarchy/hyprland/.config/hypr/monitors.lua"
 if grep -q '^local omarchy_monitor_scale = ' "$fornax_monitor" &&
@@ -257,6 +276,13 @@ if grep -q 'bind_exec(.*code:' "$omarchy_bindings"; then
   failed=1
 else
   printf 'ok Omarchy 4 Lua bindings use symbolic keys\n'
+fi
+
+if grep -RqsE 'hyprctl dispatch [a-z]' "$repo_dir/stow/os-omarchy/scripts/bin"; then
+  printf 'bad legacy Hyprland dispatcher syntax in Omarchy scripts\n' >&2
+  failed=1
+else
+  printf 'ok Omarchy scripts use Lua dispatcher expressions\n'
 fi
 
 if grep -RqsE '^wezterm(-git)?($|[[:space:]])' "$repo_dir/packages"; then

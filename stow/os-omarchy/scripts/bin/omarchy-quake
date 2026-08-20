@@ -100,7 +100,7 @@ is_on_active_workspace() {
 move_to_active_workspace() {
   local address="$1" workspace
   workspace="$(active_workspace_id)"
-  hyprctl dispatch movetoworkspacesilent "$workspace,address:$address" >/dev/null
+  hyprctl dispatch "hl.dsp.window.move({workspace=\"$workspace\",follow=false,window=\"address:$address\"})" >/dev/null
 }
 
 notes_open_on_active_workspace() {
@@ -134,12 +134,12 @@ layout_window() {
   mark_manual_open
   move_to_active_workspace "$address"
   sleep 0.05
-  hyprctl dispatch setfloating "address:$address" >/dev/null
-  hyprctl dispatch resizewindowpixel "exact $term_w $height,address:$address" >/dev/null
-  hyprctl dispatch movewindowpixel "exact $term_x $mon_y,address:$address" >/dev/null
-  hyprctl dispatch resizewindowpixel "exact $term_w $height,address:$address" >/dev/null
+  hyprctl dispatch "hl.dsp.window.float({action=\"enable\",window=\"address:$address\"})" >/dev/null
+  hyprctl dispatch "hl.dsp.window.resize({x=$term_w,y=$height,relative=false,window=\"address:$address\"})" >/dev/null
+  hyprctl dispatch "hl.dsp.window.move({x=$term_x,y=$mon_y,relative=false,window=\"address:$address\"})" >/dev/null
+  hyprctl dispatch "hl.dsp.window.resize({x=$term_w,y=$height,relative=false,window=\"address:$address\"})" >/dev/null
   if [ "$should_focus" = "1" ]; then
-    hyprctl dispatch focuswindow "address:$address" >/dev/null
+    hyprctl dispatch "hl.dsp.focus({window=\"address:$address\"})" >/dev/null
   fi
   printf 'open\n' >"$STATE_FILE"
 }
@@ -150,7 +150,7 @@ show_window() {
 
 hide_window() {
   local address="$1"
-  hyprctl dispatch closewindow "address:$address" >/dev/null
+  hyprctl dispatch "hl.dsp.window.close({window=\"address:$address\"})" >/dev/null
   printf 'closed\n' >"$STATE_FILE"
 }
 
@@ -180,15 +180,14 @@ wait_for_window() {
 }
 
 toggle_quake() {
-  local address state
+  local address
   address="$(quake_address)"
-  state="$(cat "$STATE_FILE" 2>/dev/null || printf 'closed')"
 
   if [ -z "$address" ]; then
     launch_window
     address="$(wait_for_window)"
     show_window "$address"
-  elif [ "$state" = "open" ] && is_on_active_workspace "$address"; then
+  elif is_on_active_workspace "$address"; then
     hide_window "$address"
   else
     show_window "$address"
@@ -196,10 +195,9 @@ toggle_quake() {
 }
 
 status() {
-  local address state
+  local address
   address="$(quake_address)"
-  state="$(cat "$STATE_FILE" 2>/dev/null || printf 'closed')"
-  if [ -n "$address" ] && [ "$state" = "open" ] && is_on_active_workspace "$address"; then
+  if [ -n "$address" ] && is_on_active_workspace "$address"; then
     jq -cn '{text: "", tooltip: "Quake terminal open", class: "open"}'
   elif [ -n "$address" ]; then
     jq -cn '{text: "", tooltip: "Quake terminal hidden", class: "hidden"}'
@@ -209,10 +207,9 @@ status() {
 }
 
 layout_quake() {
-  local address state
+  local address
   address="$(quake_address)"
-  state="$(cat "$STATE_FILE" 2>/dev/null || printf 'closed')"
-  if [ -n "$address" ] && [ "$state" = "open" ] && is_on_active_workspace "$address"; then
+  if [ -n "$address" ] && is_on_active_workspace "$address"; then
     layout_window "$address" 0
   fi
 }

@@ -53,7 +53,7 @@ autostart_profile_dir() {
 }
 
 autostart_managed_file() {
-  printf '%s/hyprland/.config/hypr/conf.d/30-autostart.conf\n' "$(autostart_profile_dir)"
+  printf '%s/hyprland/.config/hypr/profile.lua\n' "$(autostart_profile_dir)"
 }
 
 autostart_ignore_file() {
@@ -75,12 +75,8 @@ autostart_ensure_managed_file() {
   mkdir -p "$dir"
   if [[ ! -f "$file" ]]; then
     cat >"$file" <<EOF
-# Autostart for $(detect_hostname).
-# Omarchy's own autostart lives in ~/.local/share/omarchy/default/hypr/autostart.conf
-# (do not edit that file - it is overwritten on omarchy update).
-#
-# Add this machine's apps here. Format:
-#   exec-once = uwsm-app -- <command>
+-- Omarchy 4 profile behavior for $(detect_hostname).
+-- Managed startup format: o.exec_on_start([=[command]=])
 EOF
   fi
 }
@@ -110,8 +106,14 @@ autostart_hypr_execs_from_file() {
   [[ -f "$file" ]] || return 0
   while IFS= read -r line || [[ -n "$line" ]]; do
     line="$(autostart_strip "${line%%#*}")"
-    [[ "$line" == exec-once\ =* ]] || continue
-    cmd="$(autostart_strip "${line#exec-once =}")"
+    if [[ "$line" == exec-once\ =* ]]; then
+      cmd="$(autostart_strip "${line#exec-once =}")"
+    elif [[ "$line" == 'o.exec_on_start([=['*']=])' ]]; then
+      cmd="${line#'o.exec_on_start([=['}"
+      cmd="${cmd%']=])'}"
+    else
+      continue
+    fi
     [[ -n "$cmd" ]] && printf '%s\n' "$cmd"
   done <"$file"
 }
@@ -122,7 +124,8 @@ autostart_hypr_managed_execs() {
     [[ -n "$layer" ]] || continue
     for file in \
       "$DOTFILES_DIR/stow/$layer"/*/.config/hypr/*.conf \
-      "$DOTFILES_DIR/stow/$layer"/*/.config/hypr/conf.d/*.conf; do
+      "$DOTFILES_DIR/stow/$layer"/*/.config/hypr/conf.d/*.conf \
+      "$DOTFILES_DIR/stow/$layer"/*/.config/hypr/*.lua; do
       [[ -f "$file" ]] || continue
       autostart_hypr_execs_from_file "$file"
     done
@@ -131,7 +134,7 @@ autostart_hypr_managed_execs() {
 
 autostart_hypr_live_execs() {
   local file
-  for file in "$HOME/.config/hypr/autostart.conf" "$HOME/.config/hypr/conf.d"/*.conf; do
+  for file in "$HOME/.config/hypr/autostart.conf" "$HOME/.config/hypr/conf.d"/*.conf "$HOME/.config/hypr/profile.lua"; do
     [[ -f "$file" ]] || continue
     while read -r cmd; do
       [[ -n "$cmd" ]] && printf '%s\t%s\n' "$file" "$cmd"
@@ -369,7 +372,8 @@ autostart_add() {
   local cmd file line
   cmd="$*"
   file="$(autostart_managed_file)"
-  line="exec-once = $cmd"
+  [[ "$cmd" != *']=]'* ]] || { err "autostart command contains unsupported Lua long-string terminator: ]=]"; return 1; }
+  line="o.exec_on_start([=[$cmd]=])"
   if autostart_hypr_execs_from_file "$file" | autostart_contains_line "$cmd"; then
     ok "already managed: $cmd"
     return 0
@@ -438,7 +442,8 @@ autostart_remove() {
   tmp="$(mktemp)"
   while IFS= read -r raw || [[ -n "$raw" ]]; do
     line="$(autostart_strip "${raw%%#*}")"
-    if [[ "$line" == "exec-once = $target" || "$line" == "exec-once = ${target#hypr:}" ]]; then
+    if [[ "$line" == "exec-once = $target" || "$line" == "exec-once = ${target#hypr:}" ||
+      "$line" == "o.exec_on_start([=[$target]=])" || "$line" == "o.exec_on_start([=[${target#hypr:}]=])" ]]; then
       removed=1
       continue
     fi

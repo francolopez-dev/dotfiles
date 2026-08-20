@@ -97,6 +97,11 @@ warning. Two strategies, combinable:
 
 - Service: `systemctl --user status lan-mouse.service`; logs with
   `journalctl --user -u lan-mouse.service`.
+- OLED protection: `dotfiles screen off --pause-lanmouse` turns the Omarchy
+  display off and stops lan-mouse so remote or edge input cannot immediately
+  wake the panel. Restore both with `dotfiles screen on --resume-lanmouse`.
+  For long Fornax away sessions, use `dotfiles away on --pause-lanmouse` and
+  return with `dotfiles away off --resume-lanmouse`.
 - Receiving input needs `sudo ufw allow 4242/udp comment 'lan-mouse'`
   (offered automatically on first service enable). The SENDING side needs no
   open port.

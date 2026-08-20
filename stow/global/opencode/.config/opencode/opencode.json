@@ -29,6 +29,14 @@
             "context": 65536,
             "output": 8192
           }
+        },
+        "qwen3.8:latest": {
+          "name": "Qwen 3.8 - fornax",
+          "tool_call": true,
+          "limit": {
+            "context": 65536,
+            "output": 8192
+          }
         }
       }
     },

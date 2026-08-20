@@ -34,16 +34,17 @@ bind_exec("SUPER + SHIFT + N", "Quick capture", "omarchy-notes-capture")
 -- Omarchy 4 already provides universal Super+C/Super+V clipboard behavior.
 
 -- Quick surfaces.
-bind_exec("CTRL + code:49", "Quake terminal", "omarchy-quake toggle")
-bind_exec("CTRL + SHIFT + code:49", "Quick notes", "omarchy-notes toggle")
-bind_exec("CTRL + ALT + code:49", "Todo drawer", "omarchy-todo toggle")
+bind_exec("CTRL + grave", "Quake terminal", "omarchy-quake toggle")
+bind_exec("CTRL + SHIFT + grave", "Quick notes", "omarchy-notes toggle")
+bind_exec("CTRL + ALT + grave", "Todo drawer", "omarchy-todo toggle")
 
 -- Omarchy 4 top bar toggle replacement for the old Waybar toggle.
 bind_exec("CTRL + SHIFT + B", "Toggle menu bar", "omarchy toggle bar")
 
 -- Region screenshot.
 unbind("SUPER + SHIFT + code:13")
-bind_exec("SUPER + SHIFT + code:13", "Region screenshot", "omarchy-capture-screenshot region")
+unbind("SUPER + SHIFT + 4")
+bind_exec("SUPER + SHIFT + 4", "Region screenshot", "omarchy-capture-screenshot region")
 
 -- Keep the old root-menu shortcut in addition to Omarchy 4's Super+Space.
 unbind("SUPER + ALT + SPACE")
@@ -68,13 +69,13 @@ unbind("SUPER + code:20")
 unbind("SUPER + code:21")
 unbind("SUPER + SHIFT + code:20")
 unbind("SUPER + SHIFT + code:21")
-bind_exec("CTRL + code:21", "Horizontal resize active window", "hyprctl dispatch resizeactive 100 0")
-bind_exec("CTRL + SHIFT + code:21", "Horizontal resize active window", "hyprctl dispatch resizeactive 100 0")
-bind_exec("CTRL + code:20", "Horizontal resize active window opposite", "hyprctl dispatch resizeactive -100 0")
+bind_exec("CTRL + equal", "Horizontal resize active window", "hyprctl dispatch resizeactive 100 0")
+bind_exec("CTRL + SHIFT + equal", "Horizontal resize active window", "hyprctl dispatch resizeactive 100 0")
+bind_exec("CTRL + minus", "Horizontal resize active window opposite", "hyprctl dispatch resizeactive -100 0")
 
 -- Aerospace-style workspace navigation.
 for workspace = 1, 4 do
-  local key = "code:" .. tostring(workspace + 9)
+  local key = tostring(workspace)
   unbind("CTRL + " .. key)
   unbind("CTRL + SHIFT + " .. key)
   bind_exec("CTRL + " .. key, "Workspace " .. workspace, "hyprctl dispatch workspace " .. workspace)
@@ -82,7 +83,7 @@ for workspace = 1, 4 do
 end
 
 for workspace = 5, 8 do
-  local key = "code:" .. tostring(workspace + 5)
+  local key = tostring(workspace - 4)
   unbind("CTRL + SUPER + " .. key)
   unbind("CTRL + SUPER + SHIFT + " .. key)
   bind_exec("CTRL + SUPER + " .. key, "Workspace " .. workspace, "hyprctl dispatch workspace " .. workspace)

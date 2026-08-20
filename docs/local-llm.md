@@ -222,24 +222,26 @@ dotfiles llm setup-host
 dotfiles llm sync
 ```
 
-Fornax intentionally uses binary AUR packages `ollama-bin` and
-`ollama-cuda13-bin` when Arch `extra/ollama-cuda` lags upstream model manifests.
-If a future Arch package catches up and works with the models you need, move the
-declaration back to `packages/profile-fornax-omarchy/pacman.txt`.
+Fornax declares `ollama` and `ollama-cuda` in
+`packages/profile-fornax-omarchy/pacman.txt`. `dotfiles llm setup-host` writes a
+systemd override that binds Ollama to `0.0.0.0:11434`, avoiding boot-time races
+where the Tailscale address is not assigned yet while keeping the API reachable
+at the provider URL.
 
-Existing fornax installs that already have `extra/ollama-cuda` need a one-time
-manual package replacement because paru cannot auto-confirm conflict removals:
+When the Arch/Omarchy package lags an upstream model requirement, install the
+official upstream Linux binary as a temporary service override:
 
 ```bash
-sudo systemctl stop ollama.service
-sudo pacman -Rns ollama-cuda
-paru -S --needed ollama-bin ollama-cuda13-bin
+dotfiles llm install-upstream-ollama
 dotfiles llm setup-host
-dotfiles llm sync
 ```
 
-After that, normal `dotfiles update` keeps the binary AUR packages declared and
-will not reinstall `extra/ollama-cuda`.
+The installer verifies GitHub's published SHA256, extracts the release under
+`/opt/ollama-<version>`, points `/opt/ollama-current` at it, and makes
+`ollama.service` run `/opt/ollama-current/bin/ollama serve`. The pacman package
+remains installed as the fallback and keeps the service/user/model directory
+owned by the distro package. Remove the override when Arch catches up by deleting
+`/opt/ollama-current` and rerunning `dotfiles llm setup-host`.
 
 List installed models:
 

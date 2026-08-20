@@ -59,8 +59,10 @@ Usage:
   dotfiles commands doctor   Validate the discovery registry.
   dotfiles wallpaper rotate  Rotate wallpaper now.
   dotfiles wallpaper status  Show wallpaper rotation state.
+  dotfiles screen off        Turn Omarchy displays off now.
+  dotfiles screen on         Turn Omarchy displays back on.
   dotfiles oled on|off|status
-                             Toggle fornax OLED idle protection.
+                              Toggle fornax OLED idle protection.
   dotfiles tailscale-policy   Manage trusted-network Tailscale automation.
   dotfiles recovery setup     Configure AGE + Gmail app-password recovery email.
   dotfiles recovery send      Build, verify, and email an encrypted recovery pack.
@@ -2139,6 +2141,70 @@ llm_curl_json() {
   curl -fsS --max-time 3 "$url" 2>/dev/null
 }
 
+llm_latest_ollama_release() {
+  curl -fsSL --retry 3 --connect-timeout 10 https://api.github.com/repos/ollama/ollama/releases/latest |
+    jq -r '.tag_name' | sed 's/^v//'
+}
+
+llm_upstream_ollama_bin() {
+  if [[ -x /opt/ollama-current/bin/ollama ]]; then
+    printf '/opt/ollama-current/bin/ollama\n'
+  fi
+}
+
+cmd_llm_install_upstream_ollama() {
+  local version="${1:-latest}" tag asset sum_asset base_url tmp archive sums expected actual install_dir current_link upstream_bin
+  if [[ "$(detect_os)" != "omarchy" || "$(detect_hostname)" != "fornax" ]]; then
+    err "upstream Ollama install is only intended for fornax Omarchy"
+    return 1
+  fi
+  command -v curl >/dev/null 2>&1 || { err "curl is required"; return 1; }
+  command -v jq >/dev/null 2>&1 || { err "jq is required"; return 1; }
+  command -v sha256sum >/dev/null 2>&1 || { err "sha256sum is required"; return 1; }
+  command -v tar >/dev/null 2>&1 || { err "tar is required"; return 1; }
+
+  if [[ "$version" == "latest" ]]; then
+    version="$(llm_latest_ollama_release)"
+  fi
+  version="${version#v}"
+  [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { err "invalid Ollama version: $version"; return 1; }
+
+  tag="v$version"
+  asset="ollama-linux-amd64.tar.zst"
+  sum_asset="sha256sum.txt"
+  base_url="https://github.com/ollama/ollama/releases/download/$tag"
+  tmp="$(mktemp -d)"
+  archive="$tmp/$asset"
+  sums="$tmp/$sum_asset"
+  install_dir="/opt/ollama-$version"
+  current_link="/opt/ollama-current"
+
+  cleanup() { rm -rf "$tmp"; }
+  trap cleanup RETURN
+
+  info "Downloading Ollama $version upstream binary"
+  curl -fsSL --retry 3 --connect-timeout 10 -o "$archive" "$base_url/$asset"
+  curl -fsSL --retry 3 --connect-timeout 10 -o "$sums" "$base_url/$sum_asset"
+  expected="$(awk -v asset="./$asset" '$2 == asset { print $1 }' "$sums")"
+  [[ "$expected" =~ ^[0-9a-f]{64}$ ]] || { err "could not find checksum for $asset"; return 1; }
+  actual="$(sha256sum "$archive" | awk '{ print $1 }')"
+  if [[ "$actual" != "$expected" ]]; then
+    err "checksum mismatch for $asset"
+    printf '  expected: %s\n  actual:   %s\n' "$expected" "$actual" >&2
+    return 1
+  fi
+
+  sudo rm -rf "$install_dir"
+  sudo install -d -m 0755 "$install_dir"
+  sudo tar -C "$install_dir" -xf "$archive"
+  sudo ln -sfn "$install_dir" "$current_link"
+  sudo ln -sfn "$current_link/bin/ollama" /usr/local/bin/ollama
+  upstream_bin="$current_link/bin/ollama"
+  "$upstream_bin" --version || true
+  ok "installed upstream Ollama $version at $install_dir"
+  cmd_llm_setup_host
+}
+
 cmd_llm_models() {
   local provider url model
   while read -r provider; do
@@ -2216,7 +2282,7 @@ cmd_llm_sync() {
 }
 
 cmd_llm_setup_host() {
-  local provider url hostport root tmp tries=0
+  local provider url hostport root bind_hostport tmp tries=0 upstream_bin
   provider="$(llm_provider_for_host)"
   llm_config_provider_exists "$provider" || { err "no provider declared for this host: $provider"; return 1; }
   command -v systemctl >/dev/null 2>&1 || { err "systemctl is required"; return 1; }
@@ -2224,10 +2290,16 @@ cmd_llm_setup_host() {
   url="$(llm_provider_url "$provider")"
   root="$(llm_ollama_root "$url")"
   hostport="$(llm_ollama_hostport "$url")"
+  bind_hostport="0.0.0.0:${hostport##*:}"
+  upstream_bin="$(llm_upstream_ollama_bin || true)"
   tmp="$(mktemp)"
   {
     printf '[Service]\n'
-    printf 'Environment="OLLAMA_HOST=%s"\n' "$hostport"
+    if [[ -n "$upstream_bin" ]]; then
+      printf 'ExecStart=\n'
+      printf 'ExecStart=%s serve\n' "$upstream_bin"
+    fi
+    printf 'Environment="OLLAMA_HOST=%s"\n' "$bind_hostport"
     printf 'Environment="OLLAMA_CONTEXT_LENGTH=65536"\n'
     printf 'Environment="OLLAMA_NUM_PARALLEL=1"\n'
     printf 'Environment="OLLAMA_MAX_LOADED_MODELS=1"\n'
@@ -2253,6 +2325,9 @@ cmd_llm_setup_host() {
     sleep 1
   done
   ok "ollama.service configured for $provider at $hostport"
+  if [[ -n "$upstream_bin" ]]; then
+    ok "ollama.service uses upstream binary: $upstream_bin"
+  fi
 }
 
 cmd_llm_doctor() {
@@ -2308,9 +2383,10 @@ cmd_llm() {
     models) cmd_llm_models "$@" ;;
     sync) cmd_llm_sync "$@" ;;
     setup-host) cmd_llm_setup_host "$@" ;;
+    install-upstream-ollama) cmd_llm_install_upstream_ollama "$@" ;;
     doctor) cmd_llm_doctor "$@" ;;
     help|-h|--help)
-      printf 'Usage:\n  dotfiles llm status\n  dotfiles llm models\n  dotfiles llm sync\n  dotfiles llm setup-host\n  dotfiles llm doctor\n'
+      printf 'Usage:\n  dotfiles llm status\n  dotfiles llm models\n  dotfiles llm sync\n  dotfiles llm setup-host\n  dotfiles llm install-upstream-ollama [version|latest]\n  dotfiles llm doctor\n'
       ;;
     *) err "unknown llm command: $subcmd"; return 1 ;;
   esac
@@ -2333,6 +2409,103 @@ configure_omarchy_llm_host() {
 }
 
 # --- away mode -------------------------------------------------------------
+cmd_screen_usage() {
+  cat <<'EOF'
+Usage:
+  dotfiles screen off [--lock] [--pause-lanmouse]
+  dotfiles screen on [--resume-lanmouse]
+  dotfiles screen status
+
+Options:
+  --lock              Lock before turning displays off.
+  --pause-lanmouse    Stop lan-mouse so remote/edge input cannot wake displays.
+  --resume-lanmouse   Start lan-mouse after turning displays on.
+EOF
+}
+
+screen_require_omarchy() {
+  if [[ "$(detect_os)" != "omarchy" ]]; then
+    err "dotfiles screen is only supported on Omarchy/Hyprland systems"
+    return 1
+  fi
+  command -v hyprctl >/dev/null 2>&1 || { err "hyprctl is required"; return 1; }
+}
+
+screen_lanmouse_action() {
+  local action="$1"
+  command -v systemctl >/dev/null 2>&1 || return 0
+  systemd_user_ready || return 0
+  systemctl --user "$action" lan-mouse.service >/dev/null 2>&1 || true
+}
+
+cmd_screen_off() {
+  local lock=0 pause_lanmouse=0 arg
+  screen_require_omarchy || return 1
+  for arg in "$@"; do
+    case "$arg" in
+      --lock) lock=1 ;;
+      --pause-lanmouse|--pause-lan-mouse) pause_lanmouse=1 ;;
+      -h|--help) cmd_screen_usage; return 0 ;;
+      *) err "unknown screen off option: $arg"; cmd_screen_usage >&2; return 2 ;;
+    esac
+  done
+
+  if [[ "$pause_lanmouse" -eq 1 ]]; then
+    screen_lanmouse_action stop
+    ok "lan-mouse stopped"
+  fi
+  if [[ "$lock" -eq 1 ]]; then
+    command -v omarchy-system-lock >/dev/null 2>&1 && omarchy-system-lock >/dev/null 2>&1 || true
+  fi
+  hyprctl dispatch dpms off >/dev/null
+  ok "display power off requested"
+}
+
+cmd_screen_on() {
+  local resume_lanmouse=0 arg
+  screen_require_omarchy || return 1
+  for arg in "$@"; do
+    case "$arg" in
+      --resume-lanmouse|--resume-lan-mouse) resume_lanmouse=1 ;;
+      -h|--help) cmd_screen_usage; return 0 ;;
+      *) err "unknown screen on option: $arg"; cmd_screen_usage >&2; return 2 ;;
+    esac
+  done
+
+  hyprctl dispatch dpms on >/dev/null
+  ok "display power on requested"
+  if [[ "$resume_lanmouse" -eq 1 ]]; then
+    screen_lanmouse_action start
+    ok "lan-mouse started"
+  fi
+}
+
+cmd_screen_status() {
+  screen_require_omarchy || return 1
+  hyprctl monitors -j | jq -r '.[] | "\(.name): dpms=\(.dpmsStatus) disabled=\(.disabled) scale=\(.scale)"' 2>/dev/null || hyprctl monitors
+  if command -v systemctl >/dev/null 2>&1 && systemd_user_ready; then
+    printf 'lan-mouse.service: %s\n' "$(systemctl --user is-active lan-mouse.service 2>/dev/null || printf unavailable)"
+  fi
+  if command -v omarchy-shell >/dev/null 2>&1; then
+    if [[ -e "${XDG_STATE_HOME:-$HOME/.local/state}/omarchy/indicators/stay-awake" ]]; then
+      printf 'Omarchy Stay Awake: on\n'
+    else
+      printf 'Omarchy Stay Awake: off\n'
+    fi
+  fi
+}
+
+cmd_screen() {
+  local subcmd="${1:-status}"; shift || true
+  case "$subcmd" in
+    off) cmd_screen_off "$@" ;;
+    on) cmd_screen_on "$@" ;;
+    status) cmd_screen_status "$@" ;;
+    help|-h|--help) cmd_screen_usage ;;
+    *) err "unknown screen command: $subcmd"; cmd_screen_usage >&2; return 1 ;;
+  esac
+}
+
 away_require_fornax() {
   if [[ "$(detect_os)" != "omarchy" || "$(detect_hostname)" != "fornax" ]]; then
     err "dotfiles away is only supported on fornax Omarchy systems"
@@ -2372,8 +2545,30 @@ cmd_away_status() {
   fi
 }
 
+cmd_away_usage() {
+  cat <<'EOF'
+Usage:
+  dotfiles away on [--pause-lanmouse]
+  dotfiles away off [--resume-lanmouse]
+  dotfiles away status
+
+Options:
+  --pause-lanmouse    Stop lan-mouse after away mode is enabled so remote/edge
+                      input cannot wake the OLED while you are away.
+  --resume-lanmouse   Start lan-mouse after away mode is disabled.
+EOF
+}
+
 cmd_away_on() {
+  local pause_lanmouse=0 arg
   away_require_fornax || return 1
+  for arg in "$@"; do
+    case "$arg" in
+      --pause-lanmouse|--pause-lan-mouse|--stop-lanmouse|--stop-lan-mouse|--no-lanmouse|--no-lan-mouse) pause_lanmouse=1 ;;
+      -h|--help) cmd_away_usage; return 0 ;;
+      *) err "unknown away on option: $arg"; cmd_away_usage >&2; return 2 ;;
+    esac
+  done
   cmd_oled on || return 1
   if ! systemd_user_ready; then
     err "user systemd manager is not reachable; log in again and rerun dotfiles apply"
@@ -2389,17 +2584,33 @@ cmd_away_on() {
   fi
   command -v omarchy-system-lock >/dev/null 2>&1 && omarchy-system-lock >/dev/null 2>&1 || true
   command -v hyprctl >/dev/null 2>&1 && hyprctl dispatch dpms off >/dev/null 2>&1 || true
+  if [[ "$pause_lanmouse" -eq 1 ]]; then
+    screen_lanmouse_action stop
+    ok "lan-mouse stopped"
+  fi
   ok "fornax away mode enabled"
   cmd_away_status
 }
 
 cmd_away_off() {
+  local resume_lanmouse=0 arg
   away_require_fornax || return 1
+  for arg in "$@"; do
+    case "$arg" in
+      --resume-lanmouse|--resume-lan-mouse|--start-lanmouse|--start-lan-mouse) resume_lanmouse=1 ;;
+      -h|--help) cmd_away_usage; return 0 ;;
+      *) err "unknown away off option: $arg"; cmd_away_usage >&2; return 2 ;;
+    esac
+  done
   if systemd_user_ready; then
     systemctl --user stop dotfiles-away-inhibit.service >/dev/null 2>&1 || true
   fi
   cmd_oled off || return 1
   command -v hyprctl >/dev/null 2>&1 && hyprctl dispatch dpms on >/dev/null 2>&1 || true
+  if [[ "$resume_lanmouse" -eq 1 ]]; then
+    screen_lanmouse_action start
+    ok "lan-mouse started"
+  fi
   ok "fornax away mode disabled"
 }
 
@@ -2409,7 +2620,7 @@ cmd_away() {
     on) cmd_away_on "$@" ;;
     off) cmd_away_off "$@" ;;
     status) cmd_away_status "$@" ;;
-    help|-h|--help) printf 'Usage:\n  dotfiles away on\n  dotfiles away off\n  dotfiles away status\n' ;;
+    help|-h|--help) cmd_away_usage ;;
     *) err "unknown away command: $subcmd"; return 1 ;;
   esac
 }
@@ -4519,6 +4730,7 @@ main() {
     doctor) cmd_doctor "$@" ;;
     commands) cmd_commands "$@" ;;
     wallpaper) cmd_wallpaper "$@" ;;
+    screen) cmd_screen "$@" ;;
     oled) cmd_oled "$@" ;;
     away) cmd_away "$@" ;;
     llm) cmd_llm "$@" ;;

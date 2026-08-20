@@ -1,6 +1,4 @@
 # fornax (work Lenovo) AUR packages.
 
-# Binary upstream Ollama packages for newer model manifest support when
-# extra/ollama-cuda lags upstream. Keep these binary-only; do not use ollama-git.
-ollama-bin
-ollama-cuda13-bin
+# Keep local LLM packages in pacman.txt while Arch/Omarchy provide current
+# binary Ollama builds.

@@ -10,6 +10,13 @@ BarWidget {
 
   property string label: ""
   property string details: ""
+  property int maxUsage: 0
+
+  readonly property color statusColor: {
+    if (maxUsage >= 90) return Color.urgent
+    if (maxUsage >= 75) return "#d7ba7d"
+    return root.bar ? root.bar.barForeground : Color.foreground
+  }
 
   function refresh() {
     statsProcess.running = true
@@ -38,7 +45,13 @@ BarWidget {
       if (exitCode !== 0) return
       var lines = String(statsOut.text || "").trim().split("\n")
       root.label = lines.length > 0 ? lines[0] : ""
-      root.details = lines.length > 1 ? lines.slice(1).join("\n") : root.label
+      var visibleDetails = []
+      root.maxUsage = 0
+      for (var i = 1; i < lines.length; i++) {
+        if (lines[i].indexOf("max\t") === 0) root.maxUsage = Number(lines[i].slice(4)) || 0
+        else visibleDetails.push(lines[i])
+      }
+      root.details = visibleDetails.length > 0 ? visibleDetails.join("\n") : root.label
     }
   }
 
@@ -47,7 +60,8 @@ BarWidget {
     anchors.fill: parent
     bar: root.bar
     text: root.label
-    horizontalMargin: 7
+    foreground: root.statusColor
+    horizontalMargin: 5
     tooltipText: root.details
     onPressed: function(button) {
       if (!root.bar) return

@@ -35,19 +35,23 @@ gpu_percent() {
 }
 
 bar_output() {
-  local cpu mem gpu label details
+  local cpu mem gpu label details max
   cpu="$(cpu_percent || true)"
   mem="$(memory_percent || true)"
   gpu="$(gpu_percent || true)"
 
-  label="CPU ${cpu:-?}%  RAM ${mem:-?}%"
+  label="C${cpu:-?} M${mem:-?}"
   details="CPU: ${cpu:-unknown}%\nRAM: ${mem:-unknown}%"
+  max=0
+  [[ "$cpu" =~ ^[0-9]+$ && "$cpu" -gt "$max" ]] && max="$cpu"
+  [[ "$mem" =~ ^[0-9]+$ && "$mem" -gt "$max" ]] && max="$mem"
   if [[ "$gpu" =~ ^[0-9]+$ ]]; then
-    label+="  GPU ${gpu}%"
+    label+=" G${gpu}"
     details+="\nGPU: ${gpu}%"
+    [[ "$gpu" -gt "$max" ]] && max="$gpu"
   fi
 
-  printf '%s\n%b\n' "$label" "$details"
+  printf '%s\n%b\nmax\t%s\n' "$label" "$details" "$max"
 }
 
 case "${1:-}" in

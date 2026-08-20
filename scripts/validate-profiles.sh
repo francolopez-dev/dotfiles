@@ -11,7 +11,7 @@ package_items() {
 
 known_aur_package() {
   case "$1" in
-    paru-bin|brave-bin|zen-browser-bin|ollama-bin|ollama-cuda13-bin) return 0 ;;
+    paru-bin|brave-bin|zen-browser-bin) return 0 ;;
     *) return 1 ;;
   esac
 }
@@ -25,7 +25,7 @@ allowed_source_aur_package() {
 
 known_pacman_package() {
   case "$1" in
-    git|stow|tmux|fzf|fd|ripgrep|jq|bat|eza|fastfetch|btop|htop|ncdu|git-delta|direnv|tldr|neovim|zsh|curl|bash|wget|nano|ca-certificates|shellcheck|atuin|networkmanager|tailscale|playerctl|pamixer|power-profiles-daemon|iw|ghostty|alacritty|vivaldi|firefox|gsimplecal|zoxide|yazi|satty|socat|restic|age|obsidian|kdeconnect|wl-clipboard|libnotify|pacman|base-devel) return 0 ;;
+    git|stow|tmux|fzf|fd|ripgrep|jq|bat|eza|fastfetch|btop|htop|ncdu|git-delta|direnv|tldr|neovim|zsh|curl|bash|wget|nano|ca-certificates|shellcheck|atuin|networkmanager|tailscale|pamixer|power-profiles-daemon|iw|ghostty|alacritty|vivaldi|firefox|zoxide|yazi|socat|restic|age|obsidian|kdeconnect|wl-clipboard|libnotify|ollama|ollama-cuda|pacman|base-devel) return 0 ;;
     *) return 1 ;;
   esac
 }

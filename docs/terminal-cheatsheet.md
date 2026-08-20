@@ -14,6 +14,11 @@ minimal Debian/Ubuntu servers. Commands are ordered by how often they are used.
 | `dotfiles commands search <q>` | Find aliases, layouts, keybinds | Example: `dotfiles commands search fzf` |
 | `dotfiles llm status` | Check OpenCode/Ollama hosts | Shows Tailscale/API reachability |
 | `dotfiles away on` | Leave fornax online safely | OLED off, sleep inhibited, remote access stays up |
+| `dotfiles away on --pause-lanmouse` | Leave fornax online with KVM paused | Avoid lan-mouse waking the OLED while away |
+| `dotfiles away off --resume-lanmouse` | Return from KVM-paused away mode | OLED on, sleep inhibitor off, lan-mouse restored |
+| `dotfiles screen off` | Turn Omarchy displays off now | Quick OLED protection without changing Stay Awake |
+| `dotfiles screen off --pause-lanmouse` | Turn displays off and stop lan-mouse | Prevent remote/edge input from waking OLED |
+| `dotfiles screen on --resume-lanmouse` | Turn displays and lan-mouse back on | Resume KVM sharing after OLED-off mode |
 | `t` | Open or return to tmux for this directory | Best default for project work |
 | `v` | Open editor | Uses `$VISUAL` (`nvim` on desktops, `vim.tiny` on servers) |
 | `y` | Open Yazi | Terminal file manager |

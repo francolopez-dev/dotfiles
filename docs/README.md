@@ -42,7 +42,7 @@ hostname `lamac` and profile `profile-lamac-macos`.
 ### Debian/Ubuntu server (minimal)
 
 Headless servers get the terminal-only experience (zsh + shared aliases +
-tmux/TDL + Neovim + Yazi when available from apt), never desktop packages:
+tmux/TDL + lightweight vi/nano + Yazi when available), never desktop packages:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/jfrancolopez/dotfiles/refs/heads/main/scripts/bootstrap.sh | bash -s -- --minimal
@@ -77,6 +77,9 @@ dotfiles commands search tmux
 
 Omarchy desktop window-manager shortcuts are documented in
 [`omarchy-keybindings.md`](omarchy-keybindings.md).
+
+Local Ollama/OpenCode workflow: [`local-llm.md`](local-llm.md). For leaving
+fornax online safely: [`fornax-away-mode.md`](fornax-away-mode.md).
 
 Fallback if PATH is broken:
 

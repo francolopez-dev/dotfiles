@@ -714,6 +714,7 @@ configure_declared_services() {
   configure_omarchy_lanmouse "$dry" || true
   configure_omarchy_kdeconnect "$dry" || true
   configure_omarchy_clipboard_notify "$dry" || true
+  configure_omarchy_llm_host "$dry" || true
   package_declared tailscale || return 0
   command -v systemctl >/dev/null 2>&1 || return 0
   command -v tailscaled >/dev/null 2>&1 || command -v tailscale >/dev/null 2>&1 || return 0
@@ -2063,6 +2064,333 @@ cmd_oled() {
       printf 'Usage:\n  dotfiles oled on\n  dotfiles oled off\n  dotfiles oled status\n' >&2
       return 1
       ;;
+  esac
+}
+
+# --- local LLM / OpenCode fleet -------------------------------------------
+opencode_config_path() {
+  if [[ -f "$DOTFILES_DIR/stow/global/opencode/.config/opencode/opencode.json" ]]; then
+    printf '%s\n' "$DOTFILES_DIR/stow/global/opencode/.config/opencode/opencode.json"
+  else
+    printf '%s\n' "$HOME/.config/opencode/opencode.json"
+  fi
+}
+
+llm_require_jq() {
+  if ! command -v jq >/dev/null 2>&1; then
+    err "jq is required for dotfiles llm commands"
+    printf '  run: dotfiles update\n' >&2
+    return 1
+  fi
+}
+
+llm_provider_for_host() {
+  printf 'ollama-%s\n' "$(detect_hostname)"
+}
+
+llm_config_provider_exists() {
+  local provider="$1" config
+  llm_require_jq >/dev/null || return 1
+  config="$(opencode_config_path)"
+  [[ -f "$config" ]] || return 1
+  jq -e --arg provider "$provider" '.provider[$provider] != null' "$config" >/dev/null
+}
+
+llm_providers() {
+  local config
+  llm_require_jq || return 1
+  config="$(opencode_config_path)"
+  [[ -f "$config" ]] || { err "opencode config not found: $config"; return 1; }
+  jq -r '.provider // {} | keys[] | select(startswith("ollama-"))' "$config"
+}
+
+llm_provider_url() {
+  local provider="$1" config
+  config="$(opencode_config_path)"
+  jq -r --arg provider "$provider" '.provider[$provider].options.baseURL // ""' "$config"
+}
+
+llm_ollama_root() {
+  local url="$1"
+  url="${url%/}"
+  printf '%s\n' "${url%/v1}"
+}
+
+llm_ollama_hostport() {
+  local url="$1" root
+  root="$(llm_ollama_root "$url")"
+  root="${root#http://}"
+  root="${root#https://}"
+  printf '%s\n' "${root%%/*}"
+}
+
+llm_provider_models() {
+  local provider="$1" config
+  config="$(opencode_config_path)"
+  jq -r --arg provider "$provider" '.provider[$provider].models // {} | keys[]' "$config"
+}
+
+llm_curl_json() {
+  local url="$1"
+  command -v curl >/dev/null 2>&1 || return 1
+  curl -fsS --max-time 3 "$url" 2>/dev/null
+}
+
+cmd_llm_models() {
+  local provider url model
+  while read -r provider; do
+    [[ -n "$provider" ]] || continue
+    url="$(llm_provider_url "$provider")"
+    printf '%s\n' "$provider"
+    printf '  url: %s\n' "$url"
+    while read -r model; do
+      [[ -n "$model" ]] && printf '  model: %s\n' "$model"
+    done < <(llm_provider_models "$provider")
+  done < <(llm_providers)
+}
+
+cmd_llm_status() {
+  local provider url root version hostport
+  while read -r provider; do
+    [[ -n "$provider" ]] || continue
+    url="$(llm_provider_url "$provider")"
+    root="$(llm_ollama_root "$url")"
+    hostport="$(llm_ollama_hostport "$url")"
+    printf '%s\n' "$provider"
+    printf '  endpoint: %s\n' "$url"
+    if version="$(llm_curl_json "$root/api/version")"; then
+      printf '  api: reachable (%s)\n' "$(jq -r '.version // "unknown"' <<<"$version" 2>/dev/null || printf unknown)"
+    else
+      printf '  api: unavailable\n'
+    fi
+    if command -v tailscale >/dev/null 2>&1 && [[ "$hostport" == 100.* ]]; then
+      if tailscale ping --timeout=2s --c 1 "${hostport%%:*}" >/dev/null 2>&1; then
+        printf '  tailscale: reachable\n'
+      else
+        printf '  tailscale: no ping response\n'
+      fi
+    fi
+  done < <(llm_providers)
+}
+
+cmd_llm_sync() {
+  local provider model missing=() answer
+  provider="$(llm_provider_for_host)"
+  if ! llm_config_provider_exists "$provider"; then
+    warn "this host has no Ollama provider in opencode config: $provider"
+    return 0
+  fi
+  if ! command -v ollama >/dev/null 2>&1; then
+    err "ollama is not installed on this host"
+    return 1
+  fi
+  while read -r model; do
+    [[ -n "$model" ]] || continue
+    if ! ollama list 2>/dev/null | awk 'NR > 1 { print $1 }' | grep -Fxq "$model"; then
+      missing+=("$model")
+    fi
+  done < <(llm_provider_models "$provider")
+  if [[ ${#missing[@]} -eq 0 ]]; then
+    ok "all declared $provider models are installed"
+    return 0
+  fi
+  printf 'Missing %s model(s): %s\n' "${#missing[@]}" "${missing[*]}"
+  if ! have_tty; then
+    warn "no TTY; run manually: ollama pull ${missing[*]}"
+    return 1
+  fi
+  printf 'Pull these Ollama model(s) now? [y/N] ' >/dev/tty
+  IFS= read -r answer </dev/tty || true
+  case "$answer" in
+    y|Y|yes|YES)
+      for model in "${missing[@]}"; do
+        ollama pull "$model"
+      done
+      ;;
+    *) warn "model pull skipped" ;;
+  esac
+}
+
+cmd_llm_setup_host() {
+  local provider url hostport tmp
+  provider="$(llm_provider_for_host)"
+  llm_config_provider_exists "$provider" || { err "no provider declared for this host: $provider"; return 1; }
+  command -v systemctl >/dev/null 2>&1 || { err "systemctl is required"; return 1; }
+  command -v ollama >/dev/null 2>&1 || { err "ollama is not installed"; return 1; }
+  url="$(llm_provider_url "$provider")"
+  hostport="$(llm_ollama_hostport "$url")"
+  tmp="$(mktemp)"
+  {
+    printf '[Service]\n'
+    printf 'Environment="OLLAMA_HOST=%s"\n' "$hostport"
+    printf 'Environment="OLLAMA_CONTEXT_LENGTH=65536"\n'
+    printf 'Environment="OLLAMA_NUM_PARALLEL=1"\n'
+    printf 'Environment="OLLAMA_MAX_LOADED_MODELS=1"\n'
+    printf 'Environment="OLLAMA_FLASH_ATTENTION=1"\n'
+    printf 'Environment="OLLAMA_KV_CACHE_TYPE=q8_0"\n'
+    printf 'Environment="OLLAMA_KEEP_ALIVE=15m"\n'
+    printf 'Environment="OLLAMA_NO_CLOUD=1"\n'
+  } >"$tmp"
+  sudo install -d -m 0755 /etc/systemd/system/ollama.service.d
+  sudo install -m 0644 "$tmp" /etc/systemd/system/ollama.service.d/dotfiles.conf
+  rm -f "$tmp"
+  sudo systemctl daemon-reload
+  sudo systemctl enable --now ollama.service
+  sudo systemctl restart ollama.service
+  ok "ollama.service configured for $provider at $hostport"
+}
+
+cmd_llm_doctor() {
+  local failed=0 provider url root model ps_output
+  llm_require_jq || return 1
+  cmd_llm_status || failed=1
+  provider="$(llm_provider_for_host)"
+  if llm_config_provider_exists "$provider"; then
+    info "Local Ollama host checks ($provider)"
+    if command -v ollama >/dev/null 2>&1; then
+      ok "ollama installed"
+    else
+      warn "ollama missing"
+      failed=1
+    fi
+    if command -v systemctl >/dev/null 2>&1 && systemctl is-active --quiet ollama.service 2>/dev/null; then
+      ok "ollama.service active"
+    else
+      warn "ollama.service inactive; run: dotfiles llm setup-host"
+      failed=1
+    fi
+    url="$(llm_provider_url "$provider")"
+    root="$(llm_ollama_root "$url")"
+    llm_curl_json "$root/api/version" >/dev/null || { warn "local Ollama API unreachable: $root"; failed=1; }
+    if command -v ollama >/dev/null 2>&1; then
+      while read -r model; do
+        [[ -n "$model" ]] || continue
+        if ollama list 2>/dev/null | awk 'NR > 1 { print $1 }' | grep -Fxq "$model"; then
+          ok "model installed: $model"
+        else
+          warn "model missing: $model"
+          failed=1
+        fi
+      done < <(llm_provider_models "$provider")
+      ps_output="$(ollama ps 2>/dev/null || true)"
+      if [[ -n "$ps_output" ]]; then
+        printf '%s\n' "$ps_output"
+        if grep -q '100% GPU' <<<"$ps_output"; then
+          ok "loaded model is fully GPU-resident"
+        else
+          warn "no loaded model reports 100% GPU; preload one and check context before long work"
+        fi
+      fi
+    fi
+  fi
+  return "$failed"
+}
+
+cmd_llm() {
+  local subcmd="${1:-status}"; shift || true
+  case "$subcmd" in
+    status) cmd_llm_status "$@" ;;
+    models) cmd_llm_models "$@" ;;
+    sync) cmd_llm_sync "$@" ;;
+    setup-host) cmd_llm_setup_host "$@" ;;
+    doctor) cmd_llm_doctor "$@" ;;
+    help|-h|--help)
+      printf 'Usage:\n  dotfiles llm status\n  dotfiles llm models\n  dotfiles llm sync\n  dotfiles llm setup-host\n  dotfiles llm doctor\n'
+      ;;
+    *) err "unknown llm command: $subcmd"; return 1 ;;
+  esac
+}
+
+configure_omarchy_llm_host() {
+  local dry="$1" provider
+  provider="$(llm_provider_for_host)"
+  llm_config_provider_exists "$provider" || return 0
+  if [[ "$dry" -eq 1 ]]; then
+    dim "  would check local Ollama host setup for $provider"
+    return 0
+  fi
+  if command -v systemctl >/dev/null 2>&1 && systemctl is-active --quiet ollama.service 2>/dev/null; then
+    ok "ollama.service running for $provider"
+  else
+    warn "local LLM provider declared for this host: $provider"
+    warn "run: dotfiles llm setup-host && dotfiles llm sync"
+  fi
+}
+
+# --- away mode -------------------------------------------------------------
+away_require_fornax() {
+  if [[ "$(detect_os)" != "omarchy" || "$(detect_hostname)" != "fornax" ]]; then
+    err "dotfiles away is only supported on fornax Omarchy systems"
+    printf '  current: %s (%s)\n' "$(detect_hostname)" "$(detect_os)" >&2
+    return 1
+  fi
+}
+
+away_unit_active() {
+  systemd_user_unit_active dotfiles-away-inhibit.service
+}
+
+cmd_away_status() {
+  away_require_fornax || return 1
+  printf 'Away mode: '
+  if away_unit_active; then printf 'on\n'; else printf 'off\n'; fi
+  printf 'OLED protection: %s\n' "$(oled_current_mode)"
+  if command -v tailscale >/dev/null 2>&1; then
+    printf 'Tailscale IPv4: %s\n' "$(tailscale ip -4 2>/dev/null | sed -n '1p')"
+  fi
+  if command -v systemctl >/dev/null 2>&1; then
+    printf 'ollama.service: %s\n' "$(systemctl is-active ollama.service 2>/dev/null || printf unavailable)"
+  fi
+  if command -v ollama >/dev/null 2>&1; then
+    ollama ps 2>/dev/null || true
+  fi
+  if command -v nvidia-smi >/dev/null 2>&1; then
+    nvidia-smi --query-gpu=temperature.gpu,memory.used,memory.total,power.draw --format=csv,nounits 2>/dev/null || true
+  fi
+  if command -v tmux >/dev/null 2>&1; then
+    tmux list-sessions 2>/dev/null || true
+  fi
+}
+
+cmd_away_on() {
+  away_require_fornax || return 1
+  cmd_oled on || return 1
+  if ! systemd_user_ready; then
+    err "user systemd manager is not reachable; log in again and rerun dotfiles apply"
+    return 1
+  fi
+  if ! systemctl --user list-unit-files dotfiles-away-inhibit.service --no-legend 2>/dev/null | grep -q '^dotfiles-away-inhibit\.service'; then
+    err "away inhibitor service is not installed; run: dotfiles apply"
+    return 1
+  fi
+  systemctl --user start dotfiles-away-inhibit.service
+  if ! command -v systemctl >/dev/null 2>&1 || ! systemctl is-active --quiet ollama.service 2>/dev/null; then
+    warn "ollama.service is not active; run: dotfiles llm setup-host"
+  fi
+  command -v omarchy-system-lock >/dev/null 2>&1 && omarchy-system-lock >/dev/null 2>&1 || true
+  command -v hyprctl >/dev/null 2>&1 && hyprctl dispatch dpms off >/dev/null 2>&1 || true
+  ok "fornax away mode enabled"
+  cmd_away_status
+}
+
+cmd_away_off() {
+  away_require_fornax || return 1
+  if systemd_user_ready; then
+    systemctl --user stop dotfiles-away-inhibit.service >/dev/null 2>&1 || true
+  fi
+  cmd_oled off || return 1
+  command -v hyprctl >/dev/null 2>&1 && hyprctl dispatch dpms on >/dev/null 2>&1 || true
+  ok "fornax away mode disabled"
+}
+
+cmd_away() {
+  local subcmd="${1:-status}"; shift || true
+  case "$subcmd" in
+    on) cmd_away_on "$@" ;;
+    off) cmd_away_off "$@" ;;
+    status) cmd_away_status "$@" ;;
+    help|-h|--help) printf 'Usage:\n  dotfiles away on\n  dotfiles away off\n  dotfiles away status\n' ;;
+    *) err "unknown away command: $subcmd"; return 1 ;;
   esac
 }
 
@@ -4164,6 +4492,8 @@ main() {
     commands) cmd_commands "$@" ;;
     wallpaper) cmd_wallpaper "$@" ;;
     oled) cmd_oled "$@" ;;
+    away) cmd_away "$@" ;;
+    llm) cmd_llm "$@" ;;
     tailscale-policy) cmd_tailscale_policy "$@" ;;
     recovery) cmd_recovery "$@" ;;
     git) cmd_git "$@" ;;

@@ -22,6 +22,7 @@ change true everywhere it should apply.
 | Default terminal launcher | `stow/os-omarchy/xdg-terminal-exec/.config/xdg-terminals.list` |
 | Atuin | `stow/global/atuin/.config/atuin/config.toml` |
 | Neovim | `stow/global/neovim/.config/nvim/` |
+| OpenCode local LLM providers/models | `stow/global/opencode/.config/opencode/opencode.json` (see `docs/local-llm.md`) |
 | macOS first-time setup | `docs/macos-first-time-setup.md` |
 | macOS personal reference | `docs/macos-personal.md` |
 | macOS zprofile | `stow/os-macos/zsh/.zprofile` |
@@ -34,6 +35,7 @@ change true everywhere it should apply.
 | Monitor scale/resolution for `nox` | `stow/profile-nox-omarchy/hyprland/.config/hypr/conf.d/20-monitors.conf` |
 | Monitor scale/resolution for `fornax` | `stow/profile-fornax-omarchy/hyprland/.config/hypr/conf.d/20-monitors.conf` |
 | Autostart apps (one machine) | `stow/profile-<hostname>-omarchy/hyprland/.config/hypr/conf.d/30-autostart.conf` |
+| Fornax away/no-suspend service | `stow/profile-fornax-omarchy/away/.config/systemd/user/dotfiles-away-inhibit.service` |
 | Autostart audit ignore list | `stow/profile-<hostname>-omarchy/dotfiles/.config/dotfiles/autostart.ignore` |
 | Add an Omarchy pacman package everywhere | `packages/global/pacman.txt` |
 | Add an Omarchy AUR package everywhere | `packages/global/aur.txt` |

@@ -10,7 +10,9 @@ alias dcd='docker compose down'
 alias ff='fastfetch 2>/dev/null || true'
 
 # system apps
-alias v='nvim'
+v() {
+  "${VISUAL:-${EDITOR:-vi}}" "$@"
+}
 alias y='yazi'
 if command -v bat >/dev/null 2>&1; then
   alias cat='bat --paging=never'

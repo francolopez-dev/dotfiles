@@ -1,7 +1,7 @@
 # Minimal Server Bootstrap (Debian/Ubuntu Headless)
 
 Bring the normal terminal experience — zsh + p10k prompt, shared aliases,
-tmux + `tdl` layouts, Neovim, the `dotfiles` CLI — to headless Debian/Ubuntu
+tmux + `tdl` layouts, lightweight vi/nano, the `dotfiles` CLI — to headless Debian/Ubuntu
 machines: personal servers, work servers, VPS, Raspberry Pi/mini PCs, and
 temporary admin shells. No GUI, no desktop packages, no Omarchy config.
 
@@ -89,7 +89,7 @@ directories still holding files) so you can review and remove them manually.
 ## What Gets Installed
 
 Required core (`packages/global/apt.txt`): git, stow, tmux, fzf, ripgrep, jq,
-bat, eza, fastfetch, btop, htop, ncdu, git-delta, direnv, tealdeer, neovim,
+bat, eza, fastfetch, btop, htop, ncdu, git-delta, direnv, tealdeer, vim-tiny,
 zsh, curl, bash, wget, nano, bash-completion, tree, rsync, unzip, fd-find,
 file.
 
@@ -123,7 +123,7 @@ packages/profile-<hostname>-<os>/apt.txt   # e.g. packages/profile-domum-core-de
 ## What Gets Stowed
 
 On Debian/Ubuntu only `stow/global` and `stow/os-debian` apply. That means
-shell, git, ssh, tmux, Neovim, and the shared scripts. `stow/global` also
+shell, git, ssh, tmux, lightweight editor defaults, and the shared scripts. `stow/global` also
 carries a few desktop-app config files (Ghostty, Alacritty, wallpaper
 definitions); they are inert symlinks on a server because the apps are never
 installed there. No Hyprland, Waybar, browser, theme, or login-manager
@@ -184,6 +184,16 @@ prefer `POWERLEVEL9K_MODE` override in `~/.config/shell/env.local`).
   usage and recovery notes: [`atuin.md`](atuin.md).
 - Never enable external history sync on work servers. To pause history in any
   shell, prefix the command with a space.
+
+## Server Editors
+
+Servers default to `vim.tiny` through `$EDITOR` and `$VISUAL`, not LazyVim. The
+`v` helper opens `$VISUAL`, so `v file` remains muscle memory without depending
+on Neovim plugins. `nano` remains installed for emergency edits.
+
+If `nano` or `vim.tiny` renders wrong, debug terminal state before replacing the
+editor. Most failures are missing terminfo, a stale enhanced-keyboard mode, or a
+bad `$TERM`; see the Ghostty troubleshooting section below.
 
 ## Tmux And TDL Layouts
 
@@ -478,6 +488,10 @@ remediation commands.
 | AI CLIs | per policy only | install freely |
 | Tailscale/Syncthing | no | opt-in via profile apt list |
 | Security updates | unattended-upgrades (default) | same |
+
+For always-on personal servers such as `domum-core`, disable Tailscale key expiry
+in the Tailscale admin console. Otherwise SSH/tmux access can stop on the expiry
+date even though the machine is healthy.
 
 The stowed `~/.ssh/config` contains personal host aliases; on a work machine
 where that is inappropriate, skip stow for that package by removing the

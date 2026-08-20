@@ -34,9 +34,31 @@ if [ -d "$HOME/bin" ]; then
   esac
 fi
 
-# Sensible defaults
-export EDITOR="${EDITOR:-nvim}"
-export VISUAL="${VISUAL:-nvim}"
+# Sensible editor defaults. Desktops use Neovim; Debian/Ubuntu servers prefer a
+# small vi so a broken LazyVim setup never blocks emergency edits.
+_dotfiles_os_id=""
+if [ -r /etc/os-release ]; then
+  _dotfiles_os_id="$(. /etc/os-release && printf '%s' "${ID:-}")"
+fi
+case "$_dotfiles_os_id" in
+  debian|ubuntu)
+    if command -v vim.tiny >/dev/null 2>&1; then
+      export EDITOR="${EDITOR:-vim.tiny}"
+      export VISUAL="${VISUAL:-vim.tiny}"
+    elif command -v vi >/dev/null 2>&1; then
+      export EDITOR="${EDITOR:-vi}"
+      export VISUAL="${VISUAL:-vi}"
+    else
+      export EDITOR="${EDITOR:-nano}"
+      export VISUAL="${VISUAL:-nano}"
+    fi
+    ;;
+  *)
+    export EDITOR="${EDITOR:-nvim}"
+    export VISUAL="${VISUAL:-nvim}"
+    ;;
+esac
+unset _dotfiles_os_id
 
 # Prefer fd/fdfind for fzf file discovery when available. Debian/Ubuntu ship
 # fd as fdfind; macOS and Arch ship it as fd.

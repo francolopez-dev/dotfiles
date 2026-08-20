@@ -12,8 +12,10 @@ minimal Debian/Ubuntu servers. Commands are ordered by how often they are used.
 | `dotfiles update --dry-run` | Preview update | No changes |
 | `dotfiles apply` | Re-stow after editing config | Does not install packages |
 | `dotfiles commands search <q>` | Find aliases, layouts, keybinds | Example: `dotfiles commands search fzf` |
+| `dotfiles llm status` | Check OpenCode/Ollama hosts | Shows Tailscale/API reachability |
+| `dotfiles away on` | Leave fornax online safely | OLED off, sleep inhibited, remote access stays up |
 | `t` | Open or return to tmux for this directory | Best default for project work |
-| `v` | Open Neovim | Alias for `nvim` |
+| `v` | Open editor | Uses `$VISUAL` (`nvim` on desktops, `vim.tiny` on servers) |
 | `y` | Open Yazi | Terminal file manager |
 | `l` | Pretty compact file listing | eza-backed, falls back to `ls` |
 | `ll` | Full file listing | Adds git/user/permission columns |
@@ -89,6 +91,12 @@ but excluding `.git`.
 
 Zoxide learns only after you visit directories. If a jump goes somewhere
 unexpected, use the full path once and it will learn the better match.
+
+## Editors
+
+Desktops default to Neovim/LazyVim. Debian/Ubuntu servers default to `vim.tiny`
+through `$EDITOR`/`$VISUAL`, with `nano` installed as the emergency fallback.
+The `v` command opens the current `$VISUAL` editor.
 
 ## Neovim
 

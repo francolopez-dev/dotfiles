@@ -14,7 +14,7 @@ ncdu
 git-delta
 direnv
 tealdeer
-neovim
+vim-tiny
 zsh
 curl
 bash

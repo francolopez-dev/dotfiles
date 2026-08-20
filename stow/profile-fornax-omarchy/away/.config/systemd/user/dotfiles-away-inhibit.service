@@ -1,0 +1,12 @@
+[Unit]
+Description=Dotfiles away mode sleep inhibitor
+Documentation=man:systemd-inhibit(1)
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/systemd-inhibit --what=sleep:idle:handle-lid-switch --mode=block --why=dotfiles-away-mode /usr/bin/sleep infinity
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=default.target

@@ -4,7 +4,6 @@ shellcheck
 atuin
 networkmanager
 tailscale
-playerctl
 pamixer
 power-profiles-daemon
 iw
@@ -12,10 +11,8 @@ ghostty
 alacritty
 vivaldi
 firefox
-gsimplecal
 zoxide
 yazi
-satty
 socat
 restic
 age

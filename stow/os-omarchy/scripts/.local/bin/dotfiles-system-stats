@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+cpu_percent() {
+  top -bn1 | awk '/^%?Cpu/ {
+    gsub(/,/, "")
+    for (i = 1; i <= NF; i++) {
+      if ($(i + 1) == "id") {
+        printf "%.0f", 100 - $i
+        exit
+      }
+    }
+  }'
+}
+
+memory_percent() {
+  awk '
+    /^MemTotal:/ { total = $2 }
+    /^MemAvailable:/ { avail = $2 }
+    END {
+      if (total > 0) printf "%.0f", ((total - avail) / total) * 100
+    }
+  ' /proc/meminfo
+}
+
+gpu_percent() {
+  if command -v nvidia-smi >/dev/null 2>&1; then
+    nvidia-smi --query-gpu=utilization.gpu --format=csv,noheader,nounits 2>/dev/null | awk 'NR == 1 { print $1 }'
+    return 0
+  fi
+
+  if [[ -r /sys/class/drm/card0/device/gpu_busy_percent ]]; then
+    sed -n '1p' /sys/class/drm/card0/device/gpu_busy_percent
+  fi
+}
+
+bar_output() {
+  local cpu mem gpu label details
+  cpu="$(cpu_percent || true)"
+  mem="$(memory_percent || true)"
+  gpu="$(gpu_percent || true)"
+
+  label="CPU ${cpu:-?}%  RAM ${mem:-?}%"
+  details="CPU: ${cpu:-unknown}%\nRAM: ${mem:-unknown}%"
+  if [[ "$gpu" =~ ^[0-9]+$ ]]; then
+    label+="  GPU ${gpu}%"
+    details+="\nGPU: ${gpu}%"
+  fi
+
+  printf '%s\n%b\n' "$label" "$details"
+}
+
+case "${1:-}" in
+  --bar) bar_output ;;
+  *)
+    printf 'Usage: dotfiles-system-stats --bar\n' >&2
+    exit 2
+    ;;
+esac

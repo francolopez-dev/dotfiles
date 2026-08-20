@@ -667,15 +667,10 @@ refresh_omarchy_session() {
     fi
   fi
 
-  if systemd_user_unit_active waybar.service; then
+  if command -v omarchy >/dev/null 2>&1 && pgrep -x quickshell >/dev/null 2>&1; then
+    run_refresh_cmd "$dry" "Omarchy shell restarted" omarchy restart shell || true
+  elif systemd_user_unit_active waybar.service; then
     run_refresh_cmd "$dry" "waybar user service restarted" systemctl --user restart waybar.service || true
-  elif pgrep -x waybar >/dev/null 2>&1; then
-    if command -v omarchy >/dev/null 2>&1; then
-      run_refresh_cmd "$dry" "waybar restarted" omarchy restart waybar || true
-    else
-      warn "waybar is running but no managed restart command was found"
-      eval "$needs_manual_ref+=(waybar)"
-    fi
   fi
 
   if systemd_user_unit_active hyprpaper.service; then
@@ -685,7 +680,7 @@ refresh_omarchy_session() {
     eval "$needs_manual_ref+=(hyprpaper)"
   fi
 
-  for unit in xdg-desktop-portal.service xdg-desktop-portal-hyprland.service hypridle.service mako.service swaync.service lan-mouse.service dotfiles-clipboard-notify.service; do
+  for unit in xdg-desktop-portal.service xdg-desktop-portal-hyprland.service lan-mouse.service dotfiles-clipboard-notify.service; do
     if systemd_user_unit_active "$unit"; then
       run_refresh_cmd "$dry" "$unit restarted" systemctl --user try-restart "$unit" || true
     fi
@@ -2880,7 +2875,7 @@ cmd_status() {
       _kdeconnect_status
       _kdeconnect_devices_status
       _clipboard_notify_status
-      _waybar_status
+      _omarchy_shell_status
       ;;
     macos)
       _macos_aerospace_status
@@ -4426,6 +4421,14 @@ _macos_app_status() {
   else
     printf '  %s: missing\n' "$name"
   fi
+}
+
+_omarchy_shell_status() {
+  if pgrep -x quickshell >/dev/null 2>&1; then
+    printf '  omarchy shell: running (quickshell)\n'
+    return 0
+  fi
+  printf '  omarchy shell: not running\n'
 }
 
 _waybar_status() {

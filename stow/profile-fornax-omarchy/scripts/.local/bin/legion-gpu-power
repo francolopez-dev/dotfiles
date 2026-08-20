@@ -1,0 +1,186 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+PROFILE=/sys/firmware/acpi/platform_profile
+ATTR_ROOT=/sys/class/firmware-attributes/lenovo-wmi-other-0/attributes
+CTGP=$ATTR_ROOT/gpu_nv_ctgp/current_value
+AC_OFFSET=$ATTR_ROOT/gpu_nv_ac_offset/current_value
+
+usage() {
+  cat <<'EOF'
+Usage: legion-gpu-power status|max-profile|set <watts>|ac-offset <watts>|max|probe|reset
+
+Controls Lenovo Legion firmware GPU power knobs exposed by lenovo-wmi-other.
+
+Commands:
+  status       Show firmware profile, Lenovo GPU knobs, and NVIDIA power data
+  max-profile  Switch platform profile to max-power
+  set <watts>  Set configurable GPU total graphics power, for example 140
+  ac-offset <watts>
+               Set NVIDIA AC baseline offset, valid range is 10..135
+  max          Switch to max-power and try 175W CTGP
+  probe        Temporarily stop power-profiles-daemon and try safe high-power writes
+  reset        Restore known-safe defaults: performance, CTGP 80, AC offset 55
+EOF
+}
+
+die() {
+  printf 'err: %s\n' "$*" >&2
+  exit 1
+}
+
+need_path() {
+  local path=$1
+  [[ -e "$path" ]] || die "missing $path; lenovo-wmi-other may not support this machine/kernel"
+}
+
+need_root_for_write() {
+  [[ ${EUID:-$(id -u)} -eq 0 ]] || die "run with sudo for write commands"
+}
+
+read_one_line() {
+  local path=$1
+  tr -d '\0' <"$path" | tr -d '\n'
+}
+
+write_value() {
+  local path=$1 value=$2
+  need_root_for_write
+  need_path "$path"
+  if [[ -r "$path" && "$(read_one_line "$path")" == "$value" ]]; then
+    return 0
+  fi
+  if ! printf '%s\n' "$value" >"$path"; then
+    printf 'err: firmware rejected %s for %s\n' "$value" "$path" >&2
+    return 1
+  fi
+}
+
+show_status() {
+  need_path "$PROFILE"
+  printf 'platform_profile: %s\n' "$(read_one_line "$PROFILE")"
+
+  if [[ -r "$CTGP" ]]; then
+    printf 'gpu_nv_ctgp: %s\n' "$(read_one_line "$CTGP")"
+  else
+    printf 'gpu_nv_ctgp: unavailable\n'
+  fi
+
+  if [[ -r "$AC_OFFSET" ]]; then
+    printf 'gpu_nv_ac_offset: %s\n' "$(read_one_line "$AC_OFFSET")"
+  else
+    printf 'gpu_nv_ac_offset: unavailable\n'
+  fi
+
+  if command -v nvidia-smi >/dev/null 2>&1; then
+    nvidia-smi --query-gpu=power.draw,power.limit,power.default_limit,power.max_limit,clocks.current.graphics,clocks.current.memory,pstate,temperature.gpu --format=csv,nounits
+  else
+    printf 'nvidia-smi: unavailable\n'
+  fi
+}
+
+set_custom() {
+  write_value "$PROFILE" max-power
+}
+
+set_ctgp() {
+  local watts=${1:-}
+  local old_profile
+  [[ "$watts" =~ ^[0-9]+$ ]] || die "watts must be a whole number"
+  [[ "$watts" -ge 80 && "$watts" -le 175 ]] || die "watts must be between 80 and 175"
+
+  old_profile=$(read_one_line "$PROFILE")
+  set_custom
+  if ! write_value "$CTGP" "$watts"; then
+    write_value "$PROFILE" "$old_profile" || true
+    exit 1
+  fi
+}
+
+set_ac_offset() {
+  local watts=${1:-}
+  [[ "$watts" =~ ^[0-9]+$ ]] || die "watts must be a whole number"
+  [[ "$watts" -ge 10 && "$watts" -le 135 ]] || die "watts must be between 10 and 135"
+
+  set_custom
+  write_value "$AC_OFFSET" "$watts"
+}
+
+reset_power() {
+  write_value "$PROFILE" performance
+  write_value "$CTGP" 80
+  write_value "$AC_OFFSET" 55
+}
+
+try_write() {
+  local path=$1 value=$2 label=$3
+  printf 'try %s=%s: ' "$label" "$value"
+  if write_value "$path" "$value" 2>/tmp/legion-gpu-power.err; then
+    printf 'ok, now %s\n' "$(read_one_line "$path")"
+  else
+    printf 'failed (%s)\n' "$(tr -d '\n' </tmp/legion-gpu-power.err)"
+  fi
+  rm -f /tmp/legion-gpu-power.err
+}
+
+probe_power() {
+  need_root_for_write
+
+  local restart_ppd=0
+  if systemctl is-active --quiet power-profiles-daemon.service; then
+    restart_ppd=1
+    systemctl stop power-profiles-daemon.service || true
+  fi
+
+  try_write "$PROFILE" custom platform_profile
+  try_write "$PROFILE" balanced-performance platform_profile
+  try_write "$PROFILE" max-power platform_profile
+  try_write "$AC_OFFSET" 135 gpu_nv_ac_offset
+  try_write "$CTGP" 140 gpu_nv_ctgp
+  show_status
+
+  if [[ "$restart_ppd" -eq 1 ]]; then
+    systemctl start power-profiles-daemon.service || true
+  fi
+}
+
+main() {
+  case "${1:-}" in
+    status)
+      show_status
+      ;;
+    max-profile)
+      set_custom
+      show_status
+      ;;
+    set)
+      set_ctgp "${2:-}"
+      show_status
+      ;;
+    ac-offset)
+      set_ac_offset "${2:-}"
+      show_status
+      ;;
+    max)
+      set_ctgp 175
+      show_status
+      ;;
+    probe)
+      probe_power
+      show_status
+      ;;
+    reset)
+      reset_power
+      show_status
+      ;;
+    -h|--help|help|'')
+      usage
+      ;;
+    *)
+      usage >&2
+      exit 2
+      ;;
+  esac
+}
+
+main "$@"

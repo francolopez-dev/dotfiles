@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "id": "jfranco.menu",
+  "name": "Franco menu",
+  "version": "1.0.0",
+  "author": "J. Franco",
+  "description": "Omarchy root menu button with the previous power glyph.",
+  "kinds": [
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "barWidget": "BarWidget.qml"
+  },
+  "barWidget": {
+    "displayName": "Franco menu",
+    "description": "Launches the Omarchy root menu",
+    "category": "Compositor",
+    "allowMultiple": false,
+    "defaultSection": "left"
+  }
+}

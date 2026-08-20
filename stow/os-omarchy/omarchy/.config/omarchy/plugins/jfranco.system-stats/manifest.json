@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "id": "jfranco.system-stats",
+  "name": "System stats",
+  "version": "1.0.0",
+  "author": "J. Franco",
+  "description": "Compact CPU, RAM, and GPU usage for the Omarchy bar.",
+  "kinds": [
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "barWidget": "BarWidget.qml"
+  },
+  "barWidget": {
+    "displayName": "System stats",
+    "description": "CPU, RAM, and GPU usage",
+    "category": "System",
+    "allowMultiple": false,
+    "defaultSection": "right"
+  }
+}

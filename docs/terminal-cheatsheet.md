@@ -12,7 +12,8 @@ minimal Debian/Ubuntu servers. Commands are ordered by how often they are used.
 | `dotfiles update --dry-run` | Preview update | No changes |
 | `dotfiles apply` | Re-stow after editing config | Does not install packages |
 | `dotfiles commands search <q>` | Find aliases, layouts, keybinds | Example: `dotfiles commands search fzf` |
-| `dotfiles llm status` | Check OpenCode/Ollama hosts | Shows Tailscale/API reachability |
+| `dotfiles llm status` | Check OpenCode/Ollama hosts | Shows API reachability and model drift |
+| `dotfiles llm sync` | Repair local LLM drift | Adds installed models to OpenCode, upgrades Fornax Ollama when needed, pulls missing declared models |
 | `dotfiles away on` | Leave fornax online safely | OLED off, sleep inhibited, remote access stays up |
 | `dotfiles away on --pause-lanmouse` | Leave fornax online with KVM paused | Avoid lan-mouse waking the OLED while away |
 | `dotfiles away off --resume-lanmouse` | Return from KVM-paused away mode | OLED on, sleep inhibitor off, lan-mouse restored |

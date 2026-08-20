@@ -222,14 +222,32 @@ dotfiles llm setup-host
 dotfiles llm sync
 ```
 
+`dotfiles llm status` compares each Ollama provider in OpenCode with the live
+Ollama server. It reports installed models missing from OpenCode as `opencode
+missing`, and OpenCode-declared models missing from the server as `ollama
+missing`.
+
+`dotfiles llm sync` is the one-command repair path on the current host:
+
+```bash
+dotfiles llm sync
+```
+
+It first adds locally installed Ollama models to that host's OpenCode provider,
+then installs the latest verified upstream Ollama binary on Fornax when Arch's
+service is too old for the configured models, then pulls any declared models that
+are not installed yet. The upstream install writes a systemd override, so run it
+from a real terminal where `sudo` can prompt.
+
 Fornax declares `ollama` and `ollama-cuda` in
 `packages/profile-fornax-omarchy/pacman.txt`. `dotfiles llm setup-host` writes a
 systemd override that binds Ollama to `0.0.0.0:11434`, avoiding boot-time races
 where the Tailscale address is not assigned yet while keeping the API reachable
 at the provider URL.
 
-When the Arch/Omarchy package lags an upstream model requirement, install the
-official upstream Linux binary as a temporary service override:
+When the Arch/Omarchy package lags an upstream model requirement, `dotfiles llm
+sync` normally installs the official upstream Linux binary as a temporary service
+override. The manual equivalent is:
 
 ```bash
 dotfiles llm install-upstream-ollama

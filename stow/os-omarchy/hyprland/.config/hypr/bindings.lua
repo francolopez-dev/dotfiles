@@ -20,12 +20,18 @@ bind_exec("SUPER + K", "Dotfiles keybindings and commands", "dotfiles-discovery-
 unbind("SUPER + RETURN")
 unbind("ALT + RETURN")
 unbind("SUPER + A")
+unbind("ALT + A")
 unbind("SUPER + C")
+unbind("ALT + C")
 unbind("SUPER + V")
+unbind("ALT + V")
 unbind("SUPER + Q")
+unbind("ALT + Q")
 unbind("SUPER + W")
+unbind("ALT + W")
 unbind("SUPER + SHIFT + RETURN")
 unbind("SUPER + SHIFT + V")
+unbind("ALT + SHIFT + V")
 unbind("SUPER + SHIFT + N")
 
 bind_exec("SUPER + RETURN", "Terminal", 'uwsm-app -- xdg-terminal-exec --dir="$(omarchy-cmd-terminal-cwd)"')
@@ -33,11 +39,17 @@ bind_exec("ALT + RETURN", "Terminal", 'uwsm-app -- xdg-terminal-exec --dir="$(om
 bind_exec("ALT + SHIFT + RETURN", "Ghostty", 'uwsm-app -- ghostty --working-directory="$(omarchy-cmd-terminal-cwd)"')
 bind_exec("SUPER + SHIFT + RETURN", "Alacritty", 'uwsm-app -- alacritty --working-directory "$(omarchy-cmd-terminal-cwd)"')
 bind_exec("SUPER + A", "Select all", "omarchy-terminal-shortcut select-all")
+bind_exec("ALT + A", "Select all", "omarchy-terminal-shortcut select-all")
 bind_exec("SUPER + C", "Copy", "omarchy-terminal-shortcut copy")
+bind_exec("ALT + C", "Copy", "omarchy-terminal-shortcut copy")
 bind_exec("SUPER + V", "Paste", "omarchy-terminal-shortcut paste")
+bind_exec("ALT + V", "Paste", "omarchy-terminal-shortcut paste")
 bind_exec("SUPER + W", "Close window/tab", "omarchy-close-window")
+bind_exec("ALT + W", "Close window/tab", "omarchy-close-window")
 bind_exec("SUPER + Q", "Quit app", "omarchy-quit-app")
+bind_exec("ALT + Q", "Quit app", "omarchy-quit-app")
 bind_exec("SUPER + SHIFT + V", "Clipboard manager", "omarchy-launch-walker -m clipboard")
+bind_exec("ALT + SHIFT + V", "Clipboard manager", "omarchy-launch-walker -m clipboard")
 bind_exec("SUPER + SHIFT + N", "Quick capture", "omarchy-notes-capture")
 
 -- Quick surfaces.
@@ -107,9 +119,13 @@ end
 for workspace = 5, 8 do
   local key = "code:" .. tostring(workspace + 5)
   unbind("CTRL + SUPER + " .. key)
+  unbind("CTRL + ALT + " .. key)
   unbind("CTRL + SUPER + SHIFT + " .. key)
+  unbind("CTRL + ALT + SHIFT + " .. key)
   bind_exec("CTRL + SUPER + " .. key, "Workspace " .. workspace, "hyprctl dispatch workspace " .. workspace)
+  bind_exec("CTRL + ALT + " .. key, "Workspace " .. workspace, "hyprctl dispatch workspace " .. workspace)
   bind_exec("CTRL + SUPER + SHIFT + " .. key, "Move window to workspace " .. workspace, "sh -lc 'hyprctl dispatch movetoworkspace " .. workspace .. " && hyprctl dispatch workspace " .. workspace .. "'")
+  bind_exec("CTRL + ALT + SHIFT + " .. key, "Move window to workspace " .. workspace, "sh -lc 'hyprctl dispatch movetoworkspace " .. workspace .. " && hyprctl dispatch workspace " .. workspace .. "'")
 end
 
 -- App launchers.

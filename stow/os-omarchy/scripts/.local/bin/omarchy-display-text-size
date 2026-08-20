@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ $# -eq 0 ]]; then
+  output="$(/usr/bin/omarchy-display-text-size)"
+  profile_term=""
+  if [[ -f "$HOME/.config/ghostty/profile-overrides" ]]; then
+    profile_term="$(sed -n -E 's/^font-size = ([0-9.]+).*/\1/p' "$HOME/.config/ghostty/profile-overrides" | sed -n '1p')"
+  fi
+  if [[ -n "$profile_term" ]]; then
+    output="${output/terminal font: n\/a pt/terminal font: $profile_term pt (profile)}"
+  fi
+  printf '%s\n' "$output"
+  exit 0
+fi
+
+/usr/bin/omarchy-display-text-size "$@"
+
+case "${1:-}" in
+  reset|default)
+    term_pt=9
+    ;;
+  -h|--help)
+    exit 0
+    ;;
+  *)
+    [[ "$1" =~ ^[0-9]+$ ]] || exit 0
+    term_pt="$((($1 * 9 + 6) / 12))"
+    ;;
+esac
+
+ghostty_profile="$HOME/.config/ghostty/profile-overrides"
+alacritty_profile="$HOME/.config/alacritty/profile-font-size.toml"
+
+if [[ -f "$ghostty_profile" ]]; then
+  ghostty_target="$(readlink -f "$ghostty_profile")"
+  sed -i -E "s/^font-size = .*/font-size = $term_pt/" "$ghostty_target"
+  pkill -SIGUSR2 ghostty 2>/dev/null || true
+fi
+
+if [[ -f "$alacritty_profile" ]]; then
+  alacritty_target="$(readlink -f "$alacritty_profile")"
+  sed -i -E "s/^size = .*/size = $term_pt/" "$alacritty_target"
+fi

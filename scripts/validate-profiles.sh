@@ -234,12 +234,29 @@ check_hypridle_timeouts() {
 check_profile profile-nox-omarchy
 check_profile profile-fornax-omarchy
 
-nox_monitor="$repo_dir/stow/profile-nox-omarchy/hyprland/.config/hypr/conf.d/20-monitors.conf"
-if grep -Eq '^[[:space:]]*monitor = eDP-1, preferred, auto, 1(\.10?)?[[:space:]]*$' "$nox_monitor"; then
+nox_monitor="$repo_dir/stow/profile-nox-omarchy/hyprland/.config/hypr/monitors.lua"
+if grep -Eq 'hl\.monitor\(\{ output = "eDP-1", mode = "preferred", position = "auto", scale = 1(\.10?)? \}\)' "$nox_monitor"; then
   printf 'ok nox monitor scale: eDP-1 scale 1 or 1.1\n'
 else
   printf 'bad nox monitor scale in %s\n' "$nox_monitor" >&2
   failed=1
+fi
+
+fornax_monitor="$repo_dir/stow/profile-fornax-omarchy/hyprland/.config/hypr/monitors.lua"
+if grep -q '^local omarchy_monitor_scale = ' "$fornax_monitor" &&
+  grep -q '^hl.monitor({ output = "", mode = "preferred", position = "auto", scale = omarchy_monitor_scale })$' "$fornax_monitor"; then
+  printf 'ok fornax monitor scale is Display-panel persistent\n'
+else
+  printf 'bad fornax monitor persistence in %s\n' "$fornax_monitor" >&2
+  failed=1
+fi
+
+omarchy_bindings="$repo_dir/stow/os-omarchy/hyprland/.config/hypr/bindings.lua"
+if grep -q 'bind_exec(.*code:' "$omarchy_bindings"; then
+  printf 'bad Omarchy 4 Lua binding uses nonfunctional code:N key in %s\n' "$omarchy_bindings" >&2
+  failed=1
+else
+  printf 'ok Omarchy 4 Lua bindings use symbolic keys\n'
 fi
 
 if grep -RqsE '^wezterm(-git)?($|[[:space:]])' "$repo_dir/packages"; then

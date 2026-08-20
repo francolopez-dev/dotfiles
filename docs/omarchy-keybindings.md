@@ -16,6 +16,10 @@ acts as Hyprland `SUPER` and the physical Super/Windows key acts as Hyprland
 `ALT`. Important Command-style shortcuts are bound to both logical `SUPER` and
 logical `ALT` where practical, so either physical key works for copy/paste.
 
+Omarchy 4 Lua bindings must use symbolic keys such as `1`, `grave`, `equal`,
+and `minus`. In Omarchy 4.0.0, `code:N` entries register with a blank key and
+appear in `hyprctl binds` without ever matching a physical key event.
+
 ## Focus movement
 
 | Keys | Action |
@@ -144,5 +148,8 @@ cd ~/dotfiles
 dotfiles apply
 hyprctl reload
 hyprctl configerrors
-hyprctl binds -j | jq -r '.[] | select((.description // "") | test("Workspace|Copy|Paste|Select all|Terminal")) | [.modmask,.key,.description] | @tsv'
+hyprctl binds -j | jq -r '.[] | select((.description // "") | test("Workspace|Quake|Copy|Paste|Select all|Terminal")) | [.modmask,.key,.keycode,.description] | @tsv'
 ```
+
+Custom entries must show a non-empty symbolic key. A description with both an
+empty `key` and `keycode=0` is registered metadata, not a working shortcut.

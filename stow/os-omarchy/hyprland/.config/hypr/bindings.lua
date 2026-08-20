@@ -8,6 +8,34 @@ local function unbind(keys)
   hl.unbind(keys)
 end
 
+local function send_shortcut_once(mods, key)
+  return function()
+    hl.dispatch(hl.dsp.send_key_state({ mods = mods, key = key, state = "down" }))
+    hl.timer(function()
+      hl.dispatch(hl.dsp.send_key_state({ mods = mods, key = key, state = "up" }))
+    end, { timeout = 50, type = "oneshot" })
+  end
+end
+
+local function active_window_is_terminal()
+  local window = hl.get_active_window()
+  if not window then return false end
+  for _, tag in ipairs(window.tags or {}) do
+    if tag:gsub("%*$", "") == "terminal" then return true end
+  end
+  return false
+end
+
+local function universal_shortcut(default_mods, default_key, terminal_mods, terminal_key)
+  return function()
+    if active_window_is_terminal() then
+      send_shortcut_once(terminal_mods, terminal_key)()
+    else
+      send_shortcut_once(default_mods, default_key)()
+    end
+  end
+end
+
 -- Default terminal for Omarchy launchers that read $TERMINAL directly.
 hl.env("TERMINAL", "ghostty")
 
@@ -21,9 +49,7 @@ unbind("SUPER + RETURN")
 unbind("ALT + RETURN")
 unbind("SUPER + A")
 unbind("ALT + A")
-unbind("SUPER + C")
 unbind("ALT + C")
-unbind("SUPER + V")
 unbind("ALT + V")
 unbind("SUPER + Q")
 unbind("ALT + Q")
@@ -33,29 +59,28 @@ unbind("SUPER + SHIFT + RETURN")
 unbind("SUPER + SHIFT + V")
 unbind("ALT + SHIFT + V")
 unbind("SUPER + SHIFT + N")
+unbind("SUPER + T")
 
-bind_exec("SUPER + RETURN", "Terminal", 'uwsm-app -- xdg-terminal-exec --dir="$(omarchy-cmd-terminal-cwd)"')
-bind_exec("ALT + RETURN", "Terminal", 'uwsm-app -- xdg-terminal-exec --dir="$(omarchy-cmd-terminal-cwd)"')
+bind_exec("SUPER + RETURN", "Terminal", "omarchy-launch-terminal")
+bind_exec("ALT + RETURN", "Terminal", "omarchy-launch-terminal")
 bind_exec("ALT + SHIFT + RETURN", "Ghostty", 'uwsm-app -- ghostty --working-directory="$(omarchy-cmd-terminal-cwd)"')
 bind_exec("SUPER + SHIFT + RETURN", "Alacritty", 'uwsm-app -- alacritty --working-directory "$(omarchy-cmd-terminal-cwd)"')
-bind_exec("SUPER + A", "Select all", "omarchy-terminal-shortcut select-all")
-bind_exec("ALT + A", "Select all", "omarchy-terminal-shortcut select-all")
-bind_exec("SUPER + C", "Copy", "omarchy-terminal-shortcut copy")
-bind_exec("ALT + C", "Copy", "omarchy-terminal-shortcut copy")
-bind_exec("SUPER + V", "Paste", "omarchy-terminal-shortcut paste")
-bind_exec("ALT + V", "Paste", "omarchy-terminal-shortcut paste")
+o.bind("SUPER + A", "Select all", universal_shortcut("CTRL", "A", "SUPER", "A"))
+o.bind("ALT + A", "Select all", universal_shortcut("CTRL", "A", "SUPER", "A"))
+o.bind("ALT + C", "Universal copy", universal_shortcut("CTRL", "C", "CTRL", "Insert"))
+o.bind("ALT + V", "Universal paste", universal_shortcut("CTRL", "V", "SHIFT", "Insert"))
 bind_exec("SUPER + W", "Close window/tab", "omarchy-close-window")
 bind_exec("ALT + W", "Close window/tab", "omarchy-close-window")
 bind_exec("SUPER + Q", "Quit app", "omarchy-quit-app")
 bind_exec("ALT + Q", "Quit app", "omarchy-quit-app")
-bind_exec("SUPER + SHIFT + V", "Clipboard manager", "omarchy-launch-walker -m clipboard")
-bind_exec("ALT + SHIFT + V", "Clipboard manager", "omarchy-launch-walker -m clipboard")
+bind_exec("SUPER + SHIFT + V", "Clipboard manager", "omarchy-shell shell toggle omarchy.clipboard")
+bind_exec("ALT + SHIFT + V", "Clipboard manager", "omarchy-shell shell toggle omarchy.clipboard")
 bind_exec("SUPER + SHIFT + N", "Quick capture", "omarchy-notes-capture")
 
 -- Quick surfaces.
-bind_exec("CTRL + code:49", "Quake terminal", "omarchy-quake toggle")
-bind_exec("CTRL + SHIFT + code:49", "Quick notes", "omarchy-notes toggle")
-bind_exec("CTRL + ALT + code:49", "Todo drawer", "omarchy-todo toggle")
+bind_exec("CTRL + grave", "Quake terminal", "omarchy-quake toggle")
+bind_exec("CTRL + SHIFT + grave", "Quick notes", "omarchy-notes toggle")
+bind_exec("CTRL + ALT + grave", "Todo drawer", "omarchy-todo toggle")
 bind_exec("CTRL + SHIFT + Z", "Toggle floating", "hyprctl dispatch togglefloating")
 
 -- Omarchy 4 top bar toggle replacement for the old Waybar toggle.
@@ -74,6 +99,10 @@ unbind("SUPER + LEFT")
 unbind("SUPER + RIGHT")
 unbind("SUPER + UP")
 unbind("SUPER + DOWN")
+unbind("SUPER + SHIFT + LEFT")
+unbind("SUPER + SHIFT + RIGHT")
+unbind("SUPER + SHIFT + UP")
+unbind("SUPER + SHIFT + DOWN")
 bind_exec("CTRL + H", "Focus window left", "hyprctl dispatch movefocus l")
 bind_exec("CTRL + J", "Focus window down", "hyprctl dispatch movefocus d")
 bind_exec("CTRL + K", "Focus window up", "hyprctl dispatch movefocus u")
@@ -88,9 +117,9 @@ unbind("SUPER + code:20")
 unbind("SUPER + code:21")
 unbind("SUPER + SHIFT + code:20")
 unbind("SUPER + SHIFT + code:21")
-bind_exec("CTRL + code:21", "Horizontal resize active window", "hyprctl dispatch resizeactive 100 0")
-bind_exec("CTRL + SHIFT + code:21", "Horizontal resize active window", "hyprctl dispatch resizeactive 100 0")
-bind_exec("CTRL + code:20", "Horizontal resize active window opposite", "hyprctl dispatch resizeactive -100 0")
+bind_exec("CTRL + equal", "Horizontal resize active window", "hyprctl dispatch resizeactive 100 0")
+bind_exec("CTRL + SHIFT + equal", "Horizontal resize active window", "hyprctl dispatch resizeactive 100 0")
+bind_exec("CTRL + minus", "Horizontal resize active window opposite", "hyprctl dispatch resizeactive -100 0")
 
 -- Aerospace-style workspace navigation.
 for workspace = 1, 10 do
@@ -105,11 +134,17 @@ for workspace = 1, 10 do
   unbind("SUPER + SHIFT + ALT + " .. tostring(workspace))
 end
 
-bind_exec("SUPER + SHIFT + code:13", "Region screenshot", "omarchy-capture-screenshot region")
 bind_exec("SUPER + SHIFT + 4", "Region screenshot", "omarchy-capture-screenshot region")
 
+-- Omarchy 4.0.0 registers its code:N workspace defaults with blank keys.
+-- Recreate the switch bindings with symbolic number-row keys.
+for workspace = 1, 10 do
+  local key = workspace == 10 and "0" or tostring(workspace)
+  bind_exec("SUPER + " .. key, "Switch to workspace " .. workspace, "hyprctl dispatch workspace " .. workspace)
+end
+
 for workspace = 1, 4 do
-  local key = "code:" .. tostring(workspace + 9)
+  local key = tostring(workspace)
   unbind("CTRL + " .. key)
   unbind("CTRL + SHIFT + " .. key)
   bind_exec("CTRL + " .. key, "Workspace " .. workspace, "hyprctl dispatch workspace " .. workspace)
@@ -117,7 +152,7 @@ for workspace = 1, 4 do
 end
 
 for workspace = 5, 8 do
-  local key = "code:" .. tostring(workspace + 5)
+  local key = tostring(workspace - 4)
   unbind("CTRL + SUPER + " .. key)
   unbind("CTRL + ALT + " .. key)
   unbind("CTRL + SUPER + SHIFT + " .. key)

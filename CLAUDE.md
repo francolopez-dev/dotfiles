@@ -48,10 +48,10 @@ If the profile directory does not exist, only `global` and `os-<os>` apply.
   autostart, idle, and lock config.
 
 For Hyprland, keep shared keybindings and look/feel in `stow/os-omarchy/`.
-Monitor config must live in the profile layer:
+On Omarchy 4, monitor config must live in the profile Lua layer:
 
 ```text
-stow/profile-<hostname>-omarchy/hyprland/.config/hypr/conf.d/20-monitors.conf
+stow/profile-<hostname>-omarchy/hyprland/.config/hypr/monitors.lua
 ```
 
 ## Package Lists
@@ -111,7 +111,7 @@ dotfiles apply
 - Ghostty: `stow/global/ghostty/.config/ghostty/config`.
 - Alacritty: `stow/global/alacritty/.config/alacritty/alacritty.toml`.
 - Atuin: `stow/global/atuin/.config/atuin/config.toml`.
-- Omarchy monitor scale: profile `20-monitors.conf`, never the OS layer.
+- Omarchy monitor scale: profile `monitors.lua`, never the OS layer.
 - KVM sharing (lan-mouse) peers/positions: profile
   `lan-mouse/.config/lan-mouse/config.toml`; workflow in `docs/kvm-sharing.md`.
 - Windows native dual boot (optional, manual): helper

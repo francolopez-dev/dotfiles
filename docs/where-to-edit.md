@@ -12,14 +12,15 @@ change true everywhere it should apply.
 | Global Git ignore | `stow/global/git/.gitignore_global` |
 | tmux | `stow/global/tmux/.tmux.conf` |
 | SSH client config | `stow/global/ssh/.ssh/config` |
-| Hyprland keybinds (all Omarchy machines) | `stow/os-omarchy/hyprland/.config/hypr/conf.d/99-omarchy-keymap.conf` |
-| Hyprland look/feel (all Omarchy machines) | `stow/os-omarchy/hyprland/.config/hypr/conf.d/99-personal.conf` |
-| Optional ALT-as-SUPER on one Omarchy machine | `stow/profile-<hostname>-omarchy/hyprland/.config/hypr/conf.d/50-input-alt-super.conf` |
+| Hyprland keybinds (all Omarchy machines) | `stow/os-omarchy/hyprland/.config/hypr/bindings.lua` |
+| Hyprland look/feel (all Omarchy machines) | `stow/os-omarchy/hyprland/.config/hypr/looknfeel.lua` |
+| Optional ALT-as-SUPER on one Omarchy machine | `stow/profile-<hostname>-omarchy/hyprland/.config/hypr/input.lua` |
 | Waybar | `stow/os-omarchy/waybar/.config/waybar/` |
 | Ghostty terminal style/shortcuts | `stow/global/ghostty/.config/ghostty/config` |
 | Alacritty terminal style/shortcuts | `stow/global/alacritty/.config/alacritty/alacritty.toml` |
 | Terminal font overrides for one machine | `stow/profile-<hostname>-<os>/{ghostty,alacritty}/.config/<terminal>/profile-overrides*` |
 | Default terminal launcher | `stow/os-omarchy/xdg-terminal-exec/.config/xdg-terminals.list` |
+| Omarchy Display panel persistence wrappers | `stow/os-omarchy/scripts/.local/bin/omarchy-{display-text-size,hyprland-monitor-scaling}` |
 | Atuin | `stow/global/atuin/.config/atuin/config.toml` |
 | Neovim | `stow/global/neovim/.config/nvim/` |
 | OpenCode local LLM providers/models | `stow/global/opencode/.config/opencode/opencode.json` (see `docs/local-llm.md`) |
@@ -32,9 +33,9 @@ change true everywhere it should apply.
 | macOS SketchyBar | `stow/os-macos/sketchybar/.config/sketchybar/` |
 | macOS wallpaper LaunchAgent template | `stow/os-macos/wallpapers/.local/share/dotfiles/com.dotfiles.wallpaper.plist` |
 | Shared wallpapers | `stow/global/wallpapers/.local/share/wallpapers/shared/` |
-| Monitor scale/resolution for `nox` | `stow/profile-nox-omarchy/hyprland/.config/hypr/conf.d/20-monitors.conf` |
-| Monitor scale/resolution for `fornax` | `stow/profile-fornax-omarchy/hyprland/.config/hypr/conf.d/20-monitors.conf` |
-| Autostart apps (one machine) | `stow/profile-<hostname>-omarchy/hyprland/.config/hypr/conf.d/30-autostart.conf` |
+| Monitor scale/resolution for `nox` | `stow/profile-nox-omarchy/hyprland/.config/hypr/monitors.lua` |
+| Monitor scale/resolution for `fornax` | `stow/profile-fornax-omarchy/hyprland/.config/hypr/monitors.lua` |
+| Autostart apps (one machine) | `stow/profile-<hostname>-omarchy/hyprland/.config/hypr/autostart.lua` |
 | Fornax away/no-suspend service | `stow/profile-fornax-omarchy/away/.config/systemd/user/dotfiles-away-inhibit.service` |
 | Autostart audit ignore list | `stow/profile-<hostname>-omarchy/dotfiles/.config/dotfiles/autostart.ignore` |
 | Add an Omarchy pacman package everywhere | `packages/global/pacman.txt` |
@@ -49,13 +50,13 @@ change true everywhere it should apply.
 
 ## Rules of thumb
 
-- **Monitor config is always machine-specific.** It belongs in the profile
-  layer's `20-monitors.conf`, never in `os-omarchy`. Putting it in the OS layer
-  was the old scale bug.
+- **Monitor config is always machine-specific.** On Omarchy 4 it belongs in the
+  profile layer's `monitors.lua`, never in `os-omarchy`. Use Omarchy's generic
+  scale variables when the shell Display panel should persist future changes.
 - **App launcher config stays with Omarchy.** Do not stow launcher config or
   package entries here unless there is a specific new need.
-- The OS layer and profile layer both drop files into `conf.d/`, but with
-  distinct filenames, so Stow merges them without conflict.
+- Omarchy 4 loads `~/.config/hypr/*.lua`; the old `.conf` fragments are legacy
+  compatibility files and are not the active source of truth.
 - Optional machine-specific Omarchy features belong in the matching profile
   layer, disabled by default when appropriate.
 - After editing anything, run `dotfiles apply`.

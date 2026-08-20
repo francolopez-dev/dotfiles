@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+monitor_config="$HOME/.config/hypr/monitors.lua"
+managed_target=""
+if [[ -L "$monitor_config" ]]; then
+  managed_target="$(readlink -f "$monitor_config")"
+fi
+
+/usr/bin/omarchy-hyprland-monitor-scaling "$@"
+
+# The stock helper uses sed -i, which replaces a Stow symlink. Preserve its
+# updated content in Git's source file, then restore the managed link.
+if [[ -n "$managed_target" && -f "$monitor_config" && ! -L "$monitor_config" ]]; then
+  install -m 0644 "$monitor_config" "$managed_target"
+  rm -f "$monitor_config"
+  relative_target="$(realpath --relative-to="$(dirname "$monitor_config")" "$managed_target")"
+  ln -s "$relative_target" "$monitor_config"
+fi

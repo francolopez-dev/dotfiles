@@ -10,6 +10,11 @@ must be installed on that machine, `dotfiles apply` must successfully stow the
 config, and any already-running OpenCode session must be restarted because
 OpenCode reads config only at startup.
 
+This repo intentionally does not keep a project-level `opencode.jsonc` at the
+repo root. Project config merges with global config and can keep old providers
+visible, so the managed fleet catalog lives only in the global stow layer unless
+a specific project needs an override.
+
 ## Architecture
 
 ```text
@@ -47,6 +52,13 @@ quit and restart OpenCode. If the command itself does not see the provider, run:
 ```bash
 dotfiles apply
 opencode models ollama-fornax
+```
+
+If old providers still appear inside one project, check for project-local config
+and remove it unless that project intentionally owns overrides:
+
+```bash
+ls -la opencode.json opencode.jsonc .opencode/opencode.json 2>/dev/null
 ```
 
 ## Host Setup

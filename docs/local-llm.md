@@ -197,6 +197,50 @@ Manual path for one model:
 OLLAMA_HOST=http://100.98.153.75:11434 ollama pull qwen2.5-coder:14b
 ```
 
+The Ollama server version is what matters. If you run this from lamac with
+`OLLAMA_HOST=http://100.98.153.75:11434`, the pull happens on fornax and fornax's
+server must be new enough for the model manifest. This error means the inference
+host is too old, not that the client laptop is broken:
+
+```text
+Error: pull model manifest: 412:
+The model you are attempting to pull requires a newer version of Ollama.
+```
+
+Check server and client versions:
+
+```bash
+ollama --version
+curl http://100.98.153.75:11434/api/version
+```
+
+On fornax, prefer the declared package path:
+
+```bash
+dotfiles update
+dotfiles llm setup-host
+dotfiles llm sync
+```
+
+Fornax intentionally uses binary AUR packages `ollama-bin` and
+`ollama-cuda13-bin` when Arch `extra/ollama-cuda` lags upstream model manifests.
+If a future Arch package catches up and works with the models you need, move the
+declaration back to `packages/profile-fornax-omarchy/pacman.txt`.
+
+Existing fornax installs that already have `extra/ollama-cuda` need a one-time
+manual package replacement because paru cannot auto-confirm conflict removals:
+
+```bash
+sudo systemctl stop ollama.service
+sudo pacman -Rns ollama-cuda
+paru -S --needed ollama-bin ollama-cuda13-bin
+dotfiles llm setup-host
+dotfiles llm sync
+```
+
+After that, normal `dotfiles update` keeps the binary AUR packages declared and
+will not reinstall `extra/ollama-cuda`.
+
 List installed models:
 
 ```bash
@@ -384,6 +428,29 @@ machines and that Ollama is listening on the Tailscale IP rather than only
 `127.0.0.1`.
 
 ## Look Here When Something Breaks
+
+## GUI Options
+
+Ollama has first-party desktop apps on macOS and Windows. They are useful for
+starting/stopping the local server, changing app settings, and manually testing
+models on that machine. For this dotfiles fleet workflow, keep Git as the source
+of truth for OpenCode providers and use CLI checks to verify the service.
+
+On macOS with the Ollama app, environment variables such as `OLLAMA_HOST` and
+`OLLAMA_CONTEXT_LENGTH` are set with `launchctl setenv`, then the app must be
+restarted. On Linux/fornax, use the systemd service managed by
+`dotfiles llm setup-host`.
+
+Useful GUI-adjacent commands:
+
+```bash
+open -a Ollama                 # macOS app
+brew services list | grep ollama
+systemctl status ollama.service --no-pager   # Linux/fornax
+```
+
+OpenCode itself is selected through its TUI with `/models`, or from the CLI with
+`opencode --model provider/model`.
 
 OpenCode catalog:
 

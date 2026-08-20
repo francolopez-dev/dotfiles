@@ -5,5 +5,6 @@ sof-firmware
 alsa-tools
 
 # Local LLM tooling for FORNAX only.
-ollama-cuda
+# Ollama itself is currently declared in aur.txt as binary packages because the
+# Arch extra/ollama-cuda package can lag upstream model manifests.
 lmstudio-bin

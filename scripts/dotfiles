@@ -2130,6 +2130,14 @@ llm_provider_models() {
   jq -r --arg provider "$provider" '.provider[$provider].models // {} | keys[]' "$config"
 }
 
+llm_local_ollama_url() {
+  local provider url
+  provider="$(llm_provider_for_host)"
+  llm_config_provider_exists "$provider" || return 1
+  url="$(llm_provider_url "$provider")"
+  llm_ollama_root "$url"
+}
+
 llm_curl_json() {
   local url="$1"
   command -v curl >/dev/null 2>&1 || return 1
@@ -2174,7 +2182,7 @@ cmd_llm_status() {
 }
 
 cmd_llm_sync() {
-  local provider model missing=() answer
+  local provider model missing=() answer root
   provider="$(llm_provider_for_host)"
   if ! llm_config_provider_exists "$provider"; then
     warn "this host has no Ollama provider in opencode config: $provider"
@@ -2184,9 +2192,10 @@ cmd_llm_sync() {
     err "ollama is not installed on this host"
     return 1
   fi
+  root="$(llm_ollama_root "$(llm_provider_url "$provider")")"
   while read -r model; do
     [[ -n "$model" ]] || continue
-    if ! ollama list 2>/dev/null | awk 'NR > 1 { print $1 }' | grep -Fxq "$model"; then
+    if ! OLLAMA_HOST="$root" ollama list 2>/dev/null | awk 'NR > 1 { print $1 }' | grep -Fxq "$model"; then
       missing+=("$model")
     fi
   done < <(llm_provider_models "$provider")
@@ -2204,7 +2213,7 @@ cmd_llm_sync() {
   case "$answer" in
     y|Y|yes|YES)
       for model in "${missing[@]}"; do
-        ollama pull "$model"
+        OLLAMA_HOST="$root" ollama pull "$model"
       done
       ;;
     *) warn "model pull skipped" ;;
@@ -2212,12 +2221,13 @@ cmd_llm_sync() {
 }
 
 cmd_llm_setup_host() {
-  local provider url hostport tmp
+  local provider url hostport root tmp tries=0
   provider="$(llm_provider_for_host)"
   llm_config_provider_exists "$provider" || { err "no provider declared for this host: $provider"; return 1; }
   command -v systemctl >/dev/null 2>&1 || { err "systemctl is required"; return 1; }
   command -v ollama >/dev/null 2>&1 || { err "ollama is not installed"; return 1; }
   url="$(llm_provider_url "$provider")"
+  root="$(llm_ollama_root "$url")"
   hostport="$(llm_ollama_hostport "$url")"
   tmp="$(mktemp)"
   {
@@ -2237,6 +2247,16 @@ cmd_llm_setup_host() {
   sudo systemctl daemon-reload
   sudo systemctl enable --now ollama.service
   sudo systemctl restart ollama.service
+  until llm_curl_json "$root/api/version" >/dev/null; do
+    tries=$((tries + 1))
+    if [[ "$tries" -ge 10 ]]; then
+      err "ollama.service restarted but API is not reachable at $root"
+      printf '  inspect: systemctl status ollama.service --no-pager\n' >&2
+      printf '  logs   : journalctl -u ollama.service -n 80 --no-pager\n' >&2
+      return 1
+    fi
+    sleep 1
+  done
   ok "ollama.service configured for $provider at $hostport"
 }
 
@@ -2265,14 +2285,14 @@ cmd_llm_doctor() {
     if command -v ollama >/dev/null 2>&1; then
       while read -r model; do
         [[ -n "$model" ]] || continue
-        if ollama list 2>/dev/null | awk 'NR > 1 { print $1 }' | grep -Fxq "$model"; then
+        if OLLAMA_HOST="$root" ollama list 2>/dev/null | awk 'NR > 1 { print $1 }' | grep -Fxq "$model"; then
           ok "model installed: $model"
         else
           warn "model missing: $model"
           failed=1
         fi
       done < <(llm_provider_models "$provider")
-      ps_output="$(ollama ps 2>/dev/null || true)"
+      ps_output="$(OLLAMA_HOST="$root" ollama ps 2>/dev/null || true)"
       if [[ -n "$ps_output" ]]; then
         printf '%s\n' "$ps_output"
         if grep -q '100% GPU' <<<"$ps_output"; then
@@ -2331,6 +2351,7 @@ away_unit_active() {
 }
 
 cmd_away_status() {
+  local root
   away_require_fornax || return 1
   printf 'Away mode: '
   if away_unit_active; then printf 'on\n'; else printf 'off\n'; fi
@@ -2342,7 +2363,11 @@ cmd_away_status() {
     printf 'ollama.service: %s\n' "$(systemctl is-active ollama.service 2>/dev/null || printf unavailable)"
   fi
   if command -v ollama >/dev/null 2>&1; then
-    ollama ps 2>/dev/null || true
+    if root="$(llm_local_ollama_url 2>/dev/null)"; then
+      OLLAMA_HOST="$root" ollama ps 2>/dev/null || true
+    else
+      ollama ps 2>/dev/null || true
+    fi
   fi
   if command -v nvidia-smi >/dev/null 2>&1; then
     nvidia-smi --query-gpu=temperature.gpu,memory.used,memory.total,power.draw --format=csv,nounits 2>/dev/null || true

@@ -2127,6 +2127,93 @@ llm_provider_models() {
   jq -r --arg provider "$provider" '.provider[$provider].models // {} | keys[]' "$config"
 }
 
+llm_local_models() {
+  local root="$1"
+  OLLAMA_HOST="$root" ollama list 2>/dev/null | awk 'NR > 1 { print $1 }'
+}
+
+llm_provider_default_context() {
+  local provider="$1"
+  case "$provider" in
+    ollama-fornax) printf '65536\n' ;;
+    *) printf '32768\n' ;;
+  esac
+}
+
+llm_version_lt() {
+  local left="$1" right="$2" first
+  [[ "$left" == "$right" ]] && return 1
+  first="$(printf '%s\n%s\n' "$left" "$right" | sort -V | sed -n '1p')"
+  [[ "$first" == "$left" ]]
+}
+
+llm_api_version() {
+  local root="$1" json
+  json="$(llm_curl_json "$root/api/version")" || return 1
+  jq -r '.version // empty' <<<"$json"
+}
+
+llm_sync_opencode_models() {
+  local provider="$1" root="$2" config tmp models_json context host added=()
+  config="$(opencode_config_path)"
+  tmp="$(mktemp)"
+  context="$(llm_provider_default_context "$provider")"
+  host="${provider#ollama-}"
+  models_json="$(llm_local_models "$root" | jq -Rsc 'split("\n") | map(select(length > 0))')"
+
+  while read -r model; do
+    [[ -n "$model" ]] || continue
+    if ! llm_provider_models "$provider" | grep -Fxq "$model"; then
+      added+=("$model")
+    fi
+  done < <(jq -r '.[]' <<<"$models_json")
+
+  jq --arg provider "$provider" --arg host "$host" --argjson models "$models_json" --argjson context "$context" '
+    def model_name($model; $host):
+      ($model
+        | sub(":latest$"; "")
+        | gsub("[-_.:]"; " ")
+        | split(" ")
+        | map(if length > 0 then (.[0:1] | ascii_upcase) + .[1:] else . end)
+        | join(" ")) + " - " + $host;
+    (.provider[$provider].models // {}) as $existing |
+    reduce $models[] as $model (.;
+      .provider[$provider].models[$model] = (
+        ($existing[$model] // {}) + {
+          name: (($existing[$model].name // model_name($model; $host))),
+          tool_call: (($existing[$model].tool_call // true)),
+          limit: (($existing[$model].limit // {context: $context, output: 8192}))
+        }
+      )
+    )
+  ' "$config" >"$tmp"
+  install -m 0644 "$tmp" "$config"
+  rm -f "$tmp"
+
+  if [[ ${#added[@]} -gt 0 ]]; then
+    ok "added $provider model(s) to OpenCode: ${added[*]}"
+  else
+    ok "OpenCode already declares installed $provider models"
+  fi
+}
+
+llm_ensure_current_fornax_ollama() {
+  local root="$1" current latest
+  [[ "$(detect_os)" == "omarchy" && "$(detect_hostname)" == "fornax" ]] || return 0
+  command -v curl >/dev/null 2>&1 || return 0
+  command -v jq >/dev/null 2>&1 || return 0
+  current="$(llm_api_version "$root" 2>/dev/null || true)"
+  latest="$(llm_latest_ollama_release 2>/dev/null || true)"
+  [[ "$latest" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || return 0
+  if [[ -z "$current" || "$current" == "unknown" || "$current" == "$latest" ]]; then
+    return 0
+  fi
+  if llm_version_lt "$current" "$latest"; then
+    warn "Ollama $current is older than upstream $latest; installing upstream binary for configured models"
+    cmd_llm_install_upstream_ollama "$latest"
+  fi
+}
+
 llm_local_ollama_url() {
   local provider url
   provider="$(llm_provider_for_host)"
@@ -2179,8 +2266,13 @@ cmd_llm_install_upstream_ollama() {
   install_dir="/opt/ollama-$version"
   current_link="/opt/ollama-current"
 
-  cleanup() { rm -rf "$tmp"; }
+  cleanup() { [[ -n "${tmp:-}" ]] && rm -rf "$tmp"; }
   trap cleanup RETURN
+
+  if ! sudo -v; then
+    err "sudo authentication is required; run from an interactive terminal: dotfiles llm sync"
+    return 1
+  fi
 
   info "Downloading Ollama $version upstream binary"
   curl -fsSL --retry 3 --connect-timeout 10 -o "$archive" "$base_url/$asset"
@@ -2194,14 +2286,17 @@ cmd_llm_install_upstream_ollama() {
     return 1
   fi
 
-  sudo rm -rf "$install_dir"
-  sudo install -d -m 0755 "$install_dir"
-  sudo tar -C "$install_dir" -xf "$archive"
-  sudo ln -sfn "$install_dir" "$current_link"
-  sudo ln -sfn "$current_link/bin/ollama" /usr/local/bin/ollama
+  sudo rm -rf "$install_dir" || return 1
+  sudo install -d -m 0755 "$install_dir" || return 1
+  sudo tar -C "$install_dir" -xf "$archive" || return 1
+  sudo ln -sfn "$install_dir" "$current_link" || return 1
+  sudo ln -sfn "$current_link/bin/ollama" /usr/local/bin/ollama || return 1
   upstream_bin="$current_link/bin/ollama"
   "$upstream_bin" --version || true
   ok "installed upstream Ollama $version at $install_dir"
+  cleanup
+  trap - RETURN
+  tmp=""
   cmd_llm_setup_host
 }
 
@@ -2219,9 +2314,11 @@ cmd_llm_models() {
 }
 
 cmd_llm_status() {
-  local provider url root version hostport
+  local provider url root version hostport missing_config=() missing_local=()
   while read -r provider; do
     [[ -n "$provider" ]] || continue
+    missing_config=()
+    missing_local=()
     url="$(llm_provider_url "$provider")"
     root="$(llm_ollama_root "$url")"
     hostport="$(llm_ollama_hostport "$url")"
@@ -2231,6 +2328,30 @@ cmd_llm_status() {
       printf '  api: reachable (%s)\n' "$(jq -r '.version // "unknown"' <<<"$version" 2>/dev/null || printf unknown)"
     else
       printf '  api: unavailable\n'
+    fi
+    if command -v ollama >/dev/null 2>&1 && llm_curl_json "$root/api/version" >/dev/null; then
+      while read -r model; do
+        [[ -n "$model" ]] || continue
+        if ! llm_provider_models "$provider" | grep -Fxq "$model"; then
+          missing_config+=("$model")
+        fi
+      done < <(llm_local_models "$root")
+      while read -r model; do
+        [[ -n "$model" ]] || continue
+        if ! llm_local_models "$root" | grep -Fxq "$model"; then
+          missing_local+=("$model")
+        fi
+      done < <(llm_provider_models "$provider")
+      if [[ ${#missing_config[@]} -gt 0 ]]; then
+        printf '  opencode missing: %s\n' "${missing_config[*]}"
+      else
+        printf '  opencode: all installed models declared\n'
+      fi
+      if [[ ${#missing_local[@]} -gt 0 ]]; then
+        printf '  ollama missing: %s\n' "${missing_local[*]}"
+      else
+        printf '  ollama: all declared models installed\n'
+      fi
     fi
     if command -v tailscale >/dev/null 2>&1 && [[ "$hostport" == 100.* ]]; then
       if tailscale ping --timeout=2s --c 1 "${hostport%%:*}" >/dev/null 2>&1; then
@@ -2254,9 +2375,12 @@ cmd_llm_sync() {
     return 1
   fi
   root="$(llm_ollama_root "$(llm_provider_url "$provider")")"
+  llm_ensure_current_fornax_ollama "$root" || return 1
+  root="$(llm_ollama_root "$(llm_provider_url "$provider")")"
+  llm_sync_opencode_models "$provider" "$root"
   while read -r model; do
     [[ -n "$model" ]] || continue
-    if ! OLLAMA_HOST="$root" ollama list 2>/dev/null | awk 'NR > 1 { print $1 }' | grep -Fxq "$model"; then
+    if ! llm_local_models "$root" | grep -Fxq "$model"; then
       missing+=("$model")
     fi
   done < <(llm_provider_models "$provider")
@@ -2292,6 +2416,10 @@ cmd_llm_setup_host() {
   hostport="$(llm_ollama_hostport "$url")"
   bind_hostport="0.0.0.0:${hostport##*:}"
   upstream_bin="$(llm_upstream_ollama_bin || true)"
+  if ! sudo -v; then
+    err "sudo authentication is required; run from an interactive terminal: dotfiles llm setup-host"
+    return 1
+  fi
   tmp="$(mktemp)"
   {
     printf '[Service]\n'
@@ -2308,12 +2436,12 @@ cmd_llm_setup_host() {
     printf 'Environment="OLLAMA_KEEP_ALIVE=15m"\n'
     printf 'Environment="OLLAMA_NO_CLOUD=1"\n'
   } >"$tmp"
-  sudo install -d -m 0755 /etc/systemd/system/ollama.service.d
-  sudo install -m 0644 "$tmp" /etc/systemd/system/ollama.service.d/dotfiles.conf
+  sudo install -d -m 0755 /etc/systemd/system/ollama.service.d || return 1
+  sudo install -m 0644 "$tmp" /etc/systemd/system/ollama.service.d/dotfiles.conf || return 1
   rm -f "$tmp"
-  sudo systemctl daemon-reload
-  sudo systemctl enable --now ollama.service
-  sudo systemctl restart ollama.service
+  sudo systemctl daemon-reload || return 1
+  sudo systemctl enable --now ollama.service || return 1
+  sudo systemctl restart ollama.service || return 1
   until llm_curl_json "$root/api/version" >/dev/null; do
     tries=$((tries + 1))
     if [[ "$tries" -ge 10 ]]; then

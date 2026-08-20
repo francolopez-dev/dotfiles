@@ -40,13 +40,13 @@ bar_output() {
   mem="$(memory_percent || true)"
   gpu="$(gpu_percent || true)"
 
-  label="C${cpu:-?} M${mem:-?}"
+  label="c${cpu:-?} m${mem:-?}"
   details="CPU: ${cpu:-unknown}%\nRAM: ${mem:-unknown}%"
   max=0
   [[ "$cpu" =~ ^[0-9]+$ && "$cpu" -gt "$max" ]] && max="$cpu"
   [[ "$mem" =~ ^[0-9]+$ && "$mem" -gt "$max" ]] && max="$mem"
   if [[ "$gpu" =~ ^[0-9]+$ ]]; then
-    label+=" G${gpu}"
+    label+=" g${gpu}"
     details+="\nGPU: ${gpu}%"
     [[ "$gpu" -gt "$max" ]] && max="$gpu"
   fi

@@ -74,6 +74,18 @@ bind_exec("CTRL + SHIFT + equal", "Horizontal resize active window", "hyprctl di
 bind_exec("CTRL + minus", "Horizontal resize active window opposite", "hyprctl dispatch resizeactive -100 0")
 
 -- Aerospace-style workspace navigation.
+for workspace = 1, 10 do
+  local stock_key = "code:" .. tostring(workspace + 9)
+  unbind("SUPER + " .. stock_key)
+  unbind("SUPER + SHIFT + " .. stock_key)
+  unbind("SUPER + ALT + SHIFT + " .. stock_key)
+  unbind("SUPER + SHIFT + ALT + " .. stock_key)
+  unbind("SUPER + " .. tostring(workspace))
+  unbind("SUPER + SHIFT + " .. tostring(workspace))
+  unbind("SUPER + ALT + SHIFT + " .. tostring(workspace))
+  unbind("SUPER + SHIFT + ALT + " .. tostring(workspace))
+end
+
 for workspace = 1, 4 do
   local key = tostring(workspace)
   unbind("CTRL + " .. key)

@@ -2375,9 +2375,9 @@ cmd_llm_sync() {
     return 1
   fi
   root="$(llm_ollama_root "$(llm_provider_url "$provider")")"
+  llm_sync_opencode_models "$provider" "$root"
   llm_ensure_current_fornax_ollama "$root" || return 1
   root="$(llm_ollama_root "$(llm_provider_url "$provider")")"
-  llm_sync_opencode_models "$provider" "$root"
   while read -r model; do
     [[ -n "$model" ]] || continue
     if ! llm_local_models "$root" | grep -Fxq "$model"; then

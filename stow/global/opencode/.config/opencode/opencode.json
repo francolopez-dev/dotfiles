@@ -37,6 +37,22 @@
             "context": 65536,
             "output": 8192
           }
+        },
+        "muse-glimmer:latest": {
+          "name": "Muse Glimmer - fornax",
+          "tool_call": true,
+          "limit": {
+            "context": 65536,
+            "output": 8192
+          }
+        },
+        "gemma4:26b": {
+          "name": "Gemma4 26b - fornax",
+          "tool_call": true,
+          "limit": {
+            "context": 65536,
+            "output": 8192
+          }
         }
       }
     },

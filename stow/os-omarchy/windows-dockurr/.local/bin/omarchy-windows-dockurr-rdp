@@ -1,14 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-compose_file="${WINDOWS_DOCKURR_COMPOSE_FILE:-$HOME/.config/windows/docker-compose.yml}"
+credentials_file="$HOME/.config/windows/credentials"
+krb5_config="$HOME/.config/windows/krb5.conf"
+omarchy_windows_vm=/usr/bin/omarchy-windows-vm
 
 usage() {
   cat <<'EOF'
 Usage: omarchy-windows-dockurr-rdp [launch|start] [--keep-alive]
 
-Start the Omarchy Dockurr Windows container if needed and connect with tuned
-FreeRDP settings for image quality and responsiveness.
+Start the protected Omarchy Dockurr Windows container if needed and connect with
+tuned FreeRDP settings for image quality and responsiveness.
 EOF
 }
 
@@ -18,16 +20,17 @@ require_cmd() {
   command -v "$1" >/dev/null 2>&1 || die "missing command: $1"
 }
 
-compose_env() {
-  local key="$1"
-  awk -v key="$key" '
-    $1 == key ":" {
-      sub("^[^:]+:[[:space:]]*", "")
-      gsub(/^"|"$/, "")
-      print
-      exit
-    }
-  ' "$compose_file"
+read_credential() {
+  local wanted="$1" key value
+
+  while IFS='=' read -r key value; do
+    if [[ $key == "$wanted" ]]; then
+      printf '%s' "$value"
+      return 0
+    fi
+  done <"$credentials_file"
+
+  return 1
 }
 
 rdp_scale_arg() {
@@ -46,13 +49,29 @@ rdp_scale_arg() {
   fi
 }
 
+rdp_ready() {
+  local win_user="$1" win_pass="$2"
+
+  printf '%s\n' \
+    "/u:$win_user" \
+    "/p:$win_pass" \
+    '/v:127.0.0.1:3389' \
+    '/auth-pkg-list:!kerberos' \
+    '/cert:ignore' \
+    '/auth-only' |
+    timeout 10 xfreerdp3 /args-from:stdin >/dev/null 2>&1
+}
+
 wait_for_windows() {
-  local wait_count=0
-  until docker logs omarchy-windows 2>&1 | grep -qi "windows started successfully"; do
+  local win_user="$1" win_pass="$2" wait_count=0
+
+  until rdp_ready "$win_user" "$win_pass"; do
     sleep 2
     wait_count=$((wait_count + 1))
-    if (( wait_count > 60 )); then
-      die "timeout waiting for Windows startup; check: docker logs omarchy-windows"
+    if (( wait_count > 150 )); then
+      command -v notify-send >/dev/null 2>&1 &&
+        notify-send -u critical "Windows VM" "RDP did not become ready within 5 minutes"
+      die "timeout waiting for Windows RDP; check: $omarchy_windows_vm status"
     fi
   done
 }
@@ -65,24 +84,31 @@ launch_windows() {
     *) die "unknown option: $1" ;;
   esac
 
-  [[ -f $compose_file ]] || die "compose file not found: $compose_file"
-  require_cmd docker
+  [[ -x $omarchy_windows_vm ]] || die "missing command: $omarchy_windows_vm"
+  [[ -r $credentials_file ]] || die "credentials not found: $credentials_file"
+  require_cmd pkexec
+  require_cmd timeout
   require_cmd xfreerdp3
 
-  local win_user win_pass container_status rdp_scale
-  win_user=$(compose_env USERNAME)
-  win_pass=$(compose_env PASSWORD)
+  local win_user win_pass rdp_scale
+  win_user=$(read_credential USERNAME || true)
+  win_pass=$(read_credential PASSWORD || true)
   [[ -n $win_user ]] || win_user="docker"
   [[ -n $win_pass ]] || win_pass="admin"
 
-  container_status=$(docker inspect --format='{{.State.Status}}' omarchy-windows 2>/dev/null || true)
-  if [[ $container_status != "running" ]]; then
+  mkdir -p "$(dirname "$krb5_config")"
+  if [[ ! -f $krb5_config ]]; then
+    printf '[libdefaults]\n  dns_lookup_kdc = false\n  dns_lookup_realm = false\n' >"$krb5_config"
+  fi
+  export KRB5_CONFIG="$krb5_config"
+
+  if ! rdp_ready "$win_user" "$win_pass"; then
     printf 'Starting Windows VM...\n'
     if command -v notify-send >/dev/null 2>&1; then
       notify-send "Windows VM" "Starting Windows VM" -t 15000
     fi
-    docker compose -f "$compose_file" up -d
-    wait_for_windows
+    pkexec "$omarchy_windows_vm" __priv up || die "failed to start Windows VM"
+    wait_for_windows "$win_user" "$win_pass"
   fi
 
   rdp_scale=$(rdp_scale_arg)
@@ -91,6 +117,7 @@ launch_windows() {
     "/u:$win_user"
     "/p:$win_pass"
     "/v:127.0.0.1:3389"
+    "/auth-pkg-list:!kerberos"
     "-grab-keyboard"
     "/sound"
     "/microphone"
@@ -113,11 +140,11 @@ launch_windows() {
 
   if [[ $keep_alive == false ]]; then
     printf 'RDP session closed. Stopping Windows VM...\n'
-    docker compose -f "$compose_file" stop windows
+    "$omarchy_windows_vm" stop
     printf 'Windows VM stopped.\n'
   else
     printf 'RDP session closed. Windows VM is still running.\n'
-    printf 'To stop it: docker compose -f %q stop windows\n' "$compose_file"
+    printf 'To stop it: %s stop\n' "$omarchy_windows_vm"
   fi
 }
 

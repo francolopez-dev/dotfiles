@@ -382,6 +382,8 @@ Quick troubleshooting:
 |---|---|---|
 | `test -f ... || ssh-keygen ...` prints nothing | the key already exists | run `cat ~/.ssh/id_ed25519.pub` |
 | `ssh-copy-id` says permission denied | the server does not yet trust this laptop and password login did not work | add the public key from another trusted machine/session |
+| Tailscale says policy does not permit your local macOS/Linux username | the host alias has no remote `User`, so SSH reused the client's username | add the server alias and its Linux account to the stowed SSH config; personal servers use `jfranco` |
+| Tailscale prints an authentication URL | the SSH policy requires a periodic identity check | open the URL, authenticate, then reconnect |
 | key has the same filename as another laptop | not a problem by itself | access depends on public key contents, not filename |
 | using `id_ed25519-fornax` | SSH may not offer it automatically because `IdentitiesOnly yes` is set | add `IdentityFile` in `~/.ssh/config.local` |
 | worried keys were committed | keys should be local under `~/.ssh` | check `git -C ~/dotfiles status --short` and `git -C ~/dotfiles ls-files -- stow/global/ssh/.ssh` |

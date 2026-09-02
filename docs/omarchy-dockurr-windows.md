@@ -13,11 +13,10 @@ for the Omarchy-provided Dockurr container under `~/.config/windows/`.
 
 ## Managed Files
 
-The reusable Dockurr tuning lives in the Omarchy stow layer:
+The reusable Dockurr launcher lives in the Omarchy stow layer:
 
 ```text
 stow/os-omarchy/windows-dockurr/.local/bin/omarchy-windows-dockurr-rdp
-stow/os-omarchy/windows-dockurr/.local/bin/omarchy-windows-dockurr-tune
 stow/os-omarchy/windows-dockurr/.local/share/applications/windows-vm.desktop
 ```
 
@@ -25,24 +24,22 @@ After `dotfiles apply`, these appear as:
 
 ```text
 ~/.local/bin/omarchy-windows-dockurr-rdp
-~/.local/bin/omarchy-windows-dockurr-tune
 ~/.local/share/applications/windows-vm.desktop
 ```
 
 The desktop entry intentionally uses the user-owned wrapper instead of editing
-Omarchy source under `~/.local/share/omarchy/`.
+the packaged `/usr/bin/omarchy-windows-vm` command.
 
 ## Local Files Not In Git
 
-Do not commit the live Compose file:
+Omarchy 4.0.2 and later protect the live Compose file at:
 
 ```text
-~/.config/windows/docker-compose.yml
+/var/lib/omarchy/windows/docker-compose.yml
 ```
 
-It contains machine-local settings and may contain the Windows username/password.
-The tuning helper edits it in place and creates a timestamped backup before any
-change.
+It is root-owned and must not be edited or copied into Git. RDP credentials remain
+in the private per-user `~/.config/windows/credentials` file.
 
 The persistent Windows data is also local and must not be committed:
 
@@ -53,44 +50,24 @@ The persistent Windows data is also local and must not be committed:
 
 ## First-Time Use On A New Omarchy Machine
 
-Install or create the Omarchy Windows VM through Omarchy first. Confirm that the
-compose file exists and that storage points at the existing Dockurr storage path:
+Install or create the Omarchy Windows VM through Omarchy first:
 
 ```bash
-docker compose -f ~/.config/windows/docker-compose.yml config
+omarchy-windows-vm install
 ```
 
-Then apply dotfiles and tune the local compose file:
+Then apply dotfiles:
 
 ```bash
 dotfiles apply
-omarchy-windows-dockurr-tune
-docker compose -f ~/.config/windows/docker-compose.yml up -d --no-deps windows
 ```
 
-`omarchy-windows-dockurr-tune` preserves existing environment variables,
-credentials, volumes, ports, devices, capabilities, storage paths, and networking.
-It only updates `CPU_CORES` and `RAM_SIZE` after validating the compose file and
-checking that the storage mount is recognizable.
-
-## Resource Policy
-
-The tuning helper uses simple host-resource rules:
-
-- CPU cores: about half of logical CPUs, minimum 4 when possible, while leaving
-  cores for Linux.
-- RAM: about one third of host RAM, normally in the 8G-16G range, while leaving
-  at least 6G for Linux.
-
-For example, a 24-thread, 30 GiB RAM host is tuned to:
-
-```yaml
-RAM_SIZE: "12G"
-CPU_CORES: "12"
-```
-
-If the host is smaller, the helper chooses lower values rather than starving
-Linux.
+The wrapper starts the VM through Omarchy's protected privileged action. It does
+not require membership in the root-equivalent `docker` group and does not modify
+the root-owned Compose file. Before startup it explicitly clears inherited
+setgid bits and normalizes `~/.windows` and `~/Windows` to mode `0700`, which
+Omarchy's protected bind-mount helper requires when recreating its mount anchors
+after a reboot.
 
 ## RDP Wrapper
 
@@ -115,8 +92,9 @@ titled `Windows VM - Omarchy`) by `omarchy-close-window` and
 `omarchy-quit-app`, so accidental close-window/quit-app keystrokes do not
 terminate the RDP client.
 
-The wrapper starts the existing container if needed, then connects with
-`xfreerdp3` using supported FreeRDP 3 options:
+The wrapper starts the existing container if needed, waits for an authenticated
+RDP probe instead of a container log message, then connects with `xfreerdp3`
+using supported FreeRDP 3 options:
 
 ```text
 +dynamic-resolution
@@ -130,6 +108,7 @@ The wrapper starts the existing container if needed, then connects with
 /sound
 /microphone
 /clipboard
+/auth-pkg-list:!kerberos
 ```
 
 It passes arguments through FreeRDP `/args-from:stdin` so the password is not
@@ -153,27 +132,10 @@ flags or unsupported display options.
 
 ## Verify Runtime State
 
-Check the compose project and container:
+Check the VM through Omarchy:
 
 ```bash
-docker compose -f ~/.config/windows/docker-compose.yml config
-docker compose -f ~/.config/windows/docker-compose.yml ps
-docker inspect omarchy-windows
-```
-
-Check KVM and QEMU resource allocation:
-
-```bash
-docker exec omarchy-windows sh -c 'ls -l /dev/kvm; ps -ef | grep qemu-system-x86_64 | grep -v grep'
-```
-
-Look for:
-
-```text
-accel=kvm
--enable-kvm
--smp <CPU_CORES>
--m <RAM_SIZE>
+omarchy-windows-vm status
 ```
 
 Check RDP reachability:
@@ -184,26 +146,18 @@ nc -zv 127.0.0.1 3389
 
 ## Rollback
 
-The tuning helper prints the backup path. Restore it, then recreate only the
-Windows service from the same Compose file:
-
-```bash
-cp ~/.config/windows/docker-compose.yml.bak.TIMESTAMP ~/.config/windows/docker-compose.yml
-docker compose -f ~/.config/windows/docker-compose.yml up -d --no-deps windows
-```
-
 To stop using the stowed launcher wrapper on one machine:
 
 ```bash
 stow --dir=~/dotfiles/stow/os-omarchy --target=$HOME --delete windows-dockurr
 ```
 
-Then reinstall or refresh Omarchy's original Windows launcher if needed.
+The packaged launcher remains at `/usr/bin/omarchy-windows-vm`; run it directly
+or reinstall the `omarchy` package if it is missing.
 
 ## Safety Rules
 
-- Do not run `docker compose down -v` for this VM unless intentionally deleting
-  all Windows data.
+- Do not bypass `/usr/bin/omarchy-windows-vm` with direct Docker commands.
 - Do not change `VERSION`, storage volumes, credentials, or networking unless
   fixing a specific problem.
 - Do not reinstall or recreate the VM for graphics tuning.

@@ -64,7 +64,10 @@ dotfiles apply
 
 The wrapper starts the VM through Omarchy's protected privileged action. It does
 not require membership in the root-equivalent `docker` group and does not modify
-the root-owned Compose file.
+the root-owned Compose file. Before startup it explicitly clears inherited
+setgid bits and normalizes `~/.windows` and `~/Windows` to mode `0700`, which
+Omarchy's protected bind-mount helper requires when recreating its mount anchors
+after a reboot.
 
 ## RDP Wrapper
 

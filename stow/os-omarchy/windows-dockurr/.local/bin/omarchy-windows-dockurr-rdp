@@ -14,7 +14,11 @@ tuned FreeRDP settings for image quality and responsiveness.
 EOF
 }
 
-die() { printf 'err %s\n' "$*" >&2; exit 1; }
+die() {
+  printf 'err %s\n' "$*" >&2
+  command -v notify-send >/dev/null 2>&1 && notify-send -u critical "Windows VM" "$*"
+  exit 1
+}
 
 require_cmd() {
   command -v "$1" >/dev/null 2>&1 || die "missing command: $1"
@@ -86,6 +90,8 @@ launch_windows() {
 
   [[ -x $omarchy_windows_vm ]] || die "missing command: $omarchy_windows_vm"
   [[ -r $credentials_file ]] || die "credentials not found: $credentials_file"
+  [[ -d $HOME/.windows ]] || die "storage directory not found: $HOME/.windows"
+  [[ -d $HOME/Windows ]] || die "shared directory not found: $HOME/Windows"
   require_cmd pkexec
   require_cmd timeout
   require_cmd xfreerdp3
@@ -103,6 +109,13 @@ launch_windows() {
   export KRB5_CONFIG="$krb5_config"
 
   if ! rdp_ready "$win_user" "$win_pass"; then
+    # Omarchy's protected bind-mount helper requires exact 0700 modes after a
+    # reboot. Normalize them as their owner before entering the privileged path.
+    chmod g-s "$HOME/.windows" "$HOME/Windows" || die "failed to clear Windows VM setgid modes"
+    chmod 0700 "$HOME/.windows" "$HOME/Windows" || die "failed to secure Windows VM directories"
+    [[ $(stat -Lc '%a' "$HOME/.windows") == 700 ]] || die "invalid mode on $HOME/.windows"
+    [[ $(stat -Lc '%a' "$HOME/Windows") == 700 ]] || die "invalid mode on $HOME/Windows"
+
     printf 'Starting Windows VM...\n'
     if command -v notify-send >/dev/null 2>&1; then
       notify-send "Windows VM" "Starting Windows VM" -t 15000
